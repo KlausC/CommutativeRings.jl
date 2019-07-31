@@ -9,6 +9,9 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     while isprime(m)
         m -= 2
     end
+
+    @test owner(ZZmod{m}) == ZZmodClass
+
     m = T(m)
     phi = totient(m)
     p = factor(m).pe[end].first # the greateset prime factori of m
@@ -18,6 +21,7 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     @test iszero(z)
     @test !isone(z)
     o = one(z)
+    @test isunit(o)
     @test isone(o)
     @test !iszero(o)
     n1 = T(19)
@@ -28,6 +32,7 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     z1 = ZZmod{m,T}(n1)
     z2 = ZZmod{m}(n2)
     zp = ZZmod{m}(p)
+    @test isunit(z1)
     @test z1 + z1 == ZZmod(T(2n1), m)
     
     @test z1 - z1 == z
@@ -44,9 +49,14 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     z4 = z3 + o
     @test z3 / z1 == ZZmod{m}(T(2))
     @test z4 / z1 == z4 * inv(z1)
+    @test z1 \ z4 == z4 / z1
 
     @test z1^phi == o
     @test z2^(phi-1) == inv(z2)
 
     @test_throws DomainError inv(zp)
+
+    @test CommutativeRings.invmod2(big"12", big"31") == big"13"
+    @test CommutativeRings._unsigned(Int) == UInt
+    @test CommutativeRings._unsigned(BigInt) == BigInt
 end

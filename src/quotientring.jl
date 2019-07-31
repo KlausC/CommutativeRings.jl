@@ -27,9 +27,9 @@ isunit(x::ZZmod{m,T}) where {m,T} = gcd(T(m), x.val) == 1
 iszero(x::ZZmod) = iszero(x.val)
 isone(x::ZZmod) = isone(x.val)
 zero(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m,S}(zero(S), NOCHECK)
-zero(::Type{<:ZZmod{m}}) where {m} = ZZmod{m,typeof(m)}(zero(m), NOCHECK)
+zero(::Type{ZZmod{m}}) where {m} = ZZmod{m,typeof(m)}(zero(m), NOCHECK)
 one(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m}(one(S))
-one(::Type{<:ZZmod{m}}) where {m} = ZZmod{m}(one(m))
+one(::Type{ZZmod{m}}) where {m} = ZZmod{m}(one(m))
 ==(a::ZZmod{m},b::ZZmod{m}) where m = a.val == b.val
 
 # implementation of checked multiplication
@@ -40,18 +40,17 @@ function mult_ZZmod(a::T, b::T, m::T) where T<:Integer
 end
 
 # improved version of invmod
-function invmod2(n::T, m::T) where T<:Signed
+function invmod2(n::T, m::T) where T<:Union{Signed,BigInt}
+    m == T(0) && throw(DomainError(m, "`m` must not be 0."))
     p = _unsigned(abs(m))
     q = n >= 0 ? rem(_unsigned(n), p) : p - rem(_unsigned(-n), p)
-    q = p == q ? zero(_unsigned(T)) : q
-    iszero(q) && throw(DomainError((n, m), "Greatest common divisor is $m"))
+    !iszero(q) && p != q || throw(DomainError((n, m), "Greatest common divisor is $m"))
     r = invmod_unsigned(q, p)
     m < 0 ? T(r) + m : T(r)
     # The postcondition is: mod(widemul(r, n), m) == mod(T(1), m) && div(r, m) == 0
 end
 # assumptions is, that  0 <= n < m
 function invmod_unsigned(n::T, m::T) where T<:Union{Unsigned,BigInt}
-    m == T(0) && throw(DomainError(m, "`m` must not be 0."))
     n = n < m ? n : rem(n, m)
     g, r, y = gcdx(n, m)
     g != 1 && throw(DomainError((n, m), "Greatest common divisor is $g."))
@@ -60,21 +59,6 @@ function invmod_unsigned(n::T, m::T) where T<:Union{Unsigned,BigInt}
         r += m
     end
     r
-    # The postcondition is: mod(widemul(r, n), m) == mod(T(1), m) && div(r, m) == 0
-end
-
-function invmod2_obs(n::T, m::T) where T<:BigInt
-    p = abs(m)
-    p == T(0) && throw(DomainError(m, "`m` must not be 0."))
-    r = min(m, T(0))
-    n = rem(n, p)
-    g, x, y = gcdx(n, p)
-    g != 1 && throw(DomainError((n, p), "Greatest common divisor is $g."))
-    # For unsigned T, x might be close to typemax; add m to force a wrap-around.
-    if (T<:Unsigned && Base.hastypemax(T) && x > typemax(T)>>1) || (T<:Signed && x < 0)
-        r += p
-    end
-    r += x
     # The postcondition is: mod(widemul(r, n), m) == mod(T(1), m) && div(r, m) == 0
 end
 

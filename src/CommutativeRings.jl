@@ -111,7 +111,6 @@ struct MultivariatePolynomial{Id,N,S<:Ring,T<:MultiPolyRingClass} <: Polynomial{
     coeff::Dict{NTuple{N,Int},S}
 end
 
-owner(::Ring{T}) where T = T
 const NOCHECK = Val(:nocheck)
 
 include("generic.jl")
