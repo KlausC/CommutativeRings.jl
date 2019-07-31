@@ -88,8 +88,8 @@ If `p` is a prime number, `ZZmod{p}` is the field `ZZ/p`.
 """
 struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass}
     val::S
+    ZZmod{m,T}(a::Integer, ::Val{:nocheck}) where {m,T} = new{m,T}(T(a))
 end
-
 """
     UnivariatePolynomial{Var,S<:RingInt}
 
@@ -110,7 +110,9 @@ the variable names and properties.
 struct MultivariatePolynomial{Id,N,S<:Ring,T<:MultiPolyRingClass} <: Polynomial{S,T}
     coeff::Dict{NTuple{N,Int},S}
 end
+
 owner(::Ring{T}) where T = T
+const NOCHECK = Val(:nocheck)
 
 include("generic.jl")
 #include("fractionfield.jl")
