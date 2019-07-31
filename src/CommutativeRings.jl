@@ -25,8 +25,8 @@ abstract type MultiPolyRingClass <: RingClass end
 
 
 # Ring subtypes describe the ring elements
-# They era connected to a corresponding RingClass by type parameters
-# and method `owner`.
+# They are connected to a corresponding RingClass by type parameters
+# and accessible by method `owner`.
 """
     Ring{<:RingClass}
 

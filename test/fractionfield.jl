@@ -20,10 +20,12 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     @test z == zero(z)
     @test iszero(z)
     @test !isone(z)
+    @test zero(ZZmod{m}) == z
     o = one(z)
     @test isunit(o)
     @test isone(o)
     @test !iszero(o)
+    @test one(ZZmod{m}) == o
     n1 = T(19)
     while gcd(n1, m) != 1
         n1 += T(1)
@@ -55,8 +57,11 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     @test z2^(phi-1) == inv(z2)
 
     @test_throws DomainError inv(zp)
+end
 
+@testset "auxiliary functions" begin
     @test CommutativeRings.invmod2(big"12", big"31") == big"13"
     @test CommutativeRings._unsigned(Int) == UInt
     @test CommutativeRings._unsigned(BigInt) == BigInt
+    @test CommutativeRings._unsigned(big"-1") == big"-1"
 end
