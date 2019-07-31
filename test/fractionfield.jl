@@ -4,7 +4,7 @@ using Primes
 tm(T::Type{<:Integer}) = typemax(T)
 tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
 
-@testset "ZZmod{$m,$T}" for T in (Int32, Int64, #= BigInt =# ), m in (65, tm(T))
+@testset "ZZmod{$m,$T}" for T in (Int32, Int64, UInt16, #= BigInt =# ), m in (65, tm(T))
     
     while isprime(m)
         m -= 2
@@ -30,7 +30,7 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     while gcd(n1, m) != 1
         n1 += T(1)
     end
-    n2 = tm(T) - 16
+    n2 = tm(T) - T(16)
     z1 = ZZmod{m,T}(n1)
     z2 = ZZmod{m}(n2)
     zp = ZZmod{m}(p)
@@ -38,8 +38,8 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
     @test z1 + z1 == ZZmod(T(2n1), m)
     
     @test z1 - z1 == z
-    @test z1 - z2 == ZZmod(n1 - n2, m)
-    @test -z2 == ZZmod{m}(-n2)
+    @test z1 - z2 == ZZmod(m + mod(n1, m) - mod(n2, m), m)
+    @test -z2 == ZZmod{m}(m-mod(n2,m))
     
     @test z1 * z1 == ZZmod{m}(T(n1 * n1))
     @test z1 * n1 == ZZmod{m}(T(n1 * n1))
@@ -60,7 +60,8 @@ tm(::Type{BigInt}) = big"98723497897819812497842123481211786588091"
 end
 
 @testset "auxiliary functions" begin
-    @test CommutativeRings.invmod2(big"12", big"31") == big"13"
+    @test CommutativeRings.invmod2(big"12", big"31") == big"13" # gcdx[2] > 0
+    @test CommutativeRings.invmod2(big"15", big"31") == big"29" # gcdx[2] < 0
     @test CommutativeRings._unsigned(Int) == UInt
     @test CommutativeRings._unsigned(BigInt) == BigInt
     @test CommutativeRings._unsigned(big"-1") == big"-1"

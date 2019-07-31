@@ -7,12 +7,14 @@ ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
 
 function +(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T}
-    s = a.val + b.val
-    ZZmod{m,T}(0 <= s < m ? s : s - T(m), NOCHECK)
+    mb = T(m) - b.val
+    s = a.val < mb ? a.val + b.val : a.val + mb
+    ZZmod{m,T}(s, NOCHECK)
 end
 function -(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T}
-    s = a.val - b.val
-    ZZmod{m,T}(0 <= s < T(m) ? s : s + T(m), NOCHECK)
+    mb = T(m) - b.val
+    s = a.val < b.val ? a.val + mb : a.val - b.val
+    ZZmod{m,T}(s, NOCHECK)
 end
 -(a::ZZmod{m,T}) where {m,T} = iszero(a.val) ? a : ZZmod{m,T}(T(m) - a.val, NOCHECK)
 *(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T} = ZZmod{m,T}(mult_ZZmod(a.val, b.val, T(m)), NOCHECK)
@@ -40,7 +42,7 @@ function mult_ZZmod(a::T, b::T, m::T) where T<:Integer
 end
 
 # improved version of invmod
-function invmod2(n::T, m::T) where T<:Union{Signed,BigInt}
+function invmod2(n::T, m::T) where T<:Integer
     m == T(0) && throw(DomainError(m, "`m` must not be 0."))
     p = _unsigned(abs(m))
     q = n >= 0 ? rem(_unsigned(n), p) : p - rem(_unsigned(-n), p)
@@ -55,12 +57,15 @@ function invmod_unsigned(n::T, m::T) where T<:Union{Unsigned,BigInt}
     g, r, y = gcdx(n, m)
     g != 1 && throw(DomainError((n, m), "Greatest common divisor is $g."))
     # For unsigned T, x might be close to typemax; add m to force a wrap-around.
-    if Base.hastypemax(T) && r > typemax(T)>>1
+    if _underflow(r)
         r += m
     end
     r
     # The postcondition is: mod(widemul(r, n), m) == mod(T(1), m) && div(r, m) == 0
 end
+
+_underflow(r::Signed) = r < 0
+_underflow(r::T) where T<:Unsigned = Base.hastypemax(T) && typemax(T)>>1 < r
 
 _unsigned(::Type{BigInt}) = BigInt
 _unsigned(T::Type) = unsigned(T)
