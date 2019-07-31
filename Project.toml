@@ -1,0 +1,15 @@
+name = "CommutativeRings"
+uuid = "a6d4fa9c-9e0b-4795-89f3-f481b7b5e384"
+license = "MIT"
+authors = ["Klaus Crusius <klaus.crusius@web.de>"]
+repo = "https://github.com/KlausC/CommutativeRings.jl"
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
