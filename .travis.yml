@@ -13,7 +13,7 @@ notifications:
   email: false
 
 after_success:
-  - julia -e 'using Pkg; cd(import CommutativeRings; joinpath(dirname(pathof(CommutativeRings)), "..")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; import CommutativeRings; cd(joinpath(dirname(pathof(CommutativeRings)), "..")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
 
 #jobs:
 #  include:
