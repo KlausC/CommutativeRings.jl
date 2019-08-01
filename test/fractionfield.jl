@@ -63,6 +63,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test z2^(phi-1) == inv(z2)
 
     @test_throws DomainError inv(zp)
+    @test_throws DomainError ZZmod{0,T}(0)
 
     if T != BigInt
         @test zero(ZZmod{m}) == z
