@@ -1,10 +1,23 @@
 
+# construction
+
 function ZZmod{m,T}(a::Integer) where {m,T}
-    m > 0 && return ZZmod{m,T}(mod(T(a), T(m)), NOCHECK)
+    mo = modulus(ZZmod{m,T})
+    mo > 0 && return ZZmod{m,T}(mod(T(a), T(mo)), NOCHECK)
     throw(DomainError(m, "modulus > 0 required."))
 end
 ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
+function ZZmod{s,T}(a::Integer, m::Integer) where {s,T<:Integer}
+    register!(ZZmod{s,T}, T(m))
+    ZZmod{s,T}(T(a))
+end
+
+# get type variable
+modulus(T::Type{<:ZZmod{m}}) where m = m isa Symbol ? gettypevar(T).modulus : m
+modulus(::T) where T<:ZZmod = modulus(T)
+
+# arithmetic
 
 function +(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T}
     mb = T(m) - b.val

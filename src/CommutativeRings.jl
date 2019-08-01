@@ -18,7 +18,9 @@ abstract type RingClass end
 struct ZZClass <: RingClass end
 abstract type FractionFieldClass <:RingClass end
 abstract type QuotientRingClass <: RingClass end
-abstract type ZZmodClass <: QuotientRingClass end
+struct ZZmodClass{T<:Integer} <: QuotientRingClass
+    modulus::T
+end
 abstract type PolyRingClass <: RingClass end
 abstract type UniPolyRingClass <: RingClass end
 abstract type MultiPolyRingClass <: RingClass end
@@ -86,7 +88,7 @@ end
 Quotient ring modulo integer `m > 0`, also noted as `ZZ/m`.
 If `p` is a prime number, `ZZmod{p}` is the field `ZZ/p`.
 """
-struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass}
+struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass{S}}
     val::S
     ZZmod{m,T}(a::Integer, ::Val{:nocheck}) where {m,T} = new{m,T}(T(a))
 end
@@ -113,6 +115,7 @@ end
 
 const NOCHECK = Val(:nocheck)
 
+include("typevars.jl")
 include("generic.jl")
 #include("fractionfield.jl")
 include("quotientring.jl")
