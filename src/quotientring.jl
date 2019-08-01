@@ -8,50 +8,52 @@ function ZZmod{m,T}(a::Integer) where {m,T}
 end
 ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
-function ZZmod{s,T}(a::Integer, m::Integer) where {s,T<:Integer}
-    register!(ZZmod{s,T}, T(m))
-    ZZmod{s,T}(T(a))
-end
 
 # get type variable
-modulus(T::Type{<:ZZmod{m}}) where m = m isa Symbol ? gettypevar(T).modulus : m
+modulus(T::Type{<:ZZmod{m}}) where m = m isa Integer ? m : gettypevar(T).modulus
 modulus(::T) where T<:ZZmod = modulus(T)
 
 # arithmetic
 
-function +(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T}
-    mb = T(m) - b.val
+function +(a::T, b::T) where T<:ZZmod
+    mb = modulus(T) - b.val
     s = a.val < mb ? a.val + b.val : a.val + mb
-    ZZmod{m,T}(s, NOCHECK)
+    T(s, NOCHECK)
 end
-function -(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T}
-    mb = T(m) - b.val
+function -(a::T, b::T) where T<:ZZmod
+    mb = modulus(T) - b.val
     s = a.val < b.val ? a.val + mb : a.val - b.val
-    ZZmod{m,T}(s, NOCHECK)
+    T(s, NOCHECK)
 end
--(a::ZZmod{m,T}) where {m,T} = iszero(a.val) ? a : ZZmod{m,T}(T(m) - a.val, NOCHECK)
-*(a::ZZmod{m,T}, b::ZZmod{m,T}) where {m,T} = ZZmod{m,T}(mult_ZZmod(a.val, b.val, T(m)), NOCHECK)
-*(a::ZZmod{m,T}, b::Integer) where {m,T} = ZZmod{m,T}(mult_ZZmod(a.val, T(b), T(m)), NOCHECK)
-*(a::Integer, b::ZZmod{m,T}) where {m,T} = ZZmod{m,T}(mult_ZZmod(T(a), b.val, T(m)), NOCHECK)
+-(a::T) where T<:ZZmod = iszero(a.val) ? a : T(modulus(T) - a.val, NOCHECK)
+*(a::T, b::T) where T<:ZZmod = T(mult_ZZmod(a.val, b.val, modulus(T)), NOCHECK)
+*(a::T, b::Integer) where T<:ZZmod = T(mult_ZZmod(a.val, b, modulus(T)), NOCHECK)
+*(a::Integer, b::T) where T<:ZZmod = T(mult_ZZmod(a, b.val, modulus(T)), NOCHECK)
 
-inv(a::ZZmod{m,T}) where {m,T} = ZZmod{m,T}(invmod2(a.val, T(m)), NOCHECK)
-/(a::ZZmod, b::ZZmod) = a * inv(b)
-^(a::ZZmod{m,T}, n::Integer) where {m,T} = ZZmod{m,T}(powermod(a.val, n, T(m)), NOCHECK)
+inv(a::T) where T<:ZZmod = T(invmod2(a.val, modulus(T)), NOCHECK)
+/(a::T, b::T) where T<:ZZmod = a * inv(b)
+^(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
 
-isunit(x::ZZmod{m,T}) where {m,T} = gcd(T(m), x.val) == 1
+isunit(x::T) where T<:ZZmod = gcd(modulus(T), x.val) == 1
 iszero(x::ZZmod) = iszero(x.val)
 isone(x::ZZmod) = isone(x.val)
 zero(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m,S}(zero(S), NOCHECK)
 zero(::Type{ZZmod{m}}) where {m} = ZZmod{m,typeof(m)}(zero(m), NOCHECK)
-one(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m}(one(S))
+one(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m,S}(one(S))
 one(::Type{ZZmod{m}}) where {m} = ZZmod{m}(one(m))
-==(a::ZZmod{m},b::ZZmod{m}) where m = a.val == b.val
+==(a::ZZmod{m1},b::ZZmod{m2}) where {m1,m2} = modulus(a) == modulus(b) && a.val == b.val
+hash(a::ZZmod, h::UInt) = hash(a.val, hash(modulus(a), h))
 
 # implementation of checked multiplication
 function mult_ZZmod(a::T, b::T, m::T) where T<:Integer
     p, ov = Base.mul_with_overflow(a, b)
     ov || return mod(p, m)
     T(mod(widemul(a, b), m))
+end
+function mult_ZZmod(a::T1, b::T2, c::T) where {T1<:Integer,T2<:Integer,T<:Integer}
+    a = T(mod(a,c))
+    b = T(mod(b,c))
+    mult_ZZmod(a, b, c)
 end
 
 # improved version of invmod

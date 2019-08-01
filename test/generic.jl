@@ -1,8 +1,6 @@
 
 @testset "ZZ{$T}" for T in (Int32, Int64, BigInt)
     
-    @test owner(ZZ{T}) == ZZClass
-
     z = zero(ZZ{T})
     @test z == zero(z)
     @test iszero(z)

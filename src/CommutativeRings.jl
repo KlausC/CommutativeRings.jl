@@ -6,10 +6,10 @@ export ZZ, QQ, ZZmod, UnivariatePolynomial, MultivariatePolynomial
 export RingClass, ZZClass, FractionFieldClass, QuotientRingClass, ZZmodClass
 export PolyRingClass, UniPolyRingClass, MultiPolyRingClass
 
-export owner, isunit
+export new_class, isunit
 
 import Base: +, -, *, /, inv, ^, \
-import Base: iszero, isone, zero, one, div, rem, ==
+import Base: iszero, isone, zero, one, div, rem, ==, hash
 
 using Base.Checked
 

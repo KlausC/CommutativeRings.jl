@@ -1,6 +1,5 @@
 
 # generic operations
-owner(::Type{<:Ring{T}}) where T = T
 \(a::T, b::T) where T<:Ring = inv(a) * b
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))

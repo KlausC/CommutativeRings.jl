@@ -1,13 +1,37 @@
 
 # functions to set and get associated user data in variable `instance` of `DataType`.
-function settypevar!(t::Type{<:Ring}, val)
-    if !isdefined(t, :instance)
-        t.instance = Ref(val)
-    end
-    val
+
+"""
+    settypevar!(t::Type, value)
+
+Associate type with a value.
+The value can be retrieved by calling `gettypevar(t)`.
+"""
+function settypevar!(t::Type, value)
+    ex = :( gettypevar(::Type{$t}) = $value )
+    eval(ex)
 end
 
-gettypevar(t::Type{<:Ring{T}}) where T = (t.instance[])::T
+"""
+    gettypevar(t::Type)
 
-register!(t::Type{<:Ring{T}}, args...) where T = settypevar!(t, T(args...))
+Return value, which has previously been associated with this type
+"""
+function gettypevar end
+
+"""
+    new_class(t::Type{<:Ring{T}}, args...) where T<:RingClass
+
+Store type variable `T(args...)` for `t` and return `t`.
+The return value can be used to create ring elements of the new class.
+Example:
+```
+    ZZp = new_class(ZZmod{:p,BigInt}, 1000000000000000000000000000057)
+    element = ZZp(123456)^10000000 
+```
+"""
+function new_class(t::Type{<:Ring{T}}, args...) where T
+    settypevar!(t, T(args...))
+    t
+end
 
