@@ -9,7 +9,8 @@ export PolyRingClass, UniPolyRingClass, MultiPolyRingClass
 export new_class, isunit
 
 import Base: +, -, *, /, inv, ^, \
-import Base: iszero, isone, zero, one, div, rem, ==, hash
+import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx
+import Base: copy
 
 using Base.Checked
 
@@ -22,9 +23,11 @@ struct ZZmodClass{T<:Integer} <: QuotientRingClass
     modulus::T
 end
 abstract type PolyRingClass <: RingClass end
-abstract type UniPolyRingClass <: RingClass end
-abstract type MultiPolyRingClass <: RingClass end
+abstract type UniPolyRingClass <: PolyRingClass end
+abstract type MultiPolyRingClass <: PolyRingClass end
 
+const NCT = Val{:nocheck}
+const NOCHECK = Val(:nocheck)
 
 # Ring subtypes describe the ring elements
 # They are connected to a corresponding RingClass by type parameters
@@ -90,7 +93,7 @@ If `p` is a prime number, `ZZmod{p}` is the field `ZZ/p`.
 """
 struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass{S}}
     val::S
-    ZZmod{m,T}(a::Integer, ::Val{:nocheck}) where {m,T} = new{m,T}(T(a))
+    ZZmod{m,T}(a::Integer, ::NCT) where {m,T} = new{m,T}(T(a))
 end
 """
     UnivariatePolynomial{Var,S<:RingInt}
@@ -98,8 +101,9 @@ end
 Polynomials of ring elemets `S` in one variable `Var` (by default `:X`).
 The variable name is specified as a `Symbol`.
 """
-struct UnivariatePolynomial{Id,S<:Ring,T} <: Polynomial{S,T}
+struct UnivariatePolynomial{X,S<:Ring} <: Polynomial{S,UniPolyRingClass}
     coeff::Vector{S}
+    UnivariatePolynomial{X,S}(v::Vector{S}, ::NCT) where {X,S<:Ring} = new{X,S}(v)
 end
 
 """
@@ -109,17 +113,16 @@ Polynomials of ring elemets `S` in `N` variables.
 The `Id` identifies on object of type `MultiPolyRingClass` which is needed to store
 the variable names and properties.
 """
-struct MultivariatePolynomial{Id,N,S<:Ring,T<:MultiPolyRingClass} <: Polynomial{S,T}
+struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass}
     coeff::Dict{NTuple{N,Int},S}
 end
 
-const NOCHECK = Val(:nocheck)
 
 include("typevars.jl")
 include("generic.jl")
 #include("fractionfield.jl")
 include("quotientring.jl")
-#include("univarpolynom.jl")
+include("univarpolynom.jl")
 #include("multivarpolynom.jl")
 
 end # module

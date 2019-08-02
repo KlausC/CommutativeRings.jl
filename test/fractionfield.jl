@@ -71,6 +71,15 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
         @test ZZmod(n1, m) == ZZp(n1)
         @test hash(ZZmod(n1, m)) == hash(ZZp(n1))
     end
+
+    @test ZZp(m-1) + ZZp(2) == ZZp(1)
+    @test ZZp(1) - ZZp(2) == ZZp(m-1)
+    @test ZZp(1) + ZZp(3) == ZZp(4)
+    @test ZZp(3) - ZZp(2) == ZZp(1)
+
+    @test ZZp(4)^-1 == inv(ZZp(4))
+    @test ZZp(3)^1 == ZZp(3)
+    @test ZZp(3)^0 == o
 end
 
 @testset "auxiliary functions" begin
