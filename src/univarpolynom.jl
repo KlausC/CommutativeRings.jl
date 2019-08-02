@@ -124,9 +124,30 @@ function divrem(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(vf, NOCHECK), T(vr)
 end
-
 div(p::T, q::T) where T<:UnivariatePolynomial = divrem(p, q)[1]
 rem(p::T, q::T) where T<:UnivariatePolynomial = divrem(p, q)[2]
+
+"""
+    content(p::UnivariatePolynomial)
+
+Return the degree of the polynimial p, i.e. the `gcd` of its coefficients.
+"""
+content(p::UnivariatePolynomial) = gcd(p.coeff)
+
+"""
+    primpart(p::UnivariatePolynomial)
+
+The primitive part of the polynomial p, that means the `gcd` of its coefficients is `1`,
+"""
+primpart(p::UnivariatePolynomial) = div(p, primpart(p))
+
+"""
+    degree(p::UnivariatePolynomial)
+
+Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
+nonzero coefficient. The degree of the zero polynomial is defined to be -1.
+"""
+degree(p::UnivariatePolynomial) = length(p.coeff) - 1
 
 function inv(p::T) where T<:UnivariatePolynomial
     if isunit(p)
@@ -145,4 +166,5 @@ one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
 
 # auxiliary functions
+
 

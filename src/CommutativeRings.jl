@@ -117,11 +117,11 @@ struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass}
     coeff::Dict{NTuple{N,Int},S}
 end
 
-
 include("typevars.jl")
 include("generic.jl")
+include("zz.jl")
+include("zzmod.jl")
 #include("fractionfield.jl")
-include("quotientring.jl")
 include("univarpolynom.jl")
 #include("multivarpolynom.jl")
 

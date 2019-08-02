@@ -1,29 +1,62 @@
 
 # generic operations
+/(a::T, b::T) where T<:Ring = a * inv(b) # override if no inv exists
 \(a::T, b::T) where T<:Ring = inv(a) * b
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
+inv(a::Ring) = isunit(a) ? a : throw(DomainError(a, "cannot divide by non-unit."))
+degree(x::Ring) = 0 # fallback
+div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
+rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 
-# operations for ZZ
-+(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_add(a.val, b.val))
--(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_sub(a.val, b.val))
--(a::ZZ{T}) where T = ZZ{T}(checked_neg(a.val))
-*(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_mul(a.val, b.val))
-*(a::ZZ{T}, b::Integer) where T = ZZ(T(checked_mul(a.val, T(b))))
-*(a::Integer, b::ZZ{T}) where T = ZZ(T(checked_mul(T(a), b.val)))
-function /(a::ZZ{T}, b::ZZ{T}) where T
-    d, r = divrem(a.val, b.val)
-    iszero(r) || throw(DivideError())
-    ZZ{T}(d)
+# generic Euclid's algorithm
+function gcd(a::T, b::T) where T<:Ring
+    while !iszero(b)
+        a, b = b, rem(a, b)
+    end
+    a
 end
-\(a::ZZ{T}, b::ZZ{T}) where T = b / a
 
-isunit(a::ZZ) = abs(a.val) == 1
-isone(a::ZZ) = isone(a.val)
-iszero(a::ZZ) = iszero(a.val)
-zero(::Type{ZZ{T}}) where T = ZZ(zero(T))
-one(::Type{ZZ{T}}) where T = ZZ(one(T))
-==(a::ZZ{T}, b::ZZ{T}) where T = a.val == b.val
+# extension to array
+function gcd(aa::AbstractVector{T}) where T<:Ring
+    n = length(aa)
+    n == 0 && return zero(T)
+    n == 1 && return aa[1]
+    g = gcd(a[1], a[2])
+    for i = 3:n
+        isunit(g) && break
+        g = gcd(aa[i], g)
+    end
+    g
+end
 
-inv(a::ZZ{T}) where T = isunit(a) ? a : throw(DivideError())
+# generic extended Euclid's algorithm
+function gcdx(a::T, b::T) where T<:Ring
+    s0, s1 = one(T), zero(T)
+    t0, t1 = s1, s0
+    while !iszero(b)
+        q, r = divrem(a, b)
+        a, b = b, r
+        s0, s1 = s1, s0 - q * s1
+        t0, t1 = t1, t0 - q * t1
+    end
+    a, s0, t0
+end
+
+# least common multiplier derived from gcd
+function lcm(a::T, b::T) where T<:Ring
+    div(a, gcd(a, b)) * b
+end
+
+function lcm(aa::AbstractVector{T}) where T<:Ring
+    n = length(aa)
+    n == 0 && return one(T)
+    n == 1 && return aa[1]
+    g = lcm(aa[1], aa[2])
+    for i = 3:n
+        g = lcm(aa[i], g)
+    end
+    g
+end
+

@@ -38,6 +38,6 @@
     @test_throws DivideError z4 / z2
 
     @test inv(-o) == -o
-    @test_throws DivideError inv(z1)
+    @test_throws DomainError inv(z1)
 
 end
