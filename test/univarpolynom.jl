@@ -61,14 +61,28 @@ end
 end
 
 hasunitlead(p::UnivariatePolynomial) = !iszero(p) && isunit(p.coeff[end])
+deg = CommutativeRings.degree
 
 @testset "operation divrem($cp,$cq)" for cp in CP, cq in CP
     p = P(S.(cp))
     q = P(S.(cq))
-    if hasunitlead(q)
+    if hasunitlead(q) || deg(p) < deg(q) || ( p == q && !iszero(p))
         @test divrem(p, q) == divrem(Poly(cp), Poly(cq)) 
     else
         @test_throws DomainError divrem(p, q)
     end
 end
 
+@testset "gcd calculations" begin
+
+    P = UnivariatePolynomial{:x,ZZ{Int}}
+    @test P([0, 1]) != nothing
+    x = P([0,1])
+    @test deg(x + 2x^2 + 1 +0*x^3) == 2
+    p = x^8 + x^6 -3x^4 - 3x^3 + 8x^2 +2x - 5
+    q = 3x^6 + 5x^4 - 4*x^2 -9x + 21
+    @test deg(pgcd(p, q)) == 0
+    r1 = pgcd(p, q)
+    s = (x^2 + 3x + 1)^5
+    @test pgcd(p * s, q * s) / r1 == s
+end

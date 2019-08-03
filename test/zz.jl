@@ -33,9 +33,11 @@
     
     z3 = 2z1
     z4 = z3 + o
+    @test z3 ÷ z1 == ZZ(T(2))
+    @test z1 ÷ z3 == z
     @test z3 / z1 == ZZ(T(2))
     @test z1 \ z3 == ZZ(T(2))
-    @test_throws DivideError z4 / z2
+    @test_throws DomainError z4 / z2
 
     @test inv(-o) == -o
     @test_throws DomainError inv(z1)

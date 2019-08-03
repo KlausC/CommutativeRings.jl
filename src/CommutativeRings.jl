@@ -6,10 +6,10 @@ export ZZ, QQ, ZZmod, UnivariatePolynomial, MultivariatePolynomial
 export RingClass, ZZClass, FractionFieldClass, QuotientRingClass, ZZmodClass
 export PolyRingClass, UniPolyRingClass, MultiPolyRingClass
 
-export new_class, isunit
+export new_class, isunit, degree, pgcd, content, lc 
 
 import Base: +, -, *, /, inv, ^, \
-import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx
+import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy
 
 using Base.Checked
@@ -73,6 +73,8 @@ elemets according to the chosen `S`.
 """
 struct ZZ{T<:Signed} <: Ring{ZZClass}
     val::T
+    ZZ{T}(val::Integer) where T = new{T}(val)
+    ZZ(val::T) where T<:Signed = ZZ{T}(val)
 end
 
 """

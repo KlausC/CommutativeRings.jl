@@ -1,4 +1,9 @@
 
+# construction
+copy(a::ZZ) = typeof(a)(a.val)
+ZZ{T}(a::ZZ{T}) where T = a
+ZZ{T}(a::ZZ) where T = ZZ{T}(a.val)
+
 # operations for ZZ
 +(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_add(a.val, b.val))
 -(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_sub(a.val, b.val))
@@ -6,12 +11,6 @@
 *(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_mul(a.val, b.val))
 *(a::ZZ{T}, b::Integer) where T = ZZ(T(checked_mul(a.val, T(b))))
 *(a::Integer, b::ZZ{T}) where T = ZZ(T(checked_mul(T(a), b.val)))
-function /(a::ZZ{T}, b::ZZ{T}) where T
-    d, r = divrem(a.val, b.val)
-    iszero(r) || throw(DivideError())
-    ZZ{T}(d)
-end
-\(a::T, b::T) where T<:ZZ = b / a
 divrem(a::T, b::T) where T<:ZZ = T.(divrem(a.val, b.val))
 div(a::T, b::T) where T<:ZZ = T(a.val ÷ b.val)
 rem(a::T, b::T) where T<:ZZ = T(a.val % b.val)

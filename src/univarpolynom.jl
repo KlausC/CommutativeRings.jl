@@ -12,7 +12,10 @@ function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
     UnivariatePolynomial{x,S}(v, NOCHECK)
 end
 UnivariatePolynomial{X}(v::Vector{S}) where {X,S} = UnivariatePolynomial{X,S}(v)
-
+UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S} = p
+function UnivariatePolynomial{X,S}(p::UnivariatePolynomial) where {X,S}
+    UnivariatePolynomial{X,S}(S.(p.coeff))
+end
 """
     UnivariatePolynomials{X,S}(vector)
 
@@ -45,6 +48,9 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(v, NOCHECK)
 end
+function +(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
+    p + T([S(q)])
+end
 function -(p::T) where T<:UnivariatePolynomial
     vp = p.coeff
     np = length(vp)
@@ -55,6 +61,7 @@ function -(p::T) where T<:UnivariatePolynomial
     T(v, NOCHECK)
 end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
+-(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -89,43 +96,76 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     T(v, NOCHECK)
 end
 
-function divrem(p::T, q::T) where T<:UnivariatePolynomial
-    vp = p.coeff
-    vq = q.coeff
+function *(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
+    if iszero(q)
+        zero(T)
+    else
+        # make broadcast recognize q as scalar
+        T(p.coeff .* Ref(S(q)), NOCHECK)
+    end
+end
+*(q::Union{Integer,Ring}, p::UnivariatePolynomial) = *(p, q)
+
+function /(p::T, q::S) where {X,S,T<:UnivariatePolynomial{X,S}}
+    T(p.coeff ./ Ref(q), NOCHECK)
+end
+
+# division and remainder algorithm
+function divrem(vp::Vector{S}, vq::Vector{S}) where S<:Ring
     np = length(vp)
     nq = length(vq)
     nq > 0 || throw(DomainError(vq, "Cannot divide by zero polynomial."))
     lead = vq[nq]
-    isunit(lead) || throw(DomainError(vq, "Leading coefficient must be unit."))
     if np < nq
-        return zero(p), p
+        return S[], vp
     end
-    divi = inv(lead)
+    divi = lead
     if nq == 1
         if isone(divi)
-            return p, zero(p)
+            return vp, S[]
         end
-        vf = copy(vp)
-        for i = 1:np
-            vf[i] *= divi
-        end
+        vf = vp ./ Ref(divi)
         vr = S[]
     else
         vf = similar(vp, np - nq + 1)
         vr = copy(vp)
         for i = np:-1:nq
-            multi = vr[i] * divi
+            multi = vr[i] / divi
             for j = 1:nq-1
                 vr[j+i-nq] -= vq[j] * multi
             end
             vf[i-nq+1] = multi
         end
-        resize!(vr, nq - 1)
+        n = nq - 1
+        while n > 0 && iszero(vr[n])
+            n -= 1
+        end
+        resize!(vr, n)
     end
-    T(vf, NOCHECK), T(vr)
+    vf, vr
 end
-div(p::T, q::T) where T<:UnivariatePolynomial = divrem(p, q)[1]
-rem(p::T, q::T) where T<:UnivariatePolynomial = divrem(p, q)[2]
+
+function divrem(p::T, q::T) where T<:UnivariatePolynomial
+    cp = p.coeff; cq = q.coeff
+    d, r = divrem(cp, cq)
+    tweak(d, cp, p), tweak(r, cp, p)
+end
+
+function tweak(d, cp, p::T) where T<:UnivariatePolynomial
+    d === cp ? p : T(d, NOCHECK)
+end
+
+function div(p::T, q::T) where T<:UnivariatePolynomial
+    cp = p.coeff; cq = q.coeff
+    r = divrem(cp, cq)[1]
+    tweak(d, cp, p)
+end
+
+function rem(p::T, q::T) where T<:UnivariatePolynomial
+    cp = p.coeff; cq = q.coeff
+    r = divrem(cp, cq)[2]
+    tweak(r, cp, p)
+end
 
 """
     content(p::UnivariatePolynomial)
@@ -167,4 +207,48 @@ hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
 
 # auxiliary functions
 
+"""
+    lc(p::UnivariatePolynomial)
 
+Return the leading coefficient of a non-zero polynomial. This coefficient
+cannot be zero.
+"""
+lc(p::UnivariatePolynomial) = p.coeff[end]
+
+# pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
+
+"""
+    pgcd(a, b)
+
+Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
+The next to last calculated remainder is a scalar multiple of the gcd. 
+See: https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_division
+"""
+function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+    
+    iszero(b) && return a
+    E = -one(S)
+    da = degree(a)
+    db = degree(b)
+    d = da - db
+    ψ = E
+    β = iseven(d) ? -E : E
+    while true
+        γ = lc(b)
+        a = a * γ^(d+1)
+        c = rem(a, b) / β
+        a, b = b, c
+        iszero(b) && break
+        # prepare for next turn
+        da = db
+        db = degree(c)
+        ψ = (-γ)^d / ψ^(d-1)
+        d = da - db
+        β = -γ * ψ^d
+    end
+    a
+end
+
+function Base.show(io::IO, p::UnivariatePolynomial)
+    show(io, getfield.(p.coeff, :val))
+end
