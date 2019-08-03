@@ -99,5 +99,14 @@ end
     @test div(p, q) == q
     @test content(p) == ZZ(1)
     @test primpart(p) == p
-    @test show(p) == nothing
+
+    PP = UnivariatePolynomial{:z,P}
+    pp = PP([p, q, s])
+
+    # call show
+    io = IOBuffer()
+    @test show(io, p) == nothing
+    @test show(io, zero(P)) == nothing
+    @test show(io, one(P)) == nothing
+    @test show(io, pp) == nothing
 end

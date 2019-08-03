@@ -46,4 +46,7 @@
     @test gcdx(z3, z1) == (z1, zero(z3), one(z1))
     @test lcm(z3, z1) == z3
     @test rem(ZZ(12), ZZ(5)) == ZZ(2)
+
+    io = IOBuffer()
+    @test show(io, z3) == nothing
 end

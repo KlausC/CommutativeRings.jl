@@ -88,6 +88,8 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test CommutativeRings.degree(z3) == 0
     @test_throws MethodError div(z3, z3)
     @test_throws MethodError rem(z3, z3)
+    io = IOBuffer()
+    @test show(io, z1) == nothing
 end
 
 @testset "auxiliary functions" begin

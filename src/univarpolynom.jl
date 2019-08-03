@@ -249,6 +249,47 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     a
 end
 
-function Base.show(io::IO, p::UnivariatePolynomial)
-    show(io, getfield.(p.coeff, :val))
+issimple(::Union{ZZ,ZZmod,Number}) = true
+issimple(::Any) = false
+
+function showvar(io::IO, var, n::Integer)
+    if n == 1
+        print(io, var)
+    elseif n != 0
+        print(io, string(var, '^', n))
+    end
+end
+    
+function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
+    var = X
+    N = length(p.coeff)-1
+    for n = N:-1:0
+        el = p.coeff[n+1]
+        bra = !issimple(el)
+        bra && n != N && print(io, " + ")
+        if !iszero(el)
+            if !isone(el)
+                io2 = IOBuffer()
+                show(io2, el)
+                es = String(take!((io2)))
+                bra && print(io, '(')
+                if !bra && n < N
+                    print(io, ' ')
+                    if isempty(es) || (es[1] != '-' && es[1] != '+')
+                        print(io, '+')
+                        print(io, ' ')
+                    end
+                end
+                print(io, es)
+                bra && print(io, ')')
+                if n != 0
+                    print(io, '⋅')
+                end
+            end  
+            showvar(io, var, n)
+        end
+        if n == -1
+            print(io, ' ')
+        end
+    end
 end

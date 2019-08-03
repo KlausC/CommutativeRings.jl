@@ -25,4 +25,6 @@ hash(a::ZZ, h::UInt) = hash(a.val, h)
 
 gcd(a::T, b::T) where T<: ZZ = T(gcd(a.val, b.val))
 lcm(a::T, b::T) where T<:ZZ = T(lcm(a.val, b.val))
+
+Base.show(io::IO, z::ZZ) = print(io, z.val)
     

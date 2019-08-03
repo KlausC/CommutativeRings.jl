@@ -159,7 +159,7 @@ Preferred operation mode is to take the type parameters directly.
 
 #### Acknowledgements:
 This package was inspired by the `C++` library `CoCoALib`, which can be found
-here: http://cocoa.dima.unige.it/cocoalib/ .
+here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
 
 
 
