@@ -12,7 +12,7 @@ function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
     UnivariatePolynomial{x,S}(v, NOCHECK)
 end
 UnivariatePolynomial{X}(v::Vector{S}) where {X,S} = UnivariatePolynomial{X,S}(v)
-UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S} = p
+UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S<:Ring} = p
 function UnivariatePolynomial{X,S}(p::UnivariatePolynomial) where {X,S}
     UnivariatePolynomial{X,S}(S.(p.coeff))
 end
@@ -179,7 +179,7 @@ content(p::UnivariatePolynomial) = gcd(p.coeff)
 
 The primitive part of the polynomial p, that means the `gcd` of its coefficients is `1`,
 """
-primpart(p::UnivariatePolynomial) = div(p, primpart(p))
+primpart(p::UnivariatePolynomial) = p / content(p)
 
 """
     degree(p::UnivariatePolynomial)

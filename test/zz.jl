@@ -41,5 +41,8 @@
 
     @test inv(-o) == -o
     @test_throws DomainError inv(z1)
-
+    
+    @test gcd(z3, z1) == z1
+    @test gcdx(z3, z1) == (z1, zero(z3), one(z1))
+    @test lcm(z3, z1) == z3
 end

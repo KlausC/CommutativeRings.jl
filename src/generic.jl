@@ -41,6 +41,7 @@ end
 function gcdx(a::T, b::T) where T<:Ring
     s0, s1 = one(T), zero(T)
     t0, t1 = s1, s0
+    # invariant: a * s0 + b * t0 == gcd(a, b)
     while !iszero(b)
         q, r = divrem(a, b)
         a, b = b, r

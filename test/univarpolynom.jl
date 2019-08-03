@@ -94,4 +94,10 @@ end
     @test lcm(p, q) == p
     @test lcm([p, q, p]) == p
 
+    @test UnivariatePolynomial{:x,ZZ{Int}}(p) === p
+    @test UnivariatePolynomial{:x,ZZ{Int32}}(p) != p
+    @test div(p, q) == q
+    @test content(p) == ZZ(1)
+    @test primpart(p) == p
+    @test show(p) == nothing
 end

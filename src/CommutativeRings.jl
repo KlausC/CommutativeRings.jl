@@ -6,7 +6,7 @@ export ZZ, QQ, ZZmod, UnivariatePolynomial, MultivariatePolynomial
 export RingClass, ZZClass, FractionFieldClass, QuotientRingClass, ZZmodClass
 export PolyRingClass, UniPolyRingClass, MultiPolyRingClass
 
-export new_class, isunit, degree, pgcd, content, lc, modulus
+export new_class, isunit, degree, pgcd, content, primpart, lc, modulus
 
 import Base: +, -, *, /, inv, ^, \
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
