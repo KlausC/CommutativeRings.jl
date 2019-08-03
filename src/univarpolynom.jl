@@ -268,7 +268,7 @@ function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
         bra = !issimple(el)
         bra && n != N && print(io, " + ")
         if !iszero(el)
-            if !isone(el)
+            if !isone(el) || n == 0
                 io2 = IOBuffer()
                 show(io2, el)
                 es = String(take!((io2)))
