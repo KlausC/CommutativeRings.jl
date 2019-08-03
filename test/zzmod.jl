@@ -29,6 +29,9 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     end
 
     ZZp = new_class(ZZmod{:p,T}, m)
+    @test typeof(modulus(ZZp)) == T
+    isbitstype(T) && @test typeof(modulus(ZZmod{m,T})) == T
+    @test typeof(modulus(ZZmod{3,T})) == T
     z = zero(ZZp)
     @test z == zero(z)
     @test iszero(z)
@@ -80,6 +83,11 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test ZZp(4)^-1 == inv(ZZp(4))
     @test ZZp(3)^1 == ZZp(3)
     @test ZZp(3)^0 == o
+
+    @test copy(ZZp(5)) == ZZp(5)
+    @test CommutativeRings.degree(z3) == 0
+    @test_throws MethodError div(z3, z3)
+    @test_throws MethodError rem(z3, z3)
 end
 
 @testset "auxiliary functions" begin
@@ -89,3 +97,4 @@ end
     @test CommutativeRings._unsigned(BigInt) == BigInt
     @test CommutativeRings._unsigned(big"-1") == big"-1"
 end
+

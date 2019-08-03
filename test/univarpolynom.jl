@@ -85,4 +85,13 @@ end
     r1 = pgcd(p, q)
     s = (x^2 + 3x + 1)^5
     @test pgcd(p * s, q * s) / r1 == s
+
+    p = P([1, 2, 1])
+    q = P([1, 1])
+    @test gcd(p, q) == q
+    @test gcd([p, p, q]) == q
+    @test gcdx(p, q) == (q, P(Int[]), P([1]))
+    @test lcm(p, q) == p
+    @test lcm([p, q, p]) == p
+
 end

@@ -157,7 +157,7 @@ end
 
 function div(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
-    r = divrem(cp, cq)[1]
+    d = divrem(cp, cq)[1]
     tweak(d, cp, p)
 end
 

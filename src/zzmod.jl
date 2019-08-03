@@ -9,10 +9,10 @@ end
 ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
 
-copy(a::ZZmod) = typeof(p)(p.val)
+copy(p::ZZmod) = typeof(p)(p.val)
 
 # get type variable
-modulus(T::Type{<:ZZmod{m}}) where m = m isa Integer ? m : gettypevar(T).modulus
+modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
 modulus(::T) where T<:ZZmod = modulus(T)
 
 # arithmetic
@@ -33,7 +33,6 @@ end
 *(a::Integer, b::T) where T<:ZZmod = T(mult_ZZmod(a, b.val, modulus(T)), NOCHECK)
 
 inv(a::T) where T<:ZZmod = T(invmod2(a.val, modulus(T)), NOCHECK)
-/(a::T, b::T) where T<:ZZmod = a * inv(b)
 ^(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
 
 isunit(x::T) where T<:ZZmod = gcd(modulus(T), x.val) == 1
