@@ -2,7 +2,7 @@
 # construction
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
-ZZ{T}(a::ZZ) where T = ZZ{T}(a.val)
+ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
 
 # operations for ZZ
 +(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_add(a.val, b.val))
