@@ -120,6 +120,21 @@ Activating environment at `~/.julia/dev/CommutativeRings/Project.toml`
 julia> using CommutativeRings
 [ Info: Recompiling stale cache file ~/.julia/compiled/v1.3/CommutativeRings/mLTUZ.ji for CommutativeRings [a6d4fa9c-9e0b-4795-89f3-f481b7b5e384]
 
+(CommutativeRings) pkg> test
+  Updating registry at `~/.julia/registries/General`
+  Updating git-repo `https://github.com/JuliaRegistries/General.git`
+   Testing CommutativeRings
+ Resolving package versions...
+[ Info: No changes
+Test Summary: | Pass  Total
+ZZ            |   89     89
+Test Summary: | Pass  Total
+ZZmod         |  315    315
+[1, 2, 1]Test Summary: | Pass  Total
+univarpolynom |  167    167
+   Testing CommutativeRings tests passed 
+
+
 ```
 
 #### Mathematical operations
