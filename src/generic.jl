@@ -16,6 +16,8 @@ divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 
+copy(p::QuotientRing) = typeof(p)(p.val)
+
 # generic Euclid's algorithm
 function gcd(a::T, b::T) where T<:Ring
     while !iszero(b)

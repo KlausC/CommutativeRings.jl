@@ -1,5 +1,7 @@
 
-# constructors
+### Constructors
+
+# convert coefficient vector to polynomial
 function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
     x = Symbol(X)
     n = length(v)
@@ -11,11 +13,15 @@ function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
     end
     UnivariatePolynomial{x,S}(v, NOCHECK)
 end
+# convert coefficient vector to polynomial, element type of vector determines class 
 UnivariatePolynomial{X}(v::Vector{S}) where {X,S} = UnivariatePolynomial{X,S}(v)
+# convert polynomial with same symbol and type aliasing original
 UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S<:Ring} = p
+# convert polynomial with different symbol / coefficient type
 function UnivariatePolynomial{X,S}(p::UnivariatePolynomial) where {X,S}
-    UnivariatePolynomial{X,S}(S.(p.coeff))
+    UnivariatePolynomial{X,S}(S.(p.coeff), NOCHECK)
 end
+
 """
     UnivariatePolynomials{X,S}(vector)
 
@@ -27,9 +33,18 @@ function UnivariatePolynomial{X,S}(v::AbstractVector) where {X,S}
     UnivariatePolynomial{X,S}(S.(v))
 end
 
+# canonical embedding homomorphism from base ring
+UnivariatePolynomial{X}(r::R) where {X,R<:Ring} = UnivariatePolynomial{X,R}([r])
+
+# make new copy
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff))
 
-# arithmetic
+# convenience type constructor:
+# enable `R[:X]` as short for `UnivariatePolynomial{:X,R}`
+getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
+
+
+### Arithmetic
 function +(p::T, q::T) where T<:UnivariatePolynomial
     vp = p.coeff
     vq = q.coeff
