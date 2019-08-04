@@ -23,9 +23,10 @@ Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 -(a::T, b::T) where T<:Quotient =  T(ra.val - b.val)
 *(a::T, b::T) where T<:Quotient =  T(ra.val * b.val)
 inv(a::T) where T<:Quotient = T(invert(a.val, modulus(T)), NOCHECK)
-isunit(a::T) where T<:Quotient = isinvertible(a.val, modulus(T))
-iszero(x::ZZmod) = iszero(x.val)
-isone(x::ZZmod) = isone(x.val)
+
+isunit(a::T) where T<:Quotient = isone(a.val) || isinvertible(a.val, modulus(T))
+iszero(x::Quotient) = iszero(x.val)
+isone(x::Quotient) = isone(x.val)
 zero(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(zero(S), NOCHECK)
 one(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(one(S), NOCHECK)
 
