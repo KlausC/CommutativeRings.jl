@@ -5,7 +5,8 @@ export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomi
 
 export Ideal
 
-export new_class, new_ideal, isunit, degree, pgcd, content, primpart, lc, modulus
+export new_class, new_ideal, isunit, degree, content, primpart, lc, modulus
+export isdiv, pgcd, pdivrem
 
 import Base: +, -, *, /, inv, ^, \, getindex
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
@@ -21,7 +22,7 @@ struct FractionClass <: FractionFieldClass end
 struct QQClass <:FractionFieldClass end
 abstract type QuotientRingClass <:RingClass end
 struct QuotientClass <: QuotientRingClass
-    ideal::Any
+    modulus::Any
 end
 struct ZZmodClass{T<:Integer} <: QuotientRingClass
     modulus::T

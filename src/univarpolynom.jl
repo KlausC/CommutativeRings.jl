@@ -125,27 +125,54 @@ function /(p::T, q::S) where {X,S,T<:UnivariatePolynomial{X,S}}
     T(p.coeff ./ Ref(q), NOCHECK)
 end
 
+function smul!(v::Vector{S}, r, m::S) where S
+    for i in r
+        v[i] *= m
+    end
+    v
+end
+function sdiv!(v::Vector{S}, r, m::S) where S
+    for i in r
+        v[i] /= m
+    end
+    v
+end
+
 # division and remainder algorithm
-function divrem(vp::Vector{S}, vq::Vector{S}) where S<:Ring
+function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     np = length(vp)
     nq = length(vq)
     nq > 0 || throw(DomainError(vq, "Cannot divide by zero polynomial."))
-    lead = vq[nq]
+    f = one(S)
     if np < nq
-        return S[], vp
+        return S[], vp, f
     end
+    lead = vq[nq]
     divi = lead
+    fac = F && !isunit(divi)
     if nq == 1
-        if isone(divi)
-            return vp, S[]
+        isone(divi) && return vp, S[], f
+        vf = copy(vp)
+        if fac
+            f = divi / gcd(divi, gcd(vp))
+            !isone(f) && smul!(vf, 1:np, f)
         end
-        vf = vp ./ Ref(divi)
+        sdiv!(vf, 1:np, divi)
         vr = S[]
     else
         vf = similar(vp, np - nq + 1)
         vr = copy(vp)
         for i = np:-1:nq
-            multi = vr[i] / divi
+            vri = vr[i]
+            multi, r = divrem(vri, divi)
+            if fac && !iszero(r) 
+                g = divi / gcd(divi, r)
+                f *= g
+                vri *= g
+                smul!(vr, 1:i-1, g)
+                smul!(vf, i-nq+2:np-nq+1, g)
+            end
+            multi = vri / divi
             for j = 1:nq-1
                 vr[j+i-nq] -= vq[j] * multi
             end
@@ -157,12 +184,12 @@ function divrem(vp::Vector{S}, vq::Vector{S}) where S<:Ring
         end
         resize!(vr, n)
     end
-    vf, vr
+    vf, vr, f
 end
 
 function divrem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
-    d, r = divrem(cp, cq)
+    d, r = divrem(cp, cq, Val(false))
     tweak(d, cp, p), tweak(r, cp, p)
 end
 
@@ -172,14 +199,27 @@ end
 
 function div(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
-    d = divrem(cp, cq)[1]
+    d = divrem(cp, cq, Val(false))[1]
     tweak(d, cp, p)
 end
 
 function rem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
-    r = divrem(cp, cq)[2]
+    r = divrem(cp, cq, Val(false))[2]
     tweak(r, cp, p)
+end
+
+"""
+    q, r, f = pdivrem(a::T, b::T) where T<:UnivariatePolynomial{X,R}
+
+A variant of divrem, if leading term of divisor is not a unit.
+The polynomial `a` is multiplied by a minimal factor `f ∈ R` with
+`f * a = q * b + r`.  
+"""
+function pdivrem(p::T, q::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+    cp = p.coeff; cq = q.coeff
+    vd, vr, f = divrem(cp, cq, Val(true))
+    tweak(vd, cp, p), tweak(vr, cp, p), f
 end
 
 """
@@ -278,6 +318,7 @@ end
 function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
     var = X
     N = length(p.coeff)-1
+    N < 0 && print(io, '0')
     for n = N:-1:0
         el = p.coeff[n+1]
         bra = !issimple(el)
@@ -293,18 +334,21 @@ function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
                     if isempty(es) || (es[1] != '-' && es[1] != '+')
                         print(io, '+')
                         print(io, ' ')
+                        print(io, es)
+                    else
+                        print(io, es[1], ' ', es[2:end])
                     end
+                else
+                  print(io, es)
                 end
-                print(io, es)
                 bra && print(io, ')')
                 if n != 0
                     print(io, '⋅')
                 end
+            elseif n != N
+                print(io, " + ")
             end  
             showvar(io, var, n)
-        end
-        if n == -1
-            print(io, ' ')
         end
     end
 end

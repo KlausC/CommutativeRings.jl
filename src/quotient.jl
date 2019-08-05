@@ -19,9 +19,11 @@ Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 
 ## Arithmetic
 
-+(a::T, b::T) where T<:Quotient =  T(ra.val + b.val)
--(a::T, b::T) where T<:Quotient =  T(ra.val - b.val)
-*(a::T, b::T) where T<:Quotient =  T(ra.val * b.val)
++(a::T, b::T) where T<:Quotient =  T(a.val + b.val)
+-(a::T, b::T) where T<:Quotient =  T(a.val - b.val)
+*(a::T, b::T) where T<:Quotient =  T(a.val * b.val)
+*(a::Integer, b::T) where T<:Quotient =  T(a * b.val)
+*(a::T, b::Integer) where T<:Quotient =  T(a.val * b)
 inv(a::T) where T<:Quotient = T(invert(a.val, modulus(T)), NOCHECK)
 
 isunit(a::T) where T<:Quotient = isone(a.val) || isinvertible(a.val, modulus(T))
@@ -37,7 +39,7 @@ one(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(one(S), NOCHECK)
 ## Help functions
 
 # return the ideal associated uniquely with this quotient ring
-modulus(t::Type{<:Quotient{X,R}}) where {X,R} = gettypevar(t).ideal
+modulus(t::Type{<:Quotient{X,R}}) where {X,R} = gettypevar(t).modulus
 
 # standard functions
 ==(a::Quotient{X},b::Quotient{X}) where X = a.val == b.val

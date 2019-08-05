@@ -110,3 +110,19 @@ end
     @test show(io, one(P)) == nothing
     @test show(io, pp) == nothing
 end
+
+@testset "pseudo division" begin
+    S = ZZ{Int}
+    P = UnivariatePolynomial{:x,S}
+    p = P([1, 4, 5, 1, 6, 0, 3])
+    q = P([5, 1, 1, 3])
+    x = P([0, 1])
+    @test content(2p) == S(2)
+    @test primpart(12p) == p
+    @test lc(p) == S(3)
+    a, b, f = pdivrem(p, q)
+    @test f * p == a * q + b
+    @test pgcd(p, q) == P([-225750])
+
+end
+
