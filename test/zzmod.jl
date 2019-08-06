@@ -85,7 +85,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test ZZp(3)^0 == o
 
     @test copy(ZZp(5)) == ZZp(5)
-    @test CommutativeRings.degree(z3) == 0
+    @test deg(z3) == 0
     @test_throws MethodError div(z3, z3)
     @test_throws MethodError rem(z3, z3)
     io = IOBuffer()
