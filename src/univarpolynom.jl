@@ -66,6 +66,8 @@ end
 function +(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
     p + T([S(q)])
 end
++(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
+
 function -(p::T) where T<:UnivariatePolynomial
     vp = p.coeff
     np = length(vp)
@@ -77,6 +79,7 @@ function -(p::T) where T<:UnivariatePolynomial
 end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
 -(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
+-(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(-p, q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -87,15 +90,10 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     nv = np + nq - 1
     if np == 0 || nq == 0
         return zero(T)
-    elseif np == 1
-        divi = vp[1]
-        if isone(divi)
-            return q
-        end
-        v = copy(vq)
-        for i = 1:nq
-            v[i] *= divi
-        end
+    elseif ismonomial(p)
+        v = multmono(p, np, vp, q, nq, vq)
+    elseif ismonomial(q)
+        v = multmono(q, nq, vq, p, np, vp)
     else
         v = similar(vp, nv)
         for k = 1:nv
@@ -108,7 +106,7 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
             v[k] = vk
         end
     end
-    T(v, NOCHECK)
+    v === vp ? p : v === vq ? q : T(v, NOCHECK)
 end
 
 function *(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
@@ -116,13 +114,13 @@ function *(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
         zero(T)
     else
         # make broadcast recognize q as scalar
-        T(p.coeff .* Ref(S(q)), NOCHECK)
+        T(p.coeff .* S(q), NOCHECK)
     end
 end
 *(q::Union{Integer,Ring}, p::UnivariatePolynomial) = *(p, q)
 
 function /(p::T, q::S) where {X,S,T<:UnivariatePolynomial{X,S}}
-    T(p.coeff ./ Ref(q), NOCHECK)
+    T(p.coeff ./ q, NOCHECK)
 end
 
 function smul!(v::Vector{S}, r, m::S) where S
@@ -150,8 +148,7 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     if np < nq
         return S[], vp, f
     end
-    lead = vq[nq]
-    divi = lead
+    divi = vq[nq]
     fac = F && !isunit(divi)
     if nq == 1
         isone(divi) && return vp, S[], f
@@ -262,6 +259,8 @@ zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
 one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
 hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
+ismonomial(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:degree(p))))
+ismonic(p::UnivariatePolynomial) = isone(lc(p))
 
 # auxiliary functions
 
@@ -271,7 +270,7 @@ hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero.
 """
-lc(p::UnivariatePolynomial) = p.coeff[end]
+lc(p::UnivariatePolynomial{X,S}) where {X,S} = degree(p) < 0 ? zero(S) : p.coeff[end]
 
 # pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
 
@@ -343,6 +342,22 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         β = -γ * ψ^d
     end
     a, s1/f, t1/f
+end
+
+function multmono(p, np, vp, q, nq, vq)
+    fact = lc(p)
+    if isone(fact) && np == 1
+        return vq
+    end
+    v = similar(vq, np + nq - 1)
+    z = zero(fact)
+    for i = 1:np-1
+        v[i] = z
+    end
+    for i = 1:nq
+        v[i+np-1] = vq[i] * fact
+    end
+    v
 end
 
 issimple(::Union{ZZ,ZZmod,Number}) = true

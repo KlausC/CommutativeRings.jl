@@ -100,6 +100,9 @@ end
     @test content(p) == ZZ(1)
     @test primpart(p) == p
 
+    @test iszero(lc(zero(P)))
+    @test isone(lc(one(P)))
+
     PP = UnivariatePolynomial{:z,P}
     pp = PP([p, q, s])
 
