@@ -11,7 +11,7 @@ end
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
 inv(a::Ring) = isunit(a) ? a : throw(DomainError(a, "cannot divide by non-unit."))
-degree(x::Ring) = 0 # fallback
+deg(x::Ring) = 0 # fallback
 divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]

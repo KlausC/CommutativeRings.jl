@@ -237,12 +237,12 @@ The primitive part of the polynomial p, that means the `gcd` of its coefficients
 primpart(p::UnivariatePolynomial) = p / content(p)
 
 """
-    degree(p::UnivariatePolynomial)
+    deg(p::UnivariatePolynomial)
 
 Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
 nonzero coefficient. The degree of the zero polynomial is defined to be -1.
 """
-degree(p::UnivariatePolynomial) = length(p.coeff) - 1
+deg(p::UnivariatePolynomial) = length(p.coeff) - 1
 
 function inv(p::T) where T<:UnivariatePolynomial
     if isunit(p)
@@ -259,7 +259,7 @@ zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
 one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
 hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
-ismonomial(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:degree(p))))
+ismonomial(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 ismonic(p::UnivariatePolynomial) = isone(lc(p))
 
 # auxiliary functions
@@ -270,7 +270,7 @@ ismonic(p::UnivariatePolynomial) = isone(lc(p))
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero.
 """
-lc(p::UnivariatePolynomial{X,S}) where {X,S} = degree(p) < 0 ? zero(S) : p.coeff[end]
+lc(p::UnivariatePolynomial{X,S}) where {X,S} = deg(p) < 0 ? zero(S) : p.coeff[end]
 
 # pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
 
@@ -285,8 +285,8 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     
     iszero(b) && return a
     E = -one(S)
-    da = degree(a)
-    db = degree(b)
+    da = deg(a)
+    db = deg(b)
     d = da - db
     ψ = E
     β = iseven(d) ? -E : E
@@ -298,7 +298,7 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         iszero(b) && break
         # prepare for next turn
         da = db
-        db = degree(c)
+        db = deg(c)
         ψ = (-γ)^d / ψ^(d-1)
         d = da - db
         β = -γ * ψ^d
@@ -314,11 +314,10 @@ Return `g == pgcd(a, b)` and `u, v` with `p * u + q * v == g`.
 function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     iszero(b) && return a
     E = one(S)
-    da = degree(a)
-    db = degree(b)
+    da = deg(a)
+    db = deg(b)
     d = da - db
     ψ = -E
-    f = E
     β = iseven(d) ? E : -E
     EE = one(T)
     ZZ = zero(T)
@@ -330,18 +329,20 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         q, c = divrem(a, b)
         c /= β
         a, b = b, c
-        f *= β
-        s1, s2 = s2 * β, s1 * γd - s2 * q    
-        t1, t2 = t2 * β , t1 * γd - t2 * q    
         iszero(b) && break
+        s1, s2 = s2, (s1 * γd - s2 * q) / β    
+        t1, t2 = t2, (t1 * γd - t2 * q) / β    
         # prepare for next turn
         da = db
-        db = degree(c)
+        db = deg(c)
         ψ = (-γ)^d / ψ^(d-1)
         d = da - db
         β = -γ * ψ^d
     end
-    a, s1/f, t1/f
+    cs = gcd(content(s2), content(t2))
+    a = a / cs
+    f = content(a)
+    a/f, s2/cs, t2/cs, f
 end
 
 function multmono(p, np, vp, q, nq, vq)
