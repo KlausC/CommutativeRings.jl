@@ -31,7 +31,7 @@ function gcd(a::T, b::T) where T<:Ring
 end
 
 # extension to array
-function gcd(aa::AbstractVector{T}) where T<:Ring
+function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {T<:Ring,N}
     n = length(aa)
     n == 0 && return zero(T)
     n == 1 && return aa[1]
@@ -42,6 +42,7 @@ function gcd(aa::AbstractVector{T}) where T<:Ring
     end
     g
 end
+gcd(a::T...) where T<:Ring = gcd(a)
 
 # generic extended Euclid's algorithm
 function gcdx(a::T, b::T) where T<:Ring

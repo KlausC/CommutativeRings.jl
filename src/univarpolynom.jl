@@ -139,6 +139,9 @@ function sdiv!(v::Vector{S}, r, m::S) where S
 end
 
 # division and remainder algorithm
+# if the third argument is true, perform `pseudo-division` by multiplying
+# the divident by Ring element in order to allow division.
+# In the other case, throw error, if division by the leading coefficient fails.
 function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     np = length(vp)
     nq = length(vq)
@@ -277,7 +280,7 @@ lc(p::UnivariatePolynomial) = p.coeff[end]
 
 Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
 The next to last calculated remainder is a scalar multiple of the gcd. 
-See: https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_division
+See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 """
 function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     
@@ -302,6 +305,44 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         β = -γ * ψ^d
     end
     a
+end
+"""
+    g, u, v = pgcdx(a, b)
+
+Extended pseudo GCD algorithm.
+Return `g == pgcd(a, b)` and `u, v` with `p * u + q * v == g`.
+"""
+function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+    iszero(b) && return a
+    E = one(S)
+    da = degree(a)
+    db = degree(b)
+    d = da - db
+    ψ = -E
+    f = E
+    β = iseven(d) ? E : -E
+    EE = one(T)
+    ZZ = zero(T)
+    s1, s2, t1, t2 = EE, ZZ, ZZ, EE
+    while true
+        γ = lc(b)
+        γd = γ^(d+1)
+        a = a * γd
+        q, c = divrem(a, b)
+        c /= β
+        a, b = b, c
+        f *= β
+        s1, s2 = s2 * β, s1 * γd - s2 * q    
+        t1, t2 = t2 * β , t1 * γd - t2 * q    
+        iszero(b) && break
+        # prepare for next turn
+        da = db
+        db = degree(c)
+        ψ = (-γ)^d / ψ^(d-1)
+        d = da - db
+        β = -γ * ψ^d
+    end
+    a, s1/f, t1/f
 end
 
 issimple(::Union{ZZ,ZZmod,Number}) = true
