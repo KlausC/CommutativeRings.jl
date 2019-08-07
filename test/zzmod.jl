@@ -4,7 +4,7 @@ using Primes
 tm(T::Type{<:Integer}) = typemax(T)
 tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
 
-@testset "ZZmod{$m,$T}" for T in (UInt16, Int32, Int64, BigInt), m in (65, tm(T))
+@testset "ZZmod{$m,$T}" for T in (UInt16, Int64, BigInt), m in (65, tm(T))
     
     while T != BigInt && isprime(m)
         m -= 2
@@ -100,6 +100,9 @@ end
     @test ZZp1(p2) !== p2
     @test ZZp1(p2).val == p2.val
     @test_throws InexactError ZZp1(128)
+    @test modulus(Int8/17) == 17
+    @test modulus(BigInt/31) == 31
+    @test (Int8/17)(1) == ZZp1(1)
 end
 
 @testset "auxiliary functions" begin

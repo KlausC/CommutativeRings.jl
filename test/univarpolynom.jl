@@ -146,7 +146,7 @@ end
 @testset "polynomials of other structures" begin
 
     Zp = ZZmod{17, Int8}
-    P = UnivariatePolynomial{:x, Zp}
+    P = Zp[:x]
     x = P([0, 1])
     p = (3x^2 + 2x + 1) * (x - 1)
     q = x^2 - x

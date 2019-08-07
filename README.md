@@ -7,9 +7,9 @@
 
 ----
 
-### `CommutativeRings`
+# `CommutativeRings`
 
-* #### Introduction
+## Introduction
 
 This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
@@ -27,23 +27,25 @@ abstract and concrete types in `Julia`, the objects of those types representing 
 elements to operate on. As types are first class objects in `Julia`it was also possible to
 define combinations in a language affine way. Also `ring homomorphisms`, i.e. strucure-respecting mappings between rings (of differnt kind) find a natural representation as one-argument-functions or methods with corresponding domains. The typical canonical homomorphisms, can be conveniently implemented as constructors.
 
+The expoitation of the julia structures is in contrast to the alternative package [AbstractAlgebra](https://github.com/Nemocas/AbstractAlgebra.jl), which defines separate types for ring elements and the ring classes themselves, the elements keeping an explicit link to the owner structure.
+
 To distinct variants of rings, we use type parameters, for example the `m` in `ℤ/m` or the `x` in `ℤ[x]`. Other type parameters may be used to specify implementation restictions, for
 example typically the integer types used for the representation of the objects.
 
 Correspondence between algebraic and Julia categories:
 
-| algebric | Julia| example
-|---------|------|-------|
-| category **Ring**|abstract type| `abstract type Ring ...`|
-| algebraic structure **ℤ/m**|concrete type | `struct ZZmod{m,Int} <: Ring`|
-| specialisation **ℤ** is a **Ring** | type inclusion| `ZZ{Int] <: Ring`|
-| ring element **a** of **R**| object| `a` isa `R` |
-| basic binary operations **a + b** | binary operator| `a + b` | 
-| homomorphism **h** : **R** -> **S** | method| `h(::R)::S = ...`|
-| canonical **h** : **R** -> **S** | constructor| `S(::R) = ...`|
+| algebric                            | Julia          | example
+|-------------------------------------|----------------|------------------------------|
+| category **Ring**                   |abstract type   | `abstract type Ring ...`
+| algebraic structure **ℤ/m**         |concrete type   | `struct ZZmod{m,Int} <: Ring`
+| specialisation **ℤ** is a **Ring**  | type inclusion | `ZZ{Int] <: Ring`
+| ring element **a** of **R**| object | `a` isa `R`    |
+| basic binary operations **a + b**   | binary operator| `a + b`
+| homomorphism **h** : **R** -> **S** | method         | `h(::R)::S = ...`
+| canonical **h** : **R** -> **S**    | constructor    | `S(::R) = ...`
  
 
-* #### Usage
+## Usage example
 
 ```
 julia> using CommutativeRings
@@ -115,7 +117,7 @@ not dividable a/b.
 
 ```
 
-* #### Installation of this WIP version
+## Installation of this WIP version
 
 
 ```
@@ -151,42 +153,91 @@ not dividable a/b.
        Testing CommutativeRings tests passed
 ```
 
-* #### Classes
+## Implementation details
 
-| Name | supertype | description | remarks |
-|------|-----------|-------------| --------|
-| `Ring` | `Any`   |abstract - supertype of all ring classes|
-| `FractionField` | `Ring`| abstract - ring of fractions over a ring |
-| `QuotientRing` | `Ring` | abstract - quotient (or factor-) ring of a ring|
-| `Polynomial` | `Ring` | abstract - polynomials over a ring |
-| `ZZ{type}` | `Ring` | integer numbers | `type` is an integer Julia type
-| `ZZmod{m,type}`| `QuotientRing`| quotient class modulo `m` | `m` is a small integer or a symbol to accomodate `BigInt
-| `QQ{type}` | `FractionField`| rational numbers | essential identical to `Rational{type}`
-| `Frac{R}` | `FractionField`| fractions over a `R`
+  * ###Classes
+
+| Name            | supertype      | description   | remarks |
+|-----------------|----------------|---------------|---------|
+| `Ring`          | `Any`          | abstract - supertype of all ring classes|
+| `FractionField` | `Ring`         | abstract - ring of fractions over a ring |
+| `QuotientRing`  | `Ring`         | abstract - quotient (or factor-) ring of a ring|
+| `Polynomial`    | `Ring`         | abstract - polynomials over a ring |
+| `ZZ{type}`      | `Ring`         | integer numbers | `type` is an integer Julia type
+| `ZZmod{m,type}` | `QuotientRing` | quotient class modulo `m` | `m` is a small integer or a symbol to accomodate `BigInt
+| `QQ{type}`      | `FractionField`| rational numbers | essential identical to `Rational{type}`
+| `QQ{R}`         | `FractionField`| fractions over a `R`
 | `Quotient{m,R}` | `QuotientRing` | also `R/m`, ring modulo `m`| `m` is an element or an ideal of `R`
+| `UnivariatePolynomial{X,R}` | `Polynomial`| also `R[X]`, ring of polynomials over `R`|`X` is a symbol like `:x`
+
+ #### class construction
+
+Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be use directly.
+For that purpose, there is a special function `new_class`:
+```
+    m = big"....."
+    Zm = new_class(ZZmod{:p,BigInt}, m)
+
+ # as opposed to
+
+    p = Int128(2)^127 - 1
+    Zp = ZZmod{p,Int128}
+```
+
+For general quotient classes and for polynomials there are convenient constructors, which
+look like the typical mathematical notation `R[:x]` and `R / I`:
+```
+    S = ZZ{Int}
+    P = S[:x]
+    x = P([0,1])
+    Q = P/(x^2 + 1) 
+```
+The `/` notion is also implemented for `Julia`integer types,
+so this works:
+```
+    Z31 = Int8 / 31    # equivalent to ZZmod{31,Int8}
+    Zbig = BigInt / (big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
+```
 
 
+* ### Constructors for elements
 
-* #### Mathematical operations
+The class names of all concrete types serve also as constructor names.
+Typically the last type parameters may be omitted.
+The names may be assigned to variables or constants to be easily re-used.
+
+
+| Name | remarks
+|------|-------|
+|ZZ{
+
+
+* ### Mathematical operations
 
 | operation | operator |remarks|
 |-----------|:--------:|-------|
 | add       | + ||
 | subtract  | - | also unary |
 | multiply  | * |
-| put to power | ^ | use `Base.power_by_squares`|
-| divide   | / | only if dividable without remainder|
-| divrem   || complete integer division
-| div|÷|quotient integer division
-| rem|%|remainder integer division
-| gcd ||classical Euclid's algorithm
-| gcdx||extended Euclid's algorithm
-| pdivrem||pseudo division for polynomials over integer rings
-| pgcd||pseudo gcd
-| pgcdx||pseudo gcdx
+| integer power | ^ | use `Base.power_by_squares`|
+| divide    | / | only if dividable without remainder|
+| divrem    || complete integer division
+| div       |÷|quotient integer division
+| rem       |%|remainder integer division
+| gcd       ||classical Euclid's algorithm
+| gcdx      ||extended Euclid's algorithm
+| pdivrem   ||pseudo division for polynomials over rings `d, r = divrem(p, q) => q * d + r = f * p` where`f` is in the base ring
+| pgcd      ||pseudo gcd `g, f = pgcd(p, q) => 
+| pgcdx     ||pseudo gcdx `g, u, v, f = pgcdx(p, q) => p * u + q * v = g * f` where f is in base ring
+| iszero    ||test if element is zero-element of its ring
+| isone     ||test if element is one-element of its ring
+| isunit    ||test if element is invertible in its ring
+| deg       || degree of polynomial, `-1` for zero. For non-polynomials always `0`.
+| lc        ||leading coefficient of polynomial, otherwise identity
+| ismonomial|| short for `isone(lc(x))`
+| ismonic   || polynomials of the form `c * x^k` for `c` in th base ring, k >= 0 integer
 
-
-#### Implementation:
+  * ###Associated classes
 
 Each algebraic structure corresponds to a parameterized `Julia` type or struct. For example, to represent Z/m, there is
 ```
