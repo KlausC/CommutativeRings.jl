@@ -32,7 +32,7 @@ example typically the integer types used for the representation of the objects.
 
 Correspondence between algebraic and Julia categories:
 
->>> | algebric | Julia| example
+| algebric | Julia| example
 |---------|------|-------|
 | category **Ring**|abstract type| `abstract type Ring ...`|
 | algebraic structure **ℤ/m**|concrete type | `struct ZZmod{m,Int} <: Ring`|
