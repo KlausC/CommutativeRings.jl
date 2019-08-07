@@ -86,10 +86,20 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
 
     @test copy(ZZp(5)) == ZZp(5)
     @test deg(z3) == 0
-    @test_throws MethodError div(z3, z3)
-    @test_throws MethodError rem(z3, z3)
+    @test div(z3, z3) == one(z3)
+    @test rem(z3, z3) == zero(z3)
     io = IOBuffer()
     @test show(io, z1) == nothing
+end
+@testset "constructors and type assertion" begin
+    ZZp1 = ZZmod{17,Int8}
+    p1 = ZZp1(-1)
+    @test ZZp1(p1) === p1
+    ZZp2 = ZZmod{17,Int}
+    p2 = ZZp2(-1)
+    @test ZZp1(p2) !== p2
+    @test ZZp1(p2).val == p2.val
+    @test_throws InexactError ZZp1(128)
 end
 
 @testset "auxiliary functions" begin

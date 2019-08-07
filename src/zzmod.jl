@@ -8,6 +8,8 @@ function ZZmod{m,T}(a::Integer) where {m,T}
 end
 ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
+ZZmod{m,T}(a::ZZmod{m,T}) where {m,T} = a
+ZZmod{m,T}(a::ZZmod{m,S}) where {m,T,S} = ZZmod{m,T}(a.val)
 
 copy(p::ZZmod) = typeof(p)(p.val)
 

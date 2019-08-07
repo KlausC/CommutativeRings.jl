@@ -16,6 +16,7 @@ divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 isdiv(a::T, b::T) where T <: Ring = iszero(rem(a, b))
+divrem(a::T, b::T) where T<:QuotientRing = (a / b, zero(a))
 
 modulus(::T) where T<:Ring = modulus(T)
 copy(p::QuotientRing) = typeof(p)(p.val)
