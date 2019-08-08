@@ -141,6 +141,16 @@ end
     g, u, v, f = pgcdx(p, q)
     @test iszero(p * u + q * v - g * f)
     @test isdiv(g, s)
+
+    S = ZZmod{31,Int}
+    P = UnivariatePolynomial{:x,S}
+    x = P([0, 1])
+    p = x^3 + 3x^2 - 4
+    q = x + 4
+    g, u, v, f = pgcdx(p, q)
+    @test iszero(p * u + q * v - g * f)
+    p2 = 2p
+    @test p2 / 2 == p
 end
 
 @testset "polynomials of other structures" begin

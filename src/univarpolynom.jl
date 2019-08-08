@@ -131,6 +131,7 @@ end
 function /(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}}
     T(p.coeff ./ S(q), NOCHECK)
 end
+/(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = /(p, S(q))
 
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r

@@ -5,21 +5,22 @@ Base.convert(::Type{T}, a::T) where T<:Ring = a
 
 for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)
     @eval begin
-        ($op)(a::Ring, b::Ring) where {T,S} = ($op)(promote(a, b)...)
-        ($op)(a::Ring, b::Union{Integer,Rational}) where {T,S} = ($op)(promote(a, b)...)
-        ($op)(a::Union{Integer,Rational}, b::Ring) where {T,S} = ($op)(promote(a, b)...)
+        ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
+        ($op)(a::Ring, b::Union{Integer,Rational}) = ($op)(promote(a, b)...)
+        ($op)(a::Union{Integer,Rational}, b::Ring) = ($op)(promote(a, b)...)
     end
 end
 
 # generic operations
 function /(a::T, b::T) where T<:Ring
-    d, r = divrem(a, b)
-    iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
-    T(d)
+    if b isa Union{FractionField,QuotientRing}
+        a * inv(b)
+    else
+        d, r = divrem(a, b)
+        iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
+        T(d)
+    end
 end
-/(a::Union{FractionField,QuotientRing}, b::Ring) = inv(a) * b
-/(a::Ring, b::Union{FractionField,QuotientRing}) = a * inv(b)
-/(a::Union{FractionField,QuotientRing}, b::Union{FractionField,QuotientRing}) = a * inv(b)
 \(a::Ring, b::Ring) = b / a
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))
