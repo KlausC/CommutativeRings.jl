@@ -1,6 +1,10 @@
 
 ### Constructors
 basetype(::Type{<:UnivariatePolynomial{m,T}}) where {m,T} = T
+sign(a::UnivariatePolynomial) = sign(lc(a))
+
+convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
+UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
@@ -21,6 +25,13 @@ UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S<:Ring} = p
 # convert polynomial with different symbol / coefficient type
 function UnivariatePolynomial{X,S}(p::UnivariatePolynomial) where {X,S}
     UnivariatePolynomial{X,S}(S.(p.coeff), NOCHECK)
+end
+
+function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer) where {X,S}
+    k = max(k, -1)
+    v = zeros(S,k+1)
+    v[k+1] = one(S)
+    P(v)
 end
 
 """
@@ -91,9 +102,9 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     nv = np + nq - 1
     if np == 0 || nq == 0
         return zero(T)
-    elseif ismonomial(p)
+    elseif ismonom(p)
         v = multmono(p, np, vp, q, nq, vq)
-    elseif ismonomial(q)
+    elseif ismonom(q)
         v = multmono(q, nq, vq, p, np, vp)
     else
         v = similar(vp, nv)
@@ -132,6 +143,22 @@ function /(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}}
     T(p.coeff ./ S(q), NOCHECK)
 end
 /(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = /(p, S(q))
+
+function ^(p::P, k::Integer) where P<:UnivariatePolynomial
+    k < 0 && throw(DomainError((p,k), "polynom power negative exponent"))
+    n = deg(p)
+    if k == 0
+        one(p)
+    elseif k == 1 || n < 0
+        p
+    elseif n == 0
+        P(lc(p)^k)
+    elseif n == 1 && ismonom(p)
+        monom(P, k)
+    else
+        Base.power_by_squaring(p, k)
+    end
+end
 
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r
@@ -270,7 +297,7 @@ one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
 ==(p::UnivariatePolynomial{X}, q::UnivariatePolynomial{Y}) where {X, Y} = false
 hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
-ismonomial(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
+ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 ismonic(p::UnivariatePolynomial) = isone(lc(p))
 
 # auxiliary functions
@@ -295,12 +322,12 @@ See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresult
 function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     
     iszero(b) && return a
-    E = -one(S)
+    E = one(S)
     da = deg(a)
     db = deg(b)
     d = da - db
-    ψ = E
-    β = iseven(d) ? -E : E
+    ψ = -E
+    β = iseven(d) ? E : -E
     while true
         γ = lc(b)
         a = a * γ^(d+1)
@@ -314,7 +341,8 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         d = da - db
         β = -γ * ψ^d
     end
-    a
+    a = primpart(a)
+    a / sign(a)
 end
 """
     g, u, v = pgcdx(a, b)
@@ -323,8 +351,9 @@ Extended pseudo GCD algorithm.
 Return `g == pgcd(a, b)` and `u, v` with `p * u + q * v == g`.
 """
 function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
-    iszero(b) && return a
     E = one(S)
+    iszero(b) && return a, E, zero(S), a
+    iszero(a) && return b, zero(S), E, b
     da = deg(a)
     db = deg(b)
     d = da - db

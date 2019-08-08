@@ -6,9 +6,9 @@ export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomi
 export Ideal
 
 export new_class, new_ideal, isunit, deg, content, primpart, lc, modulus
-export isdiv, pdivrem, pgcd, pgcdx, basetype
+export isdiv, pdivrem, pgcd, pgcdx, basetype, monom, ismonom, ismonic
 
-import Base: +, -, *, /, inv, ^, \, //, getindex
+import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, promote_rule
 
@@ -103,9 +103,10 @@ The ring of fractions of `R`. The elements consist of pairs `num::R,den::R`.
 During creation the values may be canceled, such as `gcd(num, den) == one(R)`.
 The special case of `R<:Integer` is handled by `QQ{R}`.
 """
-struct Frac{R<:Ring} <: FractionField{R,FractionFieldClass}
+struct Frac{R<:Union{Polynomial,ZZ}} <: FractionField{R,FractionFieldClass}
     num::R
     den::R
+    Frac(num::R, den::R, ::NCT) where R = new{R}(num, den)
 end
 
 """

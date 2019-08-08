@@ -1,6 +1,7 @@
 
 ## Constructors
 basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
+sign(a::Quotient) = one(a)
 
 function Quotient{X,R}(a::R) where {X,R<:Ring}
     m = modulus(Quotient{X,R})

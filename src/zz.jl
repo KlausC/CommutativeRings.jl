@@ -1,6 +1,7 @@
 
 # construction
 basetype(::Type{<:ZZ{T}}) where T = T
+sign(a::ZZ) = sign(a.val)
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
 ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
@@ -25,6 +26,7 @@ end
 *(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_mul(a.val, b.val))
 *(a::ZZ{T}, b::Integer) where T = ZZ(T(checked_mul(a.val, T(b))))
 *(a::Integer, b::ZZ{T}) where T = ZZ(T(checked_mul(T(a), b.val)))
+^(a::ZZ{BigInt}, b::Integer) = ZZ(a.val^b)
 divrem(a::T, b::T) where T<:ZZ = T.(divrem(a.val, b.val))
 div(a::T, b::T) where T<:ZZ = T(a.val ÷ b.val)
 rem(a::T, b::T) where T<:ZZ = T(a.val % b.val)

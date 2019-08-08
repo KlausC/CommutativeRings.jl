@@ -125,7 +125,7 @@ end
     a, b, f = pdivrem(p, q)
     @test f * p == a * q + b
     @test_throws DomainError gcd(p, q)
-    @test pgcd(p, q) == P([-225750])
+    @test pgcd(p, q) == P([1])
     @test_throws DomainError gcdx(p, q)
     g, u, v, f = pgcdx(p, q)
     @test iszero(p * u + q * v - g * f)

@@ -1,6 +1,7 @@
 
 # construction
 basetype(::Type{<:QQ{T}}) where T = T
+sign(a::QQ) = sign(a.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ{T}) where T = a
 QQ{T}(a::QQ{S}) where {T,S} = QQ{T}(a.num, a.den)

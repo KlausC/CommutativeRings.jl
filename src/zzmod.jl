@@ -1,6 +1,7 @@
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = T
+sign(a::ZZmod) = one(a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
