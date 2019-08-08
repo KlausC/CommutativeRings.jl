@@ -1,16 +1,30 @@
 
+# promotions and conversions
+Base.convert(::Type{T}, a::Union{RingInt,Rational}) where T<:Ring = T(a)
+Base.convert(::Type{T}, a::T) where T<:Ring = a
+
+for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)
+    @eval begin
+        ($op)(a::Ring, b::Ring) where {T,S} = ($op)(promote(a, b)...)
+        ($op)(a::Ring, b::Union{Integer,Rational}) where {T,S} = ($op)(promote(a, b)...)
+        ($op)(a::Union{Integer,Rational}, b::Ring) where {T,S} = ($op)(promote(a, b)...)
+    end
+end
+
 # generic operations
 function /(a::T, b::T) where T<:Ring
     d, r = divrem(a, b)
     iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
     T(d)
 end
-/(a::T, b::T) where T<:Union{FractionField,QuotientRing} = a * inv(b)
-\(a::T, b::T) where T<:Ring = b / a
+/(a::Union{FractionField,QuotientRing}, b::Ring) = inv(a) * b
+/(a::Ring, b::Union{FractionField,QuotientRing}) = a * inv(b)
+/(a::Union{FractionField,QuotientRing}, b::Union{FractionField,QuotientRing}) = a * inv(b)
+\(a::Ring, b::Ring) = b / a
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
-inv(a::Ring) = isunit(a) ? a : throw(DomainError(a, "cannot divide by non-unit."))
+inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-unit."))
 deg(x::Ring) = 0 # fallback
 divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]

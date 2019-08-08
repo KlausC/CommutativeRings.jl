@@ -6,11 +6,11 @@ export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomi
 export Ideal
 
 export new_class, new_ideal, isunit, deg, content, primpart, lc, modulus
-export isdiv, pdivrem, pgcd, pgcdx
+export isdiv, pdivrem, pgcd, pgcdx, basetype
 
-import Base: +, -, *, /, inv, ^, \, getindex
+import Base: +, -, *, /, inv, ^, \, //, getindex
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy
+import Base: copy, promote_rule
 
 using Base.Checked
 
@@ -123,11 +123,11 @@ struct Quotient{Id,R<:Ring} <: QuotientRing{R,QuotientClass}
 end
 
 """
-    QQ{S<:RingInt}
+    QQ{S<:Integer}
 
 
 """
-struct QQ{S<:RingInt} <: FractionField{S,QQClass}
+struct QQ{S<:Integer} <: FractionField{S,QQClass}
     num::S
     den::S
 end
@@ -173,6 +173,7 @@ end
 include("typevars.jl")
 include("generic.jl")
 include("zz.jl")
+include("qq.jl")
 include("zzmod.jl")
 include("quotient.jl")
 include("fraction.jl")

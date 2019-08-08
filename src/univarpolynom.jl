@@ -1,5 +1,6 @@
 
 ### Constructors
+basetype(::Type{<:UnivariatePolynomial{m,T}}) where {m,T} = T
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
@@ -63,9 +64,8 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(v, NOCHECK)
 end
-function +(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
-    p + T([S(q)])
-end
++(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
++(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
 
 function -(p::T) where T<:UnivariatePolynomial
@@ -78,7 +78,8 @@ function -(p::T) where T<:UnivariatePolynomial
     T(v, NOCHECK)
 end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
--(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
+-(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
+-(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
 -(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(-p, q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
@@ -109,18 +110,26 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     v === vp ? p : v === vq ? q : T(v, NOCHECK)
 end
 
-function *(p::T, q::Union{Integer,S}) where {X,S,T<:UnivariatePolynomial{X,S}}
+function *(p::UnivariatePolynomial, q::Ring)
     if iszero(q)
-        zero(T)
+        zero(p)
     else
+        T = typeof(p)
+        S = basetype(T)
         # make broadcast recognize q as scalar
         T(p.coeff .* S(q), NOCHECK)
     end
 end
-*(q::Union{Integer,Ring}, p::UnivariatePolynomial) = *(p, q)
+*(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = *(p, S(q))
+*(q::Integer, p::UnivariatePolynomial) = *(p, q)
+*(q::Ring, p::UnivariatePolynomial) = *(p, q)
 
-function /(p::T, q::S) where {X,S,T<:UnivariatePolynomial{X,S}}
-    T(p.coeff ./ q, NOCHECK)
+function /(p::T, q::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+    d, r = divrem(p, q)
+    iszero(r) ? d : throw(DomainError((p, q), "cannot divide a / b"))
+end
+function /(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}}
+    T(p.coeff ./ S(q), NOCHECK)
 end
 
 function smul!(v::Vector{S}, r, m::S) where S
@@ -258,6 +267,7 @@ iszero(p::UnivariatePolynomial) = length(p.coeff) == 0
 zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
 one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
+==(p::UnivariatePolynomial{X}, q::UnivariatePolynomial{Y}) where {X, Y} = false
 hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
 ismonomial(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 ismonic(p::UnivariatePolynomial) = isone(lc(p))

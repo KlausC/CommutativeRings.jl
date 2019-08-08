@@ -1,5 +1,6 @@
 
 # construction
+basetype(::Type{<:ZZmod{m,T}}) where {m,T} = T
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
@@ -10,6 +11,7 @@ ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
 ZZmod{m,T}(a::ZZmod{m,T}) where {m,T} = a
 ZZmod{m,T}(a::ZZmod{m,S}) where {m,T,S} = ZZmod{m,T}(a.val)
+ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
 
 # class constructors for `Int/31` notation
 /(::Type{T}, m::Integer) where T<:Base.BitInteger = ZZmod{T(m),T}
@@ -39,7 +41,7 @@ end
 *(a::Integer, b::T) where T<:ZZmod = T(mult_ZZmod(a, b.val, modulus(T)), NOCHECK)
 
 inv(a::T) where T<:ZZmod = T(invmod2(a.val, modulus(T)), NOCHECK)
-^(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
+(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
 
 isunit(x::T) where T<:ZZmod = gcd(modulus(T), x.val) == 1
 iszero(x::ZZmod) = iszero(x.val)

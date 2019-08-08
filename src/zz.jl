@@ -1,8 +1,22 @@
 
 # construction
+basetype(::Type{<:ZZ{T}}) where T = T
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
 ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
+
+# promotion and conversion
+convert(::Type{ZZ{T}}, a::ZZ{S}) where {T,S} = ZZ{T}(T(a.val))
+promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
+promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
+promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
+
+for op in (:+, :-, :/, :(==), :div, :rem, :divrem, :gcd, :gcdx, :pgcd, :pgcdx)
+    @eval begin
+        ($op)(a::ZZ{T}, b::Integer) where T = ($op)(promote(a, b)...)
+        ($op)(a::Integer, b::ZZ{T}) where T = ($op)(promote(a, b)...)
+    end
+end
 
 # operations for ZZ
 +(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_add(a.val, b.val))

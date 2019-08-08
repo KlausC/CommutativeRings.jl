@@ -27,7 +27,7 @@ abstract and concrete types in `Julia`, the objects of those types representing 
 elements to operate on. As types are first class objects in `Julia`it was also possible to
 define combinations in a language affine way. Also `ring homomorphisms`, i.e. strucure-respecting mappings between rings (of differnt kind) find a natural representation as one-argument-functions or methods with corresponding domains. The typical canonical homomorphisms, can be conveniently implemented as constructors.
 
-The expoitation of the julia structures is in contrast to the alternative package [AbstractAlgebra](https://github.com/Nemocas/AbstractAlgebra.jl), which defines separate types for ring elements and the ring classes themselves, the elements keeping an explicit link to the owner structure.
+The exploitation of the julia structures is in contrast to the alternative package [AbstractAlgebra](https://github.com/Nemocas/AbstractAlgebra.jl), which defines separate types for ring elements and the ring classes themselves, the elements keeping an explicit link to the owner structure.
 
 To distinct variants of rings, we use type parameters, for example the `m` in `ℤ/m` or the `x` in `ℤ[x]`. Other type parameters may be used to specify implementation restictions, for
 example typically the integer types used for the representation of the objects.
@@ -54,7 +54,7 @@ julia> using CommutativeRings
 
 julia> m = 31
 31
-julia> ZZp = ZZmod{m,Int8}
+julia> ZZp = Int8/m
 ZZmod{31,Int8}
 julia> modulus(ZZp)
 31
@@ -73,11 +73,12 @@ julia> 13z1
 
  # using a big prime as parameter, the class is identified by an arbitrary symbol (:p)
 
-julia> ZZbig = new_class(ZZmod{:p,BigInt}, big(2)^521 - 1)
-ZZmod{:p,BigInt}
+julia> ZZbig = BigInt / (big(2)^521 - 1)
+ZZmod{Symbol("##361"),BigInt}
 
 julia> modulus(ZZbig)
-6864797660130609714981900799081393217269435300143305409394463459185543183397656052122559640661454554977296311391480858037121987999716643812574028291115057151
+686479766013060971498190079908139321726943530014330540939446345918554318339765
+6052122559640661454554977296311391480858037121987999716643812574028291115057151
 julia> zb = ZZbig(10)
 10°
 julia> zb^(modulus(ZZbig)-1) # Fermat's little theorem for primes
@@ -145,12 +146,13 @@ not dividable a/b.
     Test Summary: | Pass  Total
     ZZ            |   92     92
     Test Summary: | Pass  Total
-    ZZmod         |  327    327
+    ZZmod         |  248    248
     Test Summary: | Pass  Total
     univarpolynom |  187    187
     Test Summary: | Pass  Total
     quotient      |    4      4
-       Testing CommutativeRings tests passed
+       Testing CommutativeRings tests passed 
+
 ```
 
 ## Implementation details
@@ -216,7 +218,7 @@ The names may be assigned to variables or constants to be easily re-used.
 
 | operation | operator |remarks|
 |-----------|:--------:|-------|
-| add       | + ||
+| add       | + | operations with `Base.BitIntegers` throw upon overflow|
 | subtract  | - | also unary |
 | multiply  | * |
 | integer power | ^ | use `Base.power_by_squares`|
@@ -252,7 +254,7 @@ Preferred operation mode is to take the type parameters directly.
 
 
 
-#### Acknowledgements:
+## Acknowledgements:
 This package was inspired by the `C++` library `CoCoALib`, which can be found
 here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
 
