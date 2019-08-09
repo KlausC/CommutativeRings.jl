@@ -50,6 +50,6 @@ hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 function Base.show(io::IO, a::Quotient)
     v = a.val
     m = modulus(a)
-    print(io, v, "mod(", m, ")")
+    print(io, v, " mod(", m, ")")
 end
 

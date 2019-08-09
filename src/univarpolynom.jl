@@ -77,7 +77,8 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
 end
 +(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
-+(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
++(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
++(q::S, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
 
 function -(p::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -322,10 +323,11 @@ See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresult
 function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     
     iszero(b) && return a
-    E = one(S)
     da = deg(a)
     db = deg(b)
     d = da - db
+    d < 0 && return pgcd(b, a)
+    E = one(S)
     ψ = -E
     β = iseven(d) ? E : -E
     while true
@@ -357,6 +359,10 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     da = deg(a)
     db = deg(b)
     d = da - db
+    if d < 0
+        g, u, v, f = pgcdx(b, a)
+        return g, v, u, f
+    end
     ψ = -E
     β = iseven(d) ? E : -E
     EE = one(T)
@@ -384,9 +390,24 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
     f = content(a)
     a/f, s2/cs, t2/cs, f
 end
+"""
+    invert(p, q)
 
+Inverse of `p` modulo `q`, where both are polynomials of the same type.
+If the base type is not a field, typically no inverse exists.
+"""
+function invert(p::T, q::T) where T <: UnivariatePolynomial
+    g, u, v, f = pgcdx(p, q)
+    if isunit(g) && isunit(f)
+        u / g / f
+    else
+        throw(DomainError((p, q), "p is not invertible modulo q"))
+    end
+end
+
+# multiply p * q with a monom p
 function multmono(p, np, vp, q, nq, vq)
-    fact = lc(p)
+    fact = vp[np]
     if isone(fact) && np == 1
         return vq
     end
@@ -401,7 +422,10 @@ function multmono(p, np, vp, q, nq, vq)
     v
 end
 
-issimple(::Union{ZZ,ZZmod,Number}) = true
+
+### Display functions
+
+issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Any) = false
 
 function showvar(io::IO, var, n::Integer)
@@ -419,8 +443,8 @@ function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
     for n = N:-1:0
         el = p.coeff[n+1]
         bra = !issimple(el)
-        bra && n != N && print(io, " + ")
         if !iszero(el)
+            bra && n != N && print(io, " + ")
             if !isone(el) || n == 0
                 io2 = IOBuffer()
                 show(io2, el)

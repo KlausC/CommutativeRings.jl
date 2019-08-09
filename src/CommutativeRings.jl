@@ -106,7 +106,7 @@ The special case of `R<:Integer` is handled by `QQ{R}`.
 struct Frac{R<:Union{Polynomial,ZZ}} <: FractionField{R,FractionFieldClass}
     num::R
     den::R
-    Frac(num::R, den::R, ::NCT) where R = new{R}(num, den)
+    Frac{R}(num::R, den::R, ::NCT) where R = new{R}(num, den)
 end
 
 """

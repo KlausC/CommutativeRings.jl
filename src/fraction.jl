@@ -7,26 +7,24 @@ sign(a::Frac) = sign(a.num)
 Frac{T}(a::Frac{T}) where T = a
 Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(a.num, a.den, NOCHECK)
 
-Frac{T}(a::Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
-Rational{T}(a::Frac) where T = Rational(T(a.num), T(a.den))
 Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
-Frac{T}(a::ZZ) where T = Frac{T}(T(a.val), one(T), NOCHECK)
-Frac(a::ZZ{T}) where T = Frac{T}(a.val, one(T), NOCHECK)
-Frac(a::T) where T<:Integer = Frac{T}(a, one(T), NOCHECK)
-//(a::T, b::T) where T<:Ring = Frac{T}(a, b)
+Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
+Frac(a::T) where T<:Ring  = Frac{T}(a, one(T), NOCHECK)
+Frac(a::T) where T<:Integer = Frac{ZZ{T}}(ZZ(a), one(ZZ{T}), NOCHECK)
+//(a::T, b::T) where T<:Ring = Frac(a, b)
 function Frac(a::T, b::T) where T
     g = pgcd(a, b)
     b /= g
     s = sign(b)
     b /= s
-    a /= b * s
-    Frac(a, b, NOCHECK)
+    a /= g * s
+    Frac{T}(a, b, NOCHECK)
 end
 
 promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{ZZ{S}}) where {S,T} = Frac{promote_type(S,T)}
+promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
 
 # operations for Frac
 
@@ -37,27 +35,27 @@ function +(x::T, y::T) where T<:Frac
     d /= h
     n = a * d + b * c
     g = pgcd(n, h)
-    Frac(n / g, h / g * b * d, NOCHECK)
+    T(n / g, h / g * b * d, NOCHECK)
 end
 
 function *(x::T, y::T) where T<:Frac
     a, b, c, d = x.num, x.den, y.num, y.den
-    h = pgcd(a, d)
+    g = pgcd(a, d)
     a /= g
     d /= g
     g = pgcd(b, c)
     b /= g
     c /= g
-    Frac(a * c, b * d, NOCHECK)
+    T(a * c, b * d, NOCHECK)
 end
 function inv(x::T) where T<:Frac
-    Frac(a.den, a.num, NOCHECK)
+    T(x.den, x.num, NOCHECK)
 end
 
 ==(a::T, b::T) where T<:Frac = iszero(a - b)
-/(a::T, b::T) where T<:Frac = iszero(b) ? throw(DivideError()) : Frac(a, b)
+/(a::T, b::T) where T<:Frac = a * inv(b)
 -(a::T, b::T) where T<:Frac = +(a, -b)
--(a::Frac{T}) where T = Frac{T}(-a.num, a.den)
+-(a::Frac{T}) where T = Frac{T}(-a.num, a.den, NOCHECK)
 divrem(a::T, b::T) where T<:Frac = (a / b, zero(T))
 div(a::T, b::T) where T<:Frac = a / b
 rem(a::T, b::T) where T<:Frac = zero(T)
@@ -69,5 +67,11 @@ zero(::Type{Frac{T}}) where T = Frac(zero(T), one(T))
 one(::Type{Frac{T}}) where T = Frac(one(T), one(T))
 hash(a::Frac, h::UInt) = hash(a.den, hash(a.num, h))
 
-Base.show(io::IO, a::Frac) = print(io, a.num, "//", a.den)
+function show(io::IO, a::Frac)
+    if isone(a.den)
+        show(io, a.num)
+    else
+        print(io, '(', a.num, ")/(", a.den, ')')
+    end
+end
     

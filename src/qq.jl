@@ -40,5 +40,10 @@ zero(::Type{QQ{T}}) where T = QQ(zero(T), one(T))
 one(::Type{QQ{T}}) where T = QQ(one(T), one(T))
 hash(a::QQ, h::UInt) = hash(Rational(a), h)
 
-Base.show(io::IO, a::QQ) = show(io, Rational(a))
-    
+function show(io::IO, a::QQ)
+    if isone(a.den)
+        show(io, a.num)
+    else
+        print(io, a.num, '/', a.den)
+    end
+end
