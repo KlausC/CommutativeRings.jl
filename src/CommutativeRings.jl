@@ -10,7 +10,7 @@ export isdiv, pdivrem, pgcd, pgcdx, basetype, monom, ismonom, ismonic
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, promote_rule
+import Base: copy, show, promote_rule
 
 using Base.Checked
 
