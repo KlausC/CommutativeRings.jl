@@ -5,6 +5,7 @@ using CommutativeRings
 @testset "QQ" begin include("qq.jl") end
 @testset "ZZmod" begin include("zzmod.jl") end
 @testset "univarpolynom" begin include("univarpolynom.jl") end
+@testset "fraction" begin include("fraction.jl") end
 @testset "quotient" begin include("quotient.jl") end
 
 

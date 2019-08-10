@@ -6,7 +6,8 @@ copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ{T}) where T = a
 QQ{T}(a::QQ{S}) where {T,S} = QQ{T}(a.num, a.den, NOCHECK)
 
-QQ(num::T, den::T) where T = QQ{T}(Base.divgcd(num, den)..., NOCHECK)
+QQ{T}(num::T, den::T) where T = QQ{T}(Base.divgcd(num, den)..., NOCHECK)
+QQ(num::T, den::T) where T = QQ{T}(num, den)
 QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den, NOCHECK)
 QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den, NOCHECK)
 Rational(a::QQ{T}) where T = Rational(a.num, a.den)

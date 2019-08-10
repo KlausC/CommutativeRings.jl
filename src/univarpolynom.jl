@@ -4,6 +4,7 @@ basetype(::Type{<:UnivariatePolynomial{m,T}}) where {m,T} = T
 sign(a::UnivariatePolynomial) = sign(lc(a))
 
 UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
+UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # promotion and conversion
 promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
