@@ -1,6 +1,5 @@
 
 # promotions and conversions
-Base.convert(::Type{T}, a::Union{RingInt,Rational}) where T<:Ring = T(a)
 Base.convert(::Type{T}, a::T) where T<:Ring = a
 
 for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)

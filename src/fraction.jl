@@ -22,9 +22,14 @@ function Frac(a::T, b::T) where T
 end
 
 promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
+promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
+
+convert(F::Type{Frac{T}}, a::Type{Frac{S}}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)
+convert(F::Type{Frac{T}}, a::Ring) where T = F(T(a), one(T), NOCHECK)
+convert(F::Type{Frac{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
+convert(F::Type{Frac{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
 # operations for Frac
 

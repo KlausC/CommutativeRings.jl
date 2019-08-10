@@ -10,7 +10,7 @@ export isdiv, pdivrem, pgcd, pgcdx, basetype, monom, ismonom, ismonic
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule
+import Base: copy, show, promote_rule, convert
 
 using Base.Checked
 
@@ -131,6 +131,7 @@ end
 struct QQ{S<:Integer} <: FractionField{S,QQClass}
     num::S
     den::S
+    QQ{T}(num::Integer, den::Integer, ::NCT) where T = new{T}(num, den)
 end
 
 """

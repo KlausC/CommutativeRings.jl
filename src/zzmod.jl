@@ -20,6 +20,32 @@ ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
 
 copy(p::ZZmod) = typeof(p)(p.val)
 
+#promotion and conversion
+function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
+    if modulus(ZT) == modulus(ZS)
+        R = promote_type(T, S)
+        if m == n 
+            ZZmod{promote(n,m),R}
+        elseif n isa Symbol
+            ZZmod{n,R}
+        else
+            ZZmod{m,R}
+        end
+     else
+         throw(PromotionError())
+    end
+end
+
+function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
+    if modulus(ZT) == modulus(ZS)
+        R = promote_type(S,T)
+        mn = m == n ? promote(m, n)[1] : n isa Symbol ? n : m
+        ZZmod{mn,R}(a.val)
+    else
+        throw(DomainError((ZT,a), "cannot convert "))
+    end
+end
+
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
 modulus(::T) where T<:ZZmod = modulus(T)

@@ -4,21 +4,28 @@ basetype(::Type{<:QQ{T}}) where T = T
 sign(a::QQ) = sign(a.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ{T}) where T = a
-QQ{T}(a::QQ{S}) where {T,S} = QQ{T}(a.num, a.den)
+QQ{T}(a::QQ{S}) where {T,S} = QQ{T}(a.num, a.den, NOCHECK)
 
-QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den)
-QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den)
+QQ(num::T, den::T) where T = QQ{T}(Base.divgcd(num, den)..., NOCHECK)
+QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den, NOCHECK)
+QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den, NOCHECK)
 Rational(a::QQ{T}) where T = Rational(a.num, a.den)
-QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T))
-QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T))
-QQ(a::ZZ{T}) where T = QQ{T}(a.val, one(T))
-QQ(a::T) where T<:Integer = QQ{T}(a, one(T))
+QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
+QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
+QQ(a::ZZ{T}) where T = QQ{T}(a.val, one(T), NOCHECK)
+QQ(a::T) where T<:Integer = QQ{T}(a, one(T), NOCHECK)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
 
+# promotion and conversion
 promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
+promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
-promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
+
+convert(F::Type{QQ{T}}, a::QQ{S}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)
+convert(F::Type{QQ{T}}, a::ZZ{S}) where {S,T} = F(T(a.val), one(T), NOCHECK)
+convert(F::Type{QQ{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
+convert(F::Type{QQ{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
 # operations for QQ
 for op in (:+, :- , :*)

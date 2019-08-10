@@ -19,6 +19,12 @@ Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 # enable `Z / m` for anonymous quotient class constructor
 /(::Type{R}, m) where R<:Ring = new_class(Quotient{gensym(),R}, new_ideal(R, m))
 
+# promotion and conversion
+promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S} = Quotient{X,promote_type{R,S}}
+
+convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
+convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
+
 ## Arithmetic
 
 +(a::T, b::T) where T<:Quotient =  T(a.val + b.val)

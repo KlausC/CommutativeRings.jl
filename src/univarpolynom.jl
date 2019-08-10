@@ -3,8 +3,16 @@
 basetype(::Type{<:UnivariatePolynomial{m,T}}) where {m,T} = T
 sign(a::UnivariatePolynomial) = sign(lc(a))
 
-convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
 UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
+
+# promotion and conversion
+promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
+promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
+
+
+convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{X}) where {X,R} = P(convert.(R, a.coeff))
+convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
+convert(P::Type{UnivariatePolynomial{X,S}}, a::T) where {X,S,T} = P([convert(S, a)])
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}

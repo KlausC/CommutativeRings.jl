@@ -7,10 +7,12 @@ ZZ{T}(a::ZZ{T}) where T = a
 ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
 
 # promotion and conversion
-convert(::Type{ZZ{T}}, a::ZZ{S}) where {T,S} = ZZ{T}(T(a.val))
 promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
+
+convert(::Type{ZZ{T}}, a::ZZ{S}) where {T,S} = ZZ{T}(T(a.val))
+convert(::Type{ZZ{T}}, a::Integer) where T = ZZ{T}(T(a))
 
 for op in (:+, :-, :/, :(==), :div, :rem, :divrem, :gcd, :gcdx, :pgcd, :pgcdx)
     @eval begin
