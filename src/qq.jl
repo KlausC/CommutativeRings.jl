@@ -3,10 +3,9 @@
 basetype(::Type{<:QQ{T}}) where T = T
 sign(a::QQ) = sign(a.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
-QQ{T}(a::QQ{T}) where T = a
-QQ{T}(a::QQ{S}) where {T,S} = QQ{T}(a.num, a.den, NOCHECK)
+QQ{T}(a::QQ) where T = convert(QQ{T}, a)
 
-QQ{T}(num::T, den::T) where T = QQ{T}(Base.divgcd(num, den)..., NOCHECK)
+QQ{T}(num::Integer, den::Integer) where T = QQ{T}(Base.divgcd(T(num), T(den))..., NOCHECK)
 QQ(num::T, den::T) where T = QQ{T}(num, den)
 QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den, NOCHECK)
 QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den, NOCHECK)
@@ -23,6 +22,7 @@ promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
 
+convert(F::Type{QQ{T}}, a::QQ{T}) where T = a
 convert(F::Type{QQ{T}}, a::QQ{S}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)
 convert(F::Type{QQ{T}}, a::ZZ{S}) where {S,T} = F(T(a.val), one(T), NOCHECK)
 convert(F::Type{QQ{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
