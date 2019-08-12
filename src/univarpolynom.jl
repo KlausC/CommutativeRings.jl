@@ -1,14 +1,16 @@
 
 ### Constructors
-basetype(::Type{<:UnivariatePolynomial{m,T}}) where {m,T} = T
-sign(a::UnivariatePolynomial) = sign(lc(a))
+basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
+depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
+lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
 
 UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # promotion and conversion
-promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
-promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
+_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
+_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{X,promote_type(R,S)}
+promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{X,promote_type(R,S)}
 
 
 convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{X}) where {X,R} = P(convert.(R, a.coeff))
@@ -84,7 +86,7 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(v, NOCHECK)
 end
-+(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
+#+(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
 +(q::S, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
@@ -275,6 +277,11 @@ end
 Return the degree of the polynimial p, i.e. the `gcd` of its coefficients.
 """
 content(p::UnivariatePolynomial) = gcd(p.coeff)
+function content(q::UnivariatePolynomial{X,Q}) where {X,Q<:Union{QQ,Quotient}}
+    c = lcm(getfield.(q.coeff, :den))
+    g = gcd(getfield.(q.coeff, :num) .* ( div.(c, getfield.(q.coeff, :den))))
+    Q(g , c)
+end
 
 """
     primpart(p::UnivariatePolynomial)
@@ -353,7 +360,7 @@ function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         β = -γ * ψ^d
     end
     a = primpart(a)
-    a / sign(a)
+    a / lcunit(a)
 end
 """
     g, u, v = pgcdx(a, b)

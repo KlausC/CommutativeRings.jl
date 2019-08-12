@@ -1,7 +1,8 @@
 
 # construction
-basetype(::Type{<:QQ{T}}) where T = T
-sign(a::QQ) = sign(a.num)
+basetype(::Type{<:QQ{T}}) where T = ZZ{T}
+depth(::Type{<:QQ}) = 1
+lcunit(a::QQ) = sign(a.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = convert(QQ{T}, a)
 
@@ -17,8 +18,8 @@ QQ(a::T) where T<:Integer = QQ{T}(a, one(T), NOCHECK)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
 
 # promotion and conversion
-promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
-promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
+_promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
+_promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
 

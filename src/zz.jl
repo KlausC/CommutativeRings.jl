@@ -1,13 +1,15 @@
 
 # construction
 basetype(::Type{<:ZZ{T}}) where T = T
-sign(a::ZZ) = sign(a.val)
+depth(::Type{<:ZZ}) = 1
+lcunit(a::ZZ) = sign(a.val)
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
 ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
 
 # promotion and conversion
-promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
+_promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
+_promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
 

@@ -1,7 +1,8 @@
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = T
-sign(a::ZZmod) = one(a)
+depth(::Type{<:ZZmod}) = 1
+lcunit(a::ZZmod) = one(a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
@@ -21,7 +22,7 @@ ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
 copy(p::ZZmod) = typeof(p)(p.val)
 
 #promotion and conversion
-function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
+function _promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
     if modulus(ZT) == modulus(ZS)
         R = promote_type(T, S)
         if m == n 

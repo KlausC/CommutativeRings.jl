@@ -1,28 +1,38 @@
 
 # construction
 basetype(::Type{<:Frac{T}}) where T = T
+depth(::Type{<:Frac{T}}) where T = depth(T) + 1
 copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
-sign(a::Frac) = sign(a.num)
+lcunit(a::Frac) = lcunit(a.num)
 
 Frac{T}(a::Frac{T}) where T = a
-Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(a.num, a.den, NOCHECK)
+Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
 
-Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
-Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
-Frac(a::T) where T<:Ring  = Frac{T}(a, one(T), NOCHECK)
-Frac(a::T) where T<:Integer = Frac{ZZ{T}}(ZZ(a), one(ZZ{T}), NOCHECK)
-//(a::T, b::T) where T<:Ring = Frac(a, b)
+Frac{T}(a::Integer) where T = convert(Frac{T}, a)
+Frac{T}(a::Ring) where T = convert(Frac{T}, a)
+Frac(a::T) where T<:Ring  = convert(Frac{T}, a)
+Frac(a::T) where T<:Integer = convert(Frac{ZZ{T}}, a)
+Frac{T}(a::Integer,b::Integer) where T = Frac(T(a), T(b))
+Frac{T}(a::Rational) where T = convert(Frac{QQ{T}}, a)
 function Frac(a::T, b::T) where T
+    cab = content(a) // content(b)
+    a = primpart(a)
+    b = primpart(b)
     g = pgcd(a, b)
+    a /= g
     b /= g
-    s = sign(b)
+    a *= cab.num
+    b *= cab.den
+    s = lcunit(b)
     b /= s
-    a /= g * s
+    a /= s
     Frac{T}(a, b, NOCHECK)
 end
+//(a::T, b::T) where T<:Ring = Frac(a, b)
+Frac{T}(a, b) where T = Frac(T(a), T(b))
 
-promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
+_promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
+_promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S,T} = Frac{promote_type(S,T)}
 

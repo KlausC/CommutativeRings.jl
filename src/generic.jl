@@ -1,6 +1,11 @@
 
 # promotions and conversions
 
+
+function promote_rule(T::Type{<:Ring}, S::Type{<:Ring})
+    depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
+end
+
 for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
@@ -10,6 +15,8 @@ for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcd
 end
 
 # generic operations
+basetype(::T) where T<:Ring = basetype(T)
+
 function /(a::T, b::T) where T<:Ring
     if b isa Union{FractionField,QuotientRing}
         a * inv(b)

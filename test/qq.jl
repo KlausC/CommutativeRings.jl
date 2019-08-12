@@ -1,8 +1,8 @@
 
 @testset "construction" begin
-    @test basetype(QQ{Int}) == Int
-    @test sign(QQ(-1, 3)) == -1
-    @test sign(QQ(0)) == 0
+    @test basetype(QQ{Int}) == ZZ{Int}
+    @test lcunit(QQ(-1, 3)) == -1
+    @test lcunit(QQ(0)) == 0
     @test copy(QQ(12//15)) == QQ(4, 5)
     @test QQ{Int32}(QQ(3, 4)) isa QQ{Int32}
     @test QQ{Int}(QQ(3, 4)) != nothing

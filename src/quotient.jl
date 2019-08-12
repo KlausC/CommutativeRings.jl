@@ -1,7 +1,8 @@
 
 ## Constructors
 basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
-sign(a::Quotient) = one(a)
+depth(::Type{<:Quotient{m,T}}) where {m,T} = depth(T) + 1
+lcunit(a::Quotient) = lcunit(a.num)
 
 function Quotient{X,R}(a::R) where {X,R<:Ring}
     m = modulus(Quotient{X,R})
@@ -20,7 +21,8 @@ Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 /(::Type{R}, m) where R<:Ring = new_class(Quotient{gensym(),R}, new_ideal(R, m))
 
 # promotion and conversion
-promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S} = Quotient{X,promote_type{R,S}}
+_promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type{R,S}}
+promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type{R,S}}
 
 convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
 convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
