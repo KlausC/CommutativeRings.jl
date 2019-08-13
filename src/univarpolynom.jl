@@ -86,7 +86,6 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(v, NOCHECK)
 end
-#+(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
 +(q::S, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
@@ -185,10 +184,12 @@ function sdiv!(v::Vector{S}, r, m::S) where S
     v
 end
 
-# division and remainder algorithm
+# division and remainder algorithm. d, r = divrem(p, q) => d * q + r == p.
 # if the third argument is true, perform `pseudo-division` by multiplying
 # the divident by Ring element in order to allow division.
-# In the other case, throw error, if division by the leading coefficient fails.
+# In the other case, divide by leading term of q. If remainder is not zero
+# the degree of d is not reduced (lower than that of q).
+# Attempt to divide by null polynomial throws DomainError.
 function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     np = length(vp)
     nq = length(vq)
@@ -199,6 +200,7 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     end
     divi = vq[nq]
     fac = F && !isunit(divi)
+    n = fac ? nq - 1 : np
     if nq == 1
         isone(divi) && return vp, S[], f
         vf = copy(vp)
@@ -206,8 +208,10 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
             f = divi / gcd(divi, gcd(vp))
             !isone(f) && smul!(vf, 1:np, f)
         end
-        sdiv!(vf, 1:np, divi)
-        vr = S[]
+        vr = similar(vf)
+        for i = 1:np
+            vf[i], vr[i] = divrem(vf[i], divi)
+        end
     else
         vf = similar(vp, np - nq + 1)
         vr = copy(vp)
@@ -220,19 +224,24 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
                 vri *= g
                 smul!(vr, 1:i-1, g)
                 smul!(vf, i-nq+2:np-nq+1, g)
+                multi = vri / divi
             end
-            multi = vri / divi
+            vr[i] = r
             for j = 1:nq-1
                 vr[j+i-nq] -= vq[j] * multi
             end
             vf[i-nq+1] = multi
         end
-        n = nq - 1
-        while n > 0 && iszero(vr[n])
-            n -= 1
-        end
-        resize!(vr, n)
     end
+    while n > 0 && iszero(vr[n])
+        n -= 1
+    end
+    resize!(vr, n)
+    n = length(vf)
+    while n > 0 && iszero(vf[n])
+        n -= 1
+    end
+    resize!(vf, n)
     vf, vr, f
 end
 
@@ -256,6 +265,43 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
     r = divrem(cp, cq, Val(false))[2]
     tweak(r, cp, p)
+end
+function divrem(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
+    n = length(g)
+    a = zeros(T, n)
+    r = copy(f.coeff)
+    nf = length(r)
+    while nf > 0
+        modi = false
+        for i = 1:n
+            gi = g[i].coeff
+            ni = length(gi)
+            if ni <= nf
+                lcgi = gi[ni]
+                d = div(r[nf], lcgi)
+                if !iszero(d)
+                    modi = true
+                    a[i] += d * monom(T, nf-ni)
+                    nj = nf - ni
+                    for j = nf-ni+1:nf
+                        rj = r[j] - gi[j-nf+ni] * d
+                        r[j] = rj
+                        if !iszero(rj)
+                            nj = j
+                        end
+                    end
+                    nf = nj
+                end
+            end
+        end
+        if !modi
+            nf -= 1
+        end
+        while nf > 0 && iszero(r[nf])
+            nf -= 1
+        end
+    end
+    a, T(r)
 end
 
 """

@@ -52,7 +52,7 @@ function gcd(a::T, b::T) where T<:Ring
 end
 
 # extension to array
-function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {T<:Ring,N}
+function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     n = length(aa)
     n == 0 && return zero(T)
     n == 1 && return aa[1]
@@ -77,6 +77,21 @@ function gcdx(a::T, b::T) where T<:Ring
         t0, t1 = t1, t0 - q * t1
     end
     a, s0, t0
+end
+
+function gcdx(a::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
+    n = length(a)
+    n == 0 && return zero(T), zero(T), zero(T)
+    u = similar(a)
+    g = a[1]
+    u[1] = one(T)
+    for i = 2:n
+        g, s, u[i] = gcdx(g, a[i])
+        for j = 1:i-1
+            u[j] *= s
+        end
+    end
+    g, u
 end
 
 # least common multiplier derived from gcd
