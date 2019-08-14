@@ -4,6 +4,11 @@ basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
 depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
 lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
 
+function issimpler(a::T, b::T) where T<:UnivariatePolynomial
+    da, db = deg(a), deg(b)
+    da < db || da == db && issimpler(lc(a), lc(b))
+end
+
 UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 

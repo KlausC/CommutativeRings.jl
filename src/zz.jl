@@ -3,6 +3,8 @@
 basetype(::Type{<:ZZ{T}}) where T = T
 depth(::Type{<:ZZ}) = 1
 lcunit(a::ZZ) = sign(a.val)
+issimpler(a::T, b::T) where T<:ZZ = abs(a.val) < abs(b.val)
+
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
 ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)

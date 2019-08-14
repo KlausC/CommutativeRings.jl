@@ -65,8 +65,11 @@ hasunitlead(p::UnivariatePolynomial) = !iszero(p) && isunit(p.coeff[end])
 @testset "operation divrem($cp,$cq)" for cp in CP, cq in CP
     p = P(S.(cp))
     q = P(S.(cq))
-    if hasunitlead(q) || deg(p) < deg(q) || ( p == q && !iszero(p))
+    if hasunitlead(q) || deg(p) < deg(q) || ( p == q && !iszero(q))
         @test divrem(p, q) == divrem(Poly(cp), Poly(cq)) 
+        @test deg(rem(p, q)) < deg(q)
+    elseif !iszero(q)
+        @test deg(rem(p, q)) >= deg(q)
     else
         @test_throws DomainError divrem(p, q)
     end

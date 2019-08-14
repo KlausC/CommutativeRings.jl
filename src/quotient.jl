@@ -3,6 +3,7 @@
 basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
 depth(::Type{<:Quotient{m,T}}) where {m,T} = depth(T) + 1
 lcunit(a::Quotient) = lcunit(a.num)
+issimpler(a::T, b::T) where T<:Quotient = deg(a) < deg(b)
 
 function Quotient{X,R}(a::R) where {X,R<:Ring}
     m = modulus(Quotient{X,R})

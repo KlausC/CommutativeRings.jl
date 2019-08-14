@@ -31,12 +31,13 @@ end
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
 inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-unit."))
-deg(x::Ring) = 0 # fallback
+deg(x::Ring) = iszero(x) ? -1 : 0 # fallback
 divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 isdiv(a::T, b::T) where T <: Ring = iszero(rem(a, b))
 divrem(a::T, b::T) where T<:QuotientRing = (a / b, zero(a))
+lc(x::Ring) = x
 
 modulus(::T) where T<:Ring = modulus(T)
 copy(p::QuotientRing) = typeof(p)(p.val)
@@ -47,6 +48,7 @@ Base.broadcastable(x::Ring) = Ref(x)
 function gcd(a::T, b::T) where T<:Ring
     while !iszero(b)
         a, b = b, rem(a, b)
+        issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
     end
     a
 end
@@ -73,6 +75,7 @@ function gcdx(a::T, b::T) where T<:Ring
     while !iszero(b)
         q, r = divrem(a, b)
         a, b = b, r
+        issimpler(b, a) || throw(DomainError((a,b), "no gcd domain"))
         s0, s1 = s1, s0 - q * s1
         t0, t1 = t1, t0 - q * t1
     end
