@@ -13,6 +13,7 @@ UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S},
 UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # promotion and conversion
+_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{Y,S}}) where {X,Y,R,S} = throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
 _promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
 _promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{X,promote_type(R,S)}
 promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{X,promote_type(R,S)}
@@ -93,7 +94,7 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
 end
 +(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
 +(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
-+(q::S, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
++(q::S, p::T) where {X,S<:Ring,T<:UnivariatePolynomial{X,S}} = +(p, q)
 
 function -(p::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -107,7 +108,8 @@ end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
 -(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
 -(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
--(q::Union{Integer,S}, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(-p, q)
+-(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(-p, q)
+-(q::S, p::T) where {X,S<:Ring,T<:UnivariatePolynomial{X,S}} = +(-p, q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -179,12 +181,6 @@ end
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r
         v[i] *= m
-    end
-    v
-end
-function sdiv!(v::Vector{S}, r, m::S) where S
-    for i in r
-        v[i] /= m
     end
     v
 end
