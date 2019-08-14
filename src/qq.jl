@@ -3,7 +3,7 @@
 basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 depth(::Type{<:QQ}) = 1
 lcunit(a::QQ) = sign(a.num)
-issimpler(a::T, b::T) where T<:QQ = issimpler(a.num, b.num)
+issimpler(a::T, b::T) where T<:QQ = abs(a.num) < abs(b.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = convert(QQ{T}, a)
 

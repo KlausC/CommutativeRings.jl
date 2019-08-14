@@ -50,7 +50,7 @@ function gcd(a::T, b::T) where T<:Ring
         a, b = b, rem(a, b)
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
     end
-    a
+    isunit(a) ? one(T) : a
 end
 
 # extension to array
@@ -75,9 +75,12 @@ function gcdx(a::T, b::T) where T<:Ring
     while !iszero(b)
         q, r = divrem(a, b)
         a, b = b, r
-        issimpler(b, a) || throw(DomainError((a,b), "no gcd domain"))
+        issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
         s0, s1 = s1, s0 - q * s1
         t0, t1 = t1, t0 - q * t1
+    end
+    if isunit(a)
+        a, s0, t0 = one(T), s0 / a, t0 / a
     end
     a, s0, t0
 end
