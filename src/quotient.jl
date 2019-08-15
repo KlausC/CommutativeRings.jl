@@ -2,8 +2,6 @@
 ## Constructors
 basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
 depth(::Type{<:Quotient{m,T}}) where {m,T} = depth(T) + 1
-lcunit(a::Quotient) = lcunit(a.num)
-issimpler(a::T, b::T) where T<:Quotient = deg(a) < deg(b)
 
 function Quotient{X,R}(a::R) where {X,R<:Ring}
     m = modulus(Quotient{X,R})
@@ -22,8 +20,8 @@ Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 /(::Type{R}, m) where R<:Ring = new_class(Quotient{gensym(),R}, new_ideal(R, m))
 
 # promotion and conversion
-_promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type{R,S}}
-promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type{R,S}}
+_promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type(R,S)}
+promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{X,promote_type(R,S)}
 
 convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
 convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
@@ -37,7 +35,7 @@ convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
 *(a::T, b::Integer) where T<:Quotient =  T(a.val * b)
 inv(a::T) where T<:Quotient = T(invert(a.val, modulus(T)), NOCHECK)
 
-isunit(a::T) where T<:Quotient = isone(a.val) || isinvertible(a.val, modulus(T))
+isunit(a::T) where T<:Quotient = isunit(a.val) || iscoprime(modulus(T), a.val)
 iszero(x::Quotient) = iszero(x.val)
 isone(x::Quotient) = isone(x.val)
 zero(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(zero(S), NOCHECK)

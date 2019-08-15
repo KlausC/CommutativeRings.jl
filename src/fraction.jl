@@ -3,7 +3,6 @@
 basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1
 copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
-lcunit(a::Frac) = lcunit(a.num)
 
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
 Frac{T}(a::Frac{T}) where T = a

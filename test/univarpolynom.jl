@@ -48,6 +48,9 @@ end
 
     @test P([1,2,3]) == P([1,2,3])
     @test P([1,2]) != P([1])
+
+    @test P(1) == 1
+    @test P(ZZ(Int8(1))) == 1
     @test UnivariatePolynomial{:X,S}([1]) != P([1])
     @test hash(UnivariatePolynomial{:X,S}([1])) != hash(P([1]))
 end
@@ -179,6 +182,11 @@ end
     @test iszero(p * u + q * v - g * f)
     p2 = 2p
     @test p2 / 2 == p
+
+    p = 12x^2 + 45x + 60
+    q = 5x^2 + 1
+    g, u, v, f = pgcdx(p, q)
+    @test iszero(p * u + q * v - g * f)
 
     qq = [q, P([2,1])]
     a, r = divrem(p, qq)

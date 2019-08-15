@@ -2,14 +2,18 @@
 ### Constructors
 basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
 depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
-lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
+_lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
+function iscoprime(a::T, b::T) where T<:UnivariatePolynomial
+    g, u, v, f = pgcdx(a, b)
+    isunit(g) && isunit(f)
+end
 
 function issimpler(a::T, b::T) where T<:UnivariatePolynomial
     da, db = deg(a), deg(b)
     da < db || da == db && issimpler(lc(a), lc(b))
 end
 
-UnivariatePolynomial{X,S}(a::S) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
+UnivariatePolynomial{X,S}(a::Ring) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # promotion and conversion
@@ -444,7 +448,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
         # prepare for next turn
         da = db
         db = deg(c)
-        ψ = (-γ)^d / ψ^(d-1)
+        ψ = d == 0 ? ψ : (-γ)^d / ψ^(d-1)
         d = da - db
         β = -γ * ψ^d
     end

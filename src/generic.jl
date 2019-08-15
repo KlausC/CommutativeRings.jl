@@ -31,13 +31,48 @@ end
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
 inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-unit."))
+"""
+    deg(r::Ring)
+
+Return the degree of `r`. For zero elements, that is `-1`, otherwise `0`
+for non-polynomials, the ordinary degree for univariate polynomials and the
+maximum degree for multivariate polynomials.
+"""
 deg(x::Ring) = iszero(x) ? -1 : 0 # fallback
 divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
+"""
+    isdiv(a, b)
+
+Return if ring element `a` is dividable by `b` without remainder.
+"""
 isdiv(a::T, b::T) where T <: Ring = iszero(rem(a, b))
+
+"""
+    iscoprime(a, b)
+
+Return if there is a non-unit common divisor of `a` and `b`.
+"""
+iscoprime(a::T, b::T) where T<:Ring = isunit(a) || isunit(b)
+
 divrem(a::T, b::T) where T<:QuotientRing = (a / b, zero(a))
+"""
+    lc(r::Ring)
+
+Return the leading coefficient of `r`. For non-polynomials return `r` itself.
+"""
 lc(x::Ring) = x
+
+"""
+    lcunit(r::Ring)
+
+Return `r` if it's a unit, otherwise return a unit element `s` of the same ring or of
+an object, which may be promoted to this ring, so `s * r` has a simplified form.
+Example, for a polynomial, the inverse of the leading coefficient.
+"""
+lcunit(x::Ring) = isunit(x) ? x : _lcunit(x)
+_lcunit(x::Ring) = one(x)
 
 modulus(::T) where T<:Ring = modulus(T)
 copy(p::QuotientRing) = typeof(p)(p.val)

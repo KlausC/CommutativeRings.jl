@@ -6,7 +6,7 @@
     pq = Frac(p, q)
     F = Frac{P}
     @test basetype(F) == P
-    @test lcunit(pq) == lcunit(p)
+    @test lcunit(pq) == pq
     @test copy(pq) == pq
     @test F(pq) === pq
     P2 = UnivariatePolynomial{:x,ZZ{Int8}}
