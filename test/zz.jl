@@ -43,7 +43,9 @@
     @test_throws DomainError inv(z1)
     
     @test gcd(z3, z1) == z1
+    @test gcd(z3, z1, z3) == z1
     @test gcdx(z3, z1) == (z1, zero(z3), one(z1))
+    @test gcdx(ZZ(60), ZZ(28), ZZ(6)) == (2, [-1, 2, 1])
     @test lcm(z3, z1) == z3
     @test rem(ZZ(12), ZZ(5)) == ZZ(2)
 

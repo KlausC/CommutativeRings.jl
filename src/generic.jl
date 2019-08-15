@@ -134,6 +134,7 @@ function gcdx(a::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     end
     g, u
 end
+gcdx(a::T...) where T<:Ring = gcdx([a...])
 
 # least common multiplier derived from gcd
 function lcm(a::T, b::T) where T<:Ring
