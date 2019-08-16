@@ -68,8 +68,8 @@ lc(x::Ring) = x
     lcunit(r::Ring)
 
 Return `r` if it's a unit, otherwise return a unit element `s` of the same ring or of
-an object, which may be promoted to this ring, so `s * r` has a simplified form.
-Example, for a polynomial, the inverse of the leading coefficient.
+an object, which may be promoted to this ring, so `r / s` has a simplified form.
+Example, for a polynomial over a field, the the leading coefficient.
 """
 lcunit(x::Ring) = isunit(x) ? x : _lcunit(x)
 _lcunit(x::Ring) = one(x)
