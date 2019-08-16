@@ -7,6 +7,8 @@ const S = ZZ{Int}
 const P = UnivariatePolynomial{:x,S}
 const PQ = UnivariatePolynomial{:x,QQ{Int}}
 
+const x = P([0, 1])
+
 CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
 
 import Base: ==
@@ -28,6 +30,8 @@ end
     @test length(P(Int[]).coeff) == 0
     @test length(P(Int[0]).coeff) == 0
     @test eltype(UnivariatePolynomial{:x}(S[]).coeff) == S
+    @test iscoprime(x^2 + 1, x + 1)
+    @test !iscoprime(4x^2 + 4x + 1, 2x + 1)
 
     @test typeof(UnivariatePolynomial{:x}(ZZ(1))) == P
     co = [1,2,3]
@@ -51,6 +55,11 @@ end
 
     @test P(1) == 1
     @test P(ZZ(Int8(1))) == 1
+    @test 1 + P(1) == P(2)
+    @test ZZ(1) + P(1) == P(2)
+    @test ZZ(1) - P(1) == z
+    @test P(1) != UnivariatePolynomial{:y,ZZ{Int}}([1])
+    @test P(1) == UnivariatePolynomial{:x,ZZ{Int}}([1])
     @test UnivariatePolynomial{:X,S}([1]) != P([1])
     @test hash(UnivariatePolynomial{:X,S}([1])) != hash(P([1]))
 end
@@ -138,7 +147,7 @@ end
     @test show(io, p) == nothing
     @test show(io, zero(P)) == nothing
     @test show(io, one(P)) == nothing
-    @test show(io, pp) == nothing
+    @test show(io, x^3 + x) == nothing
 end
 
 @testset "pseudo gcd" begin
@@ -163,8 +172,8 @@ end
     @test deg(g) == 0
     p = 3x^10 - 3x^9 - 3x^8 + 3x^7 - 2x^5 - 3x^4 - 2x^3 - 1x - 3
     q = 2x^4 + 3x^3 - 1x^2 + x - 2
-    g, u, v, f = pgcdx(p, q)
-    @test iszero(p * u + q * v - g * f)
+    g, u, v, f = pgcdx(q, p)
+    @test iszero(q * u + p * v - g * f)
     @test deg(g) == 0
     s = 3x^3 - 2x^2 - ZZ(1)
     p *= s
@@ -190,7 +199,14 @@ end
 
     qq = [q, P([2,1])]
     a, r = divrem(p, qq)
-    @test sum(a .* qq) + r == p 
+    @test sum(a .* qq) + r == p
+
+    x = UnivariatePolynomial{:x,ZZ{Int}}([0, 1])
+    @test CommutativeRings.invert(x, x^2 + 1) == -x
+    @test_throws DomainError CommutativeRings.invert(x + 1, x^2 + 1)
+
+    @test CommutativeRings.issimple(1.0)
+    @test !CommutativeRings.issimple(x)
 end
 
 @testset "polynomials of other structures" begin

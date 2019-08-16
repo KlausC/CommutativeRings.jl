@@ -4,6 +4,23 @@ using Primes
 tm(T::Type{<:Integer}) = typemax(T)
 tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
 
+@testset "construction and promotion" begin
+    @test basetype(ZZmod{:p,Int}) == ZZ{Int}
+    @test depth(ZZmod{13,BigInt}) == 1
+    @test lcunit(ZZmod{13}(7)) == 20
+    @test ZZmod{13,Int}(ZZ(8)) == ZZmod{13}(8)
+    @test ZZmod{13}(1) + ZZmod{13}(Int8(12)) == 0
+    @test_throws ErrorException ZZmod{13}(1) - ZZmod{14}(1)
+    ZZp = new_class(ZZmod{:p,Int}, 13)
+    @test ZZmod{13}(1) + ZZp(12) == 0
+    @test typeof(ZZmod{13}(1) + ZZp(1)) == ZZp
+    @test typeof(ZZp(1) + ZZmod{13}(1)) == ZZp
+    @test Int / 13 == ZZmod{13,Int}
+    @test BigInt/13 <: (ZZmod{X,BigInt} where X)
+    @test convert(ZZp, ZZmod{13}(Int8(7))) == ZZp(-6) 
+    @test_throws DomainError convert(ZZp, ZZmod{23}(Int8(7))) 
+end
+
 @testset "ZZmod{$m,$T}" for T in (UInt16, Int64, BigInt), m in (65, tm(T))
     
     while T != BigInt && isprime(m)

@@ -13,7 +13,7 @@ Frac{T}(a::Ring) where T = convert(Frac{T}, a)
 Frac(a::T) where T<:Ring  = convert(Frac{T}, a)
 Frac(a::T) where T<:Integer = convert(Frac{ZZ{T}}, a)
 Frac{T}(a::Integer,b::Integer) where T = Frac(T(a), T(b))
-Frac{T}(a::Rational) where T = convert(Frac{QQ{T}}, a)
+Frac{T}(a::Rational) where T = convert(Frac{T}, a)
 function Frac(a::T, b::T) where T
     cab = content(a) // content(b)
     a = primpart(a)

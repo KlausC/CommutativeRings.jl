@@ -1,6 +1,6 @@
 
 # construction
-basetype(::Type{<:ZZmod{m,T}}) where {m,T} = T
+basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
 depth(::Type{<:ZZmod}) = 1
 _lcunit(a::ZZmod) = one(a)
 issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
@@ -27,16 +27,17 @@ function _promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,
     if modulus(ZT) == modulus(ZS)
         R = promote_type(T, S)
         if m == n 
-            ZZmod{promote(n,m),R}
+            ZZmod{promote(n,m)[1],R}
         elseif n isa Symbol
             ZZmod{n,R}
         else
             ZZmod{m,R}
         end
      else
-         throw(PromotionError())
+         Union{}
     end
 end
+promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,promote_type(S,T)}
 
 function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
     if modulus(ZT) == modulus(ZS)
@@ -47,6 +48,7 @@ function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
         throw(DomainError((ZT,a), "cannot convert "))
     end
 end
+convert(::Type{ZZmod{m,S}}, a::Integer) where {m,S} = ZZmod{m,S}(a)
 
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus

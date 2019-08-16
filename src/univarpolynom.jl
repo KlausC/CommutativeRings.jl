@@ -3,7 +3,21 @@
 basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
 depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
 _lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
+"""
+    iscoprime(a, b)
+
+Return if there is a common non-unit divisor of `a` and `b`.
+"""
 function iscoprime(a::T, b::T) where T<:UnivariatePolynomial
+    g, u, v, f = pgcdx(a, b)
+    isunit(g) || !isunit(f)
+end
+"""
+    isinvertible(a, b)
+
+Return if there is an inverse of `a` mod ` b`.
+"""
+function isinvertible(a::T, b::T) where T<:UnivariatePolynomial
     g, u, v, f = pgcdx(a, b)
     isunit(g) && isunit(f)
 end

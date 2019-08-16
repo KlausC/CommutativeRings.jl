@@ -6,9 +6,12 @@
     pq = Frac(p, q)
     F = Frac{P}
     @test basetype(F) == P
+    @test depth(F) == 3
+    @test !issimpler(pq, pq)
     @test lcunit(pq) == pq
     @test copy(pq) == pq
     @test F(pq) === pq
+    @test Frac(p) == p
     P2 = UnivariatePolynomial{:x,ZZ{Int8}}
     pq2 = P2([1, -2]) // P2([1, 1])
     @test F(pq2) == pq

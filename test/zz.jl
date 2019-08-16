@@ -1,4 +1,20 @@
 
+@testset "construction and promotion" begin
+    @test basetype(ZZ{Int}) == Int
+    @test depth(ZZ{Int8}) == 1
+    @test iscoprime(ZZ(18), ZZ(35))
+    @test typeof(copy(ZZ(big"2"))) == ZZ{BigInt}
+    a = ZZ(16)
+    @test ZZ{Int}(a) === a
+    @test ZZ{Int8}(100) + ZZ(100) == ZZ(200)
+    @test ZZ(10) + 10 == 20
+    @test ZZ(1) + QQ(1, 2) == QQ(3, 2)
+    @test ZZ(Int8(1)) + QQ(1, 2) == QQ(3, 2)
+    @test typeof(ZZ(1) + QQ(1, 2)) == QQ{Int}
+    @test typeof(ZZ(1) + 1//2) == QQ{Int}
+    @test hash(ZZ(big"123")) == hash(123)
+end
+
 @testset "ZZ{$T}" for T in (Int32, Int64, BigInt)
     
     z = zero(ZZ{T})
