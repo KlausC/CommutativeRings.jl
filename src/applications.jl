@@ -31,13 +31,14 @@ function cyclotomic(::Type{P}, n::Integer) where P<:UnivariatePolynomial
     n == v1 ? q : spread(q, n ÷ v1)
 end
    
-# alternative implemention
+#= alternative implemention
 function irreducibles_sets(Z::Type{<:ZZmod}, n::Integer)
     collect(setdiff(Set(monic(Z, n)), products(Z, n)))
 end
 # set of all products of monic polynomials of degrees summing up to `n`.
 products(Z, n) = union(products.(Z, n, 1:n÷2)...)
 products(Z, n, k) = Set([p * q for p in monic(Z, k) for q in monic(Z, n-k)])
+=#
 # all monic polynomials
 monic(Z::Type{<:ZZmod}, n) = Z[:x].([[p; 1] for p in poldeg(modulus(Z),n)])
 # generate polynomial coefficients for all possible polynomials of degree `n`
@@ -57,7 +58,7 @@ The method is brute-force, so the degree and modulus should reasonably sized.
 """
 function irreducibles(Z::Type{<:ZZmod}, n::Integer)
     ev(p::UnivariatePolynomial) = evaluate.(p, 0:modulus(Z))
-    filter(x->(all(!iszero, ev(x))), CommutativeRings.monic(Z, n))
+    filter(x->(all(!iszero, ev(x))), monic(Z, n))
 end
 
 export GF
