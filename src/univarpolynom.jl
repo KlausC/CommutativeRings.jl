@@ -77,7 +77,7 @@ Allow all coefficient classes, which can be mapped to S, that means
 the canonical homomorphism is used.
 """
 function UnivariatePolynomial{X,S}(v::AbstractVector) where {X,S}
-    UnivariatePolynomial{X,S}(S.(v))
+    isempty(v) ? UnivariatePolynomial{X,S}(S[]) : UnivariatePolynomial{X,S}(S.(v))
 end
 
 # canonical embedding homomorphism from base ring
@@ -503,6 +503,39 @@ function multmono(p, np, vp, q, nq, vq)
     v
 end
 
+"""
+    evaluate(p, y)
+
+Evaluate polynomial by replacing variable `:x` by `y`. `y` may be an object which
+can be converted to `basetype(p)` or another polynomial.
+Convenient method ot evaluate is is `p(y)`.
+"""
+function evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
+    T <: Polynomial && ismonic(x) && ismonom(x) && return spread(p, deg(x))
+    c = p.coeff
+    n = length(c)
+    R = promote_type(S,T)
+    n == 0 && return zero(R)
+    n == 1 && return R(c[1])
+    a = convert(R, c[n])
+    for k = n-1:-1:1
+        a *= x
+        a += c[k]
+    end
+    a
+end
+(p::UnivariatePolynomial)(a) = evaluate(p, a)
+
+# efficient implementation of `p(x^m)`. 
+function spread(p::P, m::Integer) where {X,T,P<:UnivariatePolynomial{X,T}}
+    c = p.coeff
+    n = length(c)
+    v = zeros(T, (n - 1) * m + 1)
+    for k = 1:n
+        v[(k-1)*m+1] = c[k]
+    end
+    P(v)
+end
 
 ### Display functions
 
@@ -554,3 +587,4 @@ function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
         end
     end
 end
+

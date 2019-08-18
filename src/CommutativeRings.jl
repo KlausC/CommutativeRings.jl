@@ -7,7 +7,7 @@ export Ideal
 
 export new_class, new_ideal, isunit, deg, content, primpart, lc, lcunit, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
-export iscoprime
+export iscoprime, evaluate
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
@@ -183,5 +183,6 @@ include("fraction.jl")
 include("univarpolynom.jl")
 #include("multivarpolynom.jl")
 include("ideal.jl")
+include("applications.jl")
 
 end # module
