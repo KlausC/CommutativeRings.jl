@@ -11,7 +11,7 @@ export iscoprime, evaluate
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule, convert
+import Base: copy, show, promote_rule, convert, abs
 
 using Base.Checked
 

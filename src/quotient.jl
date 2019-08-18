@@ -13,6 +13,7 @@ end
 Quotient{X}(v::R) where {X,R<:Ring} = Quotient{X,R}(v)
 
 # convert argument to given R
+Quotient{X,R}(v::Quotient{X,R}) where {X,R<:Ring} = Quotient{X,R}(v.val)
 Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 
 # convenience type constructor
