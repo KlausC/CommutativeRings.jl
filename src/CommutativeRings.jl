@@ -17,20 +17,20 @@ using Base.Checked
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
-struct ZZClass <: RingClass end
+struct ZZClass{T<:Integer} <: RingClass end
 abstract type FractionFieldClass <:RingClass end
-struct FractionClass <: FractionFieldClass end
-struct QQClass <:FractionFieldClass end
+struct FractionClass{P} <: FractionFieldClass end
+struct QQClass{S<:Integer} <:FractionFieldClass end
 abstract type QuotientRingClass <:RingClass end
-struct QuotientClass <: QuotientRingClass
-    modulus::Any
+struct QuotientClass{Id,M} <: QuotientRingClass
+    modulus::M
 end
-struct ZZmodClass{T<:Integer} <: QuotientRingClass
+struct ZZmodClass{m,T<:Integer} <: QuotientRingClass
     modulus::T
 end
 abstract type PolyRingClass <: RingClass end
-abstract type UniPolyRingClass <: PolyRingClass end
-abstract type MultiPolyRingClass <: PolyRingClass end
+struct UniPolyRingClass{X,R} <: PolyRingClass end
+struct MultiPolyRingClass{X,N,R} <: PolyRingClass end
 
 const NCT = Val{:nocheck}
 const NOCHECK = Val(:nocheck)
@@ -80,7 +80,7 @@ abstract type Polynomial{S<:Ring,T<:PolyRingClass} <: Ring{T} end
 The ring of integer numbers. There may be restrictions on the set of representable
 elemets according to the chosen `S`.
 """
-struct ZZ{T<:Signed} <: Ring{ZZClass}
+struct ZZ{T<:Signed} <: Ring{ZZClass{T}}
     val::T
     ZZ{T}(val::Integer) where T = new{T}(val)
     ZZ(val::T) where T<:Signed = ZZ{T}(val)
@@ -92,7 +92,7 @@ end
 Quotient ring modulo integer `m > 0`, also noted as `ZZ/m`.
 If `p` is a prime number, `ZZmod{p}` is the field `ZZ/p`.
 """
-struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass{S}}
+struct ZZmod{m,S<:Integer} <: QuotientRing{S,ZZmodClass{m,S}}
     val::S
     ZZmod{m,T}(a::Integer, ::NCT) where {m,T} = new{m,T}(T(a))
 end
@@ -104,10 +104,10 @@ The ring of fractions of `R`. The elements consist of pairs `num::R,den::R`.
 During creation the values may be canceled, such as `gcd(num, den) == one(R)`.
 The special case of `R<:Integer` is handled by `QQ{R}`.
 """
-struct Frac{R<:Union{Polynomial,ZZ}} <: FractionField{R,FractionFieldClass}
-    num::R
-    den::R
-    Frac{R}(num::R, den::R, ::NCT) where R = new{R}(num, den)
+struct Frac{P<:Union{Polynomial,ZZ}} <: FractionField{P,FractionClass{P}}
+    num::P
+    den::P
+    Frac{P}(num::P, den::P, ::NCT) where P = new{P}(num, den)
 end
 
 """
@@ -119,7 +119,7 @@ Typically `m` is replaced by a symbolic Id, and the actual `m` is given as argum
 to the type constructor like  `new_class(Quotient{:Id,ZZ}, m...)`.
 If the `Id`is omitted, an anonymous symbol is used. Also `Zm = Z/m` works.
 """
-struct Quotient{Id,R<:Ring} <: QuotientRing{R,QuotientClass}
+struct Quotient{Id,R<:Ring} <: QuotientRing{R,QuotientClass{Id,R}}
     val::R
     Quotient{Id,R}(v::R, ::NCT) where {Id,R<:Ring} = new{Id,R}(v)
 end
@@ -129,7 +129,7 @@ end
 
 
 """
-struct QQ{S<:Integer} <: FractionField{S,QQClass}
+struct QQ{S<:Integer} <: FractionField{S,QQClass{S}}
     num::S
     den::S
     QQ{T}(num::Integer, den::Integer, ::NCT) where T = new{T}(num, den)
@@ -142,7 +142,7 @@ Polynomials of ring elemets `S` in one variable `Var` (by default `:X`).
 The variable name is specified as a `Symbol`.
 Besides `UnivariatePolynomial{:X,Ring}` also the constructor `R[:X]` works.
 """
-struct UnivariatePolynomial{X,S<:Ring} <: Polynomial{S,UniPolyRingClass}
+struct UnivariatePolynomial{X,S<:Ring} <: Polynomial{S,UniPolyRingClass{X,S}}
     coeff::Vector{S}
     UnivariatePolynomial{X,S}(v::Vector{S}, ::NCT) where {X,S<:Ring} = new{X,S}(v)
 end
@@ -154,7 +154,7 @@ Polynomials of ring elemets `S` in `N` variables.
 The `Id` identifies on object of type `MultiPolyRingClass` which is needed to store
 the variable names and properties.
 """
-struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass}
+struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass{Id,N,S}}
     coeff::Dict{NTuple{N,Int},S}
 end
 
