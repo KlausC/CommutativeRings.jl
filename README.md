@@ -34,7 +34,7 @@ example typically the integer types used for the representation of the objects.
 
 Correspondence between algebraic and Julia categories:
 
-| algebric                            | Julia          | example
+| algebraic                            | Julia          | example
 |-------------------------------------|----------------|------------------------------|
 | category **Ring**                   |abstract type   | `abstract type Ring ...`
 | algebraic structure **ℤ/m**         |concrete type   | `struct ZZmod{m,Int} <: Ring`
@@ -157,7 +157,7 @@ not dividable a/b.
 
 ## Implementation details
 
-  * ###Classes
+###Classes
 
 | Name            | supertype      | description   | remarks |
 |-----------------|----------------|---------------|---------|
@@ -172,7 +172,7 @@ not dividable a/b.
 | `Quotient{m,R}` | `QuotientRing` | also `R/m`, ring modulo `m`| `m` is an element or an ideal of `R`
 | `UnivariatePolynomial{X,R}` | `Polynomial`| also `R[X]`, ring of polynomials over `R`|`X` is a symbol like `:x`
 
- #### class construction
+* #### class construction
 
 Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be use directly.
 For that purpose, there is a special function `new_class`:
@@ -187,12 +187,16 @@ For that purpose, there is a special function `new_class`:
 ```
 
 For general quotient classes and for polynomials there are convenient constructors, which
-look like the typical mathematical notation `R[:x]` and `R / I`:
+look like the typical mathematical notation `R[:x,:y,...]` and `R / I`.
+Here the symbols `:x, :y` define the name of the indetermineds of a uni-
+or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
+`R`, which represents the corresponding principal ideal.
+
 ```
     S = ZZ{Int}
     P = S[:x]
-    x = P([0,1])
-    Q = P/(x^2 + 1) 
+    x = monom(P, 1) # same as P([0,1])
+    Q = P/(x^2 + 1)
 ```
 The `/` notion is also implemented for `Julia`integer types,
 so this works:
@@ -201,17 +205,40 @@ so this works:
     Zbig = BigInt / (big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
 ```
 
+* #### Ideals
+
+Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` or
+`Ideal(a)`. For convenience, principal ideals support also `a * R == Ideal(a)` and
+`p*R == Ideal(R(p))`, where p is an integer.
+
+```
+    Z = ZZ{Int8}
+    Z1 = Z/31
+    Z2 = Z/Z(31)
+    Z3 = Z/31Z
+    Z4 = Z/Ideal(Z(31))
+
+    Z1 == Z2 == Z3 == Z4
+```
+
+It may be noted, that `0R` is the zero ideal (containing only the zero element of `R`) and `u*R == R` for all unit elements `u` of `R`.
+We also have `R/0R == R` and `R/1R` == 0R`.
+
+If there is one generating element of an ideal, `aR`, the internally a unit multiple of `a` is stored to achieve a standard form, for example a monic univariate polynomial.
+
+In the case of multiple generating elements, `a, b...`, an attempt is made to standardize and reduce the stored base. For example if `R` is an integral domain, the `gcd(a, b...)` is stored.
+
 
 * ### Constructors for elements
 
 The class names of all concrete types serve also as constructor names.
-Typically the last type parameters may be omitted.
-The names may be assigned to variables or constants to be easily re-used.
+That means, if `R` is a class name, then `R(a)` is an element of `R` for all
+`a`, which are integers or elements of (other) rings, which can be natuarally
+embedded into `R`.
 
-
-| Name | remarks
-|------|-------|
-|ZZ{
+For polynomial rings `P{:x}`, the method call `monom(P, i)` constructs the monic
+monimials `x^i` for non-negative integers `i`. That is extended to multivariate
+cases `monom(P, i, j, ...)`.
 
 
 * ### Mathematical operations
