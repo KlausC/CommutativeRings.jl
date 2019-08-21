@@ -1,4 +1,8 @@
 
+# class constructors
+/(::Type{T}, m::Integer) where T<:Integer = new_class(ZZmod{sintern(m),T}, T(m))
+/(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / m
+
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
 depth(::Type{<:ZZmod}) = 1
@@ -10,15 +14,11 @@ function ZZmod{m,T}(a::Integer) where {m,T}
     mo > 0 && return ZZmod{m,T}(mod(T(a), T(mo)), NOCHECK)
     throw(DomainError(m, "modulus > 0 required."))
 end
-ZZmod{m}(a::Integer) where m = ZZmod{m,typeof(m)}(oftype(m, a))
-ZZmod(a::T, m::S) where {T,S} = ZZmod{m}(S(a))
+#ZZmod{m}(a::Integer) where {m} = ZZmod{m,typeof(m)}(oftype(m, a))
+ZZmod(a::T, m::S) where {T,S} = (S/m)(S(a))
 ZZmod{m,T}(a::ZZmod{m,T}) where {m,T} = a
 ZZmod{m,T}(a::ZZmod{m,S}) where {m,T,S} = ZZmod{m,T}(a.val)
 ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
-
-# class constructors for `Int/31` notation
-/(::Type{T}, m::Integer) where T<:Base.BitInteger = ZZmod{T(m),T}
-/(::Type{T}, m::Integer) where T<:BigInt = new_class(ZZmod{gensym(),T}, T(m))
 
 copy(p::ZZmod) = typeof(p)(p.val)
 

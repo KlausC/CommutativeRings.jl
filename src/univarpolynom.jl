@@ -1,4 +1,9 @@
 
+# class constructors
+# convenience type constructor:
+# enable `R[:X]` as short for `UnivariatePolynomial{:X,R}`
+getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
+
 ### Constructors
 basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
 depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
@@ -85,10 +90,6 @@ UnivariatePolynomial{X}(r::R) where {X,R<:Ring} = UnivariatePolynomial{X,R}([r])
 
 # make new copy
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff))
-
-# convenience type constructor:
-# enable `R[:X]` as short for `UnivariatePolynomial{:X,R}`
-getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
 
 
 ### Arithmetic

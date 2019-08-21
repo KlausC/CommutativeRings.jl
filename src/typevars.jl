@@ -35,3 +35,14 @@ function new_class(t::Type{<:Ring{T}}, args...) where T
     t
 end
 
+"""
+    sintern(a)
+
+Return a symbol, which uniquly identifies the argument.
+"""
+sintern(a::Symbol) = a
+sintern(m::Base.BitInteger) = m
+sintern(m::Integer) = Symbol(m)
+sintern(a::Symbol...) = Symbol(a...)
+sintern(a) = Symbol(hash(a))
+

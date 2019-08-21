@@ -1,5 +1,12 @@
 
-## Constructors
+# class constructors
+Quotient(X,::Type{R}) where R<:Ring = new_class(Quotient{sintern(X),R}, X)
+Quotient(X,::Type{T}) where T<:Integer = Quotient(X, ZZ{T})
+# convenience type constructor
+# enable `Z / m` for anonymous quotient class constructor
+/(::Type{R}, m) where R<:Ring = new_class(Quotient{sintern(m),R}, new_ideal(R, m))
+
+# Constructors
 basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
 depth(::Type{<:Quotient{m,T}}) where {m,T} = depth(T) + 1
 
@@ -9,16 +16,9 @@ function Quotient{X,R}(a::R) where {X,R<:Ring}
     Quotient{X,R}(v, NOCHECK)
 end
 
-# derive base ring from argument
-Quotient{X}(v::R) where {X,R<:Ring} = Quotient{X,R}(v)
-
 # convert argument to given R
 Quotient{X,R}(v::Quotient{X,R}) where {X,R<:Ring} = Quotient{X,R}(v.val)
 Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
-
-# convenience type constructor
-# enable `Z / m` for anonymous quotient class constructor
-/(::Type{R}, m) where R<:Ring = new_class(Quotient{gensym(),R}, new_ideal(R, m))
 
 # promotion and conversion
 _promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type(R,S)}

@@ -1,20 +1,21 @@
 
 @testset "construction of quotient ring" begin
     S = ZZ{BigInt}
-    P = UnivariatePolynomial{:x,S}
+    P = S[:x]
     x = P([0, 1])
     ideal = x^2 + 1
+    @test P / ideal <: (Quotient{X,P} where X)
+    @test P / (x^3+1) <: Quotient{X,P} where X
     Q = P / ideal
-
-    Qp = new_class(Quotient{:p,P}, x^3+1)
+    Qp = P / (x^3+1)
 
     @test basetype(Q) == P
     @test depth(Q) == 3
     @test P / ideal != nothing
     p = 4x + 5
-    @test Quotient{:p}(p) == p
-    @test Quotient{:p,P}(1) == 1
-    @test Quotient{:p,P}(ZZ(1)) == 1
+    @test Qp(p) == p
+    @test Qp(1) == 1
+    @test Qp(ZZ(1)) == 1
     q = Q(p)
     @test q + q == Q(8x + 10)
     @test q - q == 0

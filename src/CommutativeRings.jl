@@ -5,7 +5,7 @@ export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomi
 
 export Ideal
 
-export new_class, new_ideal, isunit, deg, content, primpart, lc, lcunit, modulus
+export isunit, deg, content, primpart, lc, lcunit, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
 export iscoprime, evaluate
 

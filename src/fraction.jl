@@ -1,4 +1,8 @@
 
+# class constructors
+Frac(::Type{R}) where R<:Ring = Frac{R}
+Frac(::Type{R}) where R<:Integer = QQ{R}
+
 # construction
 basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1

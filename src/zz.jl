@@ -1,4 +1,7 @@
 
+# class constructors
+ZZ(::Type{T}) where T<:Integer = ZZ{T}
+
 # construction
 basetype(::Type{<:ZZ{T}}) where T = T
 depth(::Type{<:ZZ}) = 1

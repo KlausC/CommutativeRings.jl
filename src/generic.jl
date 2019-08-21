@@ -1,7 +1,5 @@
 
 # promotions and conversions
-
-
 function promote_rule(T::Type{<:Ring}, S::Type{<:Ring})
     depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
 end

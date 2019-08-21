@@ -1,4 +1,8 @@
 
+# class constructor
+QQ(::Type{T}) where T<:Integer = QQ{T}
+QQ(::Type{ZZ{T}}) where T = QQ{T}
+
 # construction
 basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 depth(::Type{<:QQ}) = 1
