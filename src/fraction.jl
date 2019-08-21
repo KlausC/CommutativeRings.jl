@@ -46,6 +46,11 @@ convert(F::Type{Frac{T}}, a::Ring) where T = F(T(a), one(T), NOCHECK)
 convert(F::Type{Frac{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
 convert(F::Type{Frac{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
+# induced homomorphism
+function (h::Hom{F,R,S})(p::Frac{<:R}) where {F,R,S}
+    Frac(F(a.num), F(a.den))
+end
+
 # operations for Frac
 
 function +(x::T, y::T) where T<:Frac

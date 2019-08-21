@@ -3,7 +3,7 @@ module CommutativeRings
 export Ring, RingInt, FractionField, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 
-export Ideal
+export Hom, Ideal
 
 export isunit, deg, content, primpart, lc, lcunit, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
@@ -169,6 +169,15 @@ Respresent in Ideal of Ring `R`. Only Ideals with a finite (Groebner) basis.
 struct Ideal{R<:Ring}
     base::Vector{R}
     Ideal{R}() where R = new{R}(R[])
+end
+
+"""
+    Hom{function,R,R'}
+
+Represent a ring homomorphism `function:R -> R'`.
+"""
+struct Hom{F,R<:RingInt,S<:RingInt}
+    Hom{R,S}(f::Union{Function,Type}) where {R,S} = new{f,R,S}()
 end
 
 # implementation

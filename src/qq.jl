@@ -33,6 +33,11 @@ convert(F::Type{QQ{T}}, a::ZZ{S}) where {S,T} = F(T(a.val), one(T), NOCHECK)
 convert(F::Type{QQ{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
 convert(F::Type{QQ{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
+# induced homomorphism
+function (h::Hom{F,R,S})(p::QQ{<:R}) where {F,R,S}
+    QQ(F(a.num), F(a.den))
+end
+
 # operations for QQ
 for op in (:+, :- , :*)
     @eval begin

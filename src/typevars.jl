@@ -42,7 +42,7 @@ Return a symbol, which uniquly identifies the argument.
 """
 sintern(a::Symbol) = a
 sintern(m::Base.BitInteger) = m
-sintern(m::Integer) = Symbol(m)
+sintern(m::BigInt) = Symbol(m)
 sintern(a::Symbol...) = Symbol(a...)
 sintern(a) = Symbol(hash(a))
 

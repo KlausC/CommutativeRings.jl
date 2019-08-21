@@ -43,6 +43,13 @@ isone(x::Quotient) = isone(x.val)
 zero(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(zero(S), NOCHECK)
 one(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(one(S), NOCHECK)
 
+# induced homomorphism
+function (h::Hom{F,R,S})(p::Q) where {X,F,R,S,Q<:Quotient{X,<:R}}
+    m = F(modulus(p))
+    QF = S / m
+    QF(F(a.val))
+end
+
 # note:
 # the real work is in the functions `new_ideal`, `rem`, `invert`, `isinvertible` which
 # have all been delegated to Ideal

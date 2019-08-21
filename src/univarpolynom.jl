@@ -379,9 +379,18 @@ zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
 one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
 ==(p::UnivariatePolynomial{X}, q::UnivariatePolynomial{Y}) where {X, Y} = false
-hash(p::UnivariatePolynomial{X}, h::UInt) where X = hash(X, hash(p.coeff, h))
+function hash(p::UnivariatePolynomial{X}, h::UInt) where X
+    n = length(p.coeff)
+    n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
+end
+
 ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 ismonic(p::UnivariatePolynomial) = isone(lc(p))
+
+# induced homomorphism
+function (h::Hom{F,R,S})(p::UnivariatePolynomial{X,<:R}) where {X,F,R,S}
+    UnivariatePolynomial{X}(F.(p.coeff))
+end
 
 # auxiliary functions
 

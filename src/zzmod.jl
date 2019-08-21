@@ -1,7 +1,8 @@
 
 # class constructors
 /(::Type{T}, m::Integer) where T<:Integer = new_class(ZZmod{sintern(m),T}, T(m))
-/(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / m
+/(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / T(m)
+/(::Type{ZZ}, m::T) where T<:Integer = T / m
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
@@ -83,6 +84,13 @@ one(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m,S}(one(S))
 one(::Type{ZZmod{m}}) where {m} = ZZmod{m}(one(m))
 ==(a::ZZmod{m1},b::ZZmod{m2}) where {m1,m2} = modulus(a) == modulus(b) && a.val == b.val
 hash(a::ZZmod, h::UInt) = hash(a.val, hash(modulus(a), h))
+
+# induced homomorphism
+function (h::Hom{F,R,S})(p::Z) where {X,F,R,S,Z<:ZZmod{X,<:R}}
+    m = F(modulus(Z))
+    ZF = Z / m
+    ZF(F(a.val))
+end
 
 # implementation of checked multiplication
 function mult_ZZmod(a::T, b::T, m::T) where T<:Integer

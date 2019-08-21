@@ -19,3 +19,4 @@ function add(id::Ideal{R}, m::R) where {T,R<:UnivariatePolynomial{T}}
     push!(base, m)
     id
 end
+

@@ -22,6 +22,11 @@ promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S
 convert(::Type{ZZ{T}}, a::ZZ{S}) where {T,S} = ZZ{T}(T(a.val))
 convert(::Type{ZZ{T}}, a::Integer) where T = ZZ{T}(T(a))
 
+# induced homomorphism
+function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZ{<:R}}
+    Z(F(p.val))
+end
+
 for op in (:+, :-, :/, :(==), :div, :rem, :divrem, :gcd, :gcdx, :pgcd, :pgcdx)
     @eval begin
         ($op)(a::ZZ{T}, b::Integer) where T = ($op)(promote(a, b)...)

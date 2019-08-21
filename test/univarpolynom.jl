@@ -61,7 +61,7 @@ end
     @test P(1) != UnivariatePolynomial{:y,ZZ{Int}}([1])
     @test P(1) == UnivariatePolynomial{:x,ZZ{Int}}([1])
     @test UnivariatePolynomial{:X,S}([1]) != P([1])
-    @test hash(UnivariatePolynomial{:X,S}([1])) != hash(P([1]))
+    @test hash(UnivariatePolynomial{:X,S}([1])) == hash(P([1]))
 end
 
 @testset "promotion of types" begin

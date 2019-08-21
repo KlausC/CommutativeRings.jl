@@ -80,6 +80,9 @@ copy(p::QuotientRing) = typeof(p)(p.val)
 # make Ring elements behave like scalars with broadcasting
 Base.broadcastable(x::Ring) = Ref(x)
 
+# apply homimorphism
+(h::Hom{F,R,S})(a::R) where {F,R,S} = F(a)::S
+
 # generic Euclid's algorithm
 function gcd(a::T, b::T) where T<:Ring
     while !iszero(b)
