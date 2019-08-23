@@ -56,9 +56,79 @@ export irreducibles
 Calculate all irreducible monic polynomials of degree `n` over `ZZp <:ZZmod`.
 The method is brute-force, so the degree and modulus should reasonably sized.
 """
-function irreducibles(Z::Type{<:ZZmod}, n::Integer)
+function withoutzeros(Z::Type{<:ZZmod}, n::Integer)
     ev(p::UnivariatePolynomial) = evaluate.(p, 0:modulus(Z))
     filter(x->(all(!iszero, ev(x))), monic(Z, n))
+end
+
+function isirreducible(p::P, ip=Vector{P}[]) where {X,Z,P<:UnivariatePolynomial{X,Z}}
+    c = p.coeff[1]
+    c != 0 || return false
+    m = modulus(Z)
+    for b = 1:m-1
+        iszero(rem(c, gcd(b, m))) || continue
+        iszero(p(b)) && return false
+    end
+    n = deg(p)
+    n <= 3 && return true
+    for m = 2:n÷2
+        while length(ip) < m-1
+            push!(ip, irreducibles(Z, 2+length(ip), ip))
+        end
+        ipk = ip[m-1]
+        for pk in ipk
+            b = pk.coeff[1]
+            iszero(rem(c, gcd(b, m))) || continue
+            iszero(rem(p, pk)) && return false
+        end
+        m = length(ip)
+    end
+    return true
+end
+
+function irreducibles(::Type{Z}, n) where {X,Z<:ZZmod}
+    P = UnivariatePolynomial{:x,Z}
+    irreducibles(Z, n, Vector{P}[])
+end
+
+function irreducibles(::Type{Z}, n, ip::Vector{Vector{P}}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
+    m = modulus(Z)
+    println("irreducibles(ZZ/$m,$n)")
+    n <= 3 && return withoutzeros(Z, n)
+    pol = CommutativeRings.monic(Z, n)
+    isirr(p) = isirreducible(p, ip)
+    filter(isirr, pol)
+end
+
+"""
+    factorise(p::ZZmod[:x])
+
+For a prime modulus, factorize polynomial in (ZZ/p)[x]`.
+"""
+function factorise(p::P) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
+    m = modulus(Z)
+    isprime(m) || throw(ArgumentError("modulus must be prime"))
+    n = deg(p)
+    n < 2 && return [p]
+    c = p.coeff[1]
+    x = monom(P, 1)
+    iszero(c) && return vcat(x, factorise(div(p, x)))
+    for b in 1:m-1
+        if iszero(rem(c, gcd(b, m))) && iszero(p(Z(b)))
+            return vcat(x - b, factorise(div(p, x - b)))
+        end
+    end
+    ip = [irreducibles(Z, k) for k = 2:n÷2]
+    for ipk in ip, pk in ipk
+        b = pk.coeff[1]
+        if iszero(rem(c, gcd(b, m)))
+            d, r = divrem(p, pk)
+            if iszero(r)
+                return vcat(pk, factorise(d))
+            end
+        end
+    end
+    return [p]
 end
 
 export GF

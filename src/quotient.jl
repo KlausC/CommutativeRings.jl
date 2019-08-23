@@ -1,7 +1,8 @@
 
 # class constructors
 Quotient(X,::Type{R}) where R<:Ring = new_class(Quotient{sintern(X),R}, X)
-Quotient(X,::Type{T}) where T<:Integer = Quotient(X, ZZ{T})
+Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
+
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
 /(::Type{R}, m) where R<:Ring = new_class(Quotient{sintern(m),R}, new_ideal(R, m))
@@ -43,11 +44,10 @@ isone(x::Quotient) = isone(x.val)
 zero(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(zero(S), NOCHECK)
 one(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(one(S), NOCHECK)
 
-# induced homomorphism
-function (h::Hom{F,R,S})(p::Q) where {X,F,R,S,Q<:Quotient{X,<:R}}
-    m = F(modulus(p))
-    QF = S / m
-    QF(F(a.val))
+# induced homomorphism - invalid if Q = R/I and I not in kernel(F)
+function (h::Hom{F,R,S})(a::Q) where {X,F,R,S,Q<:Quotient{X,<:R}}
+    iszero(F(modulus(Q))) || throw(DomainError((F,R), "ideal not in kernel of homomorphism"))
+    F(a.val)
 end
 
 # note:

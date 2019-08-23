@@ -62,9 +62,16 @@ end
 UnivariatePolynomial{X}(v::Vector{S}) where {X,S} = UnivariatePolynomial{X,S}(v)
 # convert polynomial with same symbol and type aliasing original
 UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S<:Ring} = p
-# convert polynomial with different symbol / coefficient type
-function UnivariatePolynomial{X,S}(p::UnivariatePolynomial) where {X,S}
-    UnivariatePolynomial{X,S}(S.(p.coeff), NOCHECK)
+# convert polynomial with different coefficient type
+function UnivariatePolynomial{X,S}(p::UnivariatePolynomial{Y}) where {X,Y,S}
+    if X == Y
+        UnivariatePolynomial{X,S}(S.(p.coeff), NOCHECK)
+    elseif S <: UnivariatePolynomial
+        yp = S(p)
+        UnivariatePolynomial{X,S}([yp], NOCHECK)
+    else
+        throw(DomainError((X,Y), "cannot convert different variable names"))
+    end 
 end
 
 function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer) where {X,S}
