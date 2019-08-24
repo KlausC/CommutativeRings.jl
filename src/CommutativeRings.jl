@@ -7,7 +7,7 @@ export Hom, Ideal
 
 export isunit, deg, content, primpart, lc, lcunit, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
-export iscoprime, evaluate
+export iscoprime, evaluate, derive
 export isirreducible, irreducibles, monic, factorise
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
@@ -194,5 +194,6 @@ include("univarpolynom.jl")
 #include("multivarpolynom.jl")
 include("ideal.jl")
 include("applications.jl")
+include("enumerations.jl")
 
 end # module

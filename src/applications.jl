@@ -163,3 +163,90 @@ function GF(p::Integer, m::Integer=1)
     end
 end
 
+
+export sff, ddf
+
+"""
+    sff(p)
+
+Squarefree factorization of p.
+"""
+function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+    q = count(Z)
+    p = characteristic(Z)
+    i = 1
+    R = Pair{P,Int}[]
+    fs = derive(f)
+    c = gcd(f, fs) # c contains all multiple factors of f
+    w = f / c # w is square-free
+    while !isunit(w)
+        y = gcd(w, c)
+        z = w / y
+        if !isone(z)
+            push!(R, Pair(z, i))
+        end
+        c /= y
+        w = y
+        i += 1
+    end
+    
+    if !isone(c)
+        c = shrink(c, p)
+        for (g, i) in sff(c)
+            push!(R, Pair(g, i * p))
+        end
+    end
+    R
+end
+
+function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
+    n = deg(a)
+    c = similar(a.coeff, (n÷p)+1)
+    for k = 0:n÷p
+        c[k+1] = a.coeff[p*k+1]
+    end
+    P(c)
+end
+
+
+Base.count(::Type{Z}) where Z<:ZZmod = modulus(Z)
+function Base.count(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
+    modulus(Z)
+end
+characteristic(::Type{Z}) where Z<:ZZmod = modulus(Z)
+function characteristic(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
+    modulus(Z)
+end
+
+"""
+    ddf(p)
+
+Input is a squarefree polynomial.
+Output is a list of polynomials `g_i, d_i`, each of which is a product of all irreducible
+monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
+"""
+function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
+    q = count(Z)
+    S = Pair{P, Int}[]
+    x = monom(typeof(f), 1)
+    i = 1
+    fs = f
+    xqi = x
+    while deg(fs) >= 2i
+        xqi = powermod(xqi, q, fs)
+        g = gcd(fs, xqi - x)
+        if !isone(g)
+            push!(S, Pair(g, i))
+            fs /= g
+        end
+        i += 1
+    end
+    if !isone(fs)
+        push!(S, Pair(fs, deg(fs)))
+    end
+    if isempty(S)
+        push!(S, Pair(f, 1))
+    end
+    S
+end
+

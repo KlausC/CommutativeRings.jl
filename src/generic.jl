@@ -89,7 +89,8 @@ function gcd(a::T, b::T) where T<:Ring
         a, b = b, rem(a, b)
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
     end
-    isunit(a) ? one(T) : a
+    u = lcunit(a)
+    isone(a) ? a : a * inv(u)
 end
 
 # extension to array
@@ -154,5 +155,34 @@ function lcm(aa::AbstractVector{T}) where T<:Ring
         g = lcm(aa[i], g)
     end
     g
+end
+
+function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
+    if p == 1
+        return copy(x)
+    elseif p == 0
+        return one(x)
+    elseif p == 2
+        return x*x
+    elseif p < 0
+        isone(x) && return copy(x)
+        isone(-x) && return iseven(p) ? one(x) : copy(x)
+        throw(ArgumentError("negative powers not supported"))
+    end
+    t = trailing_zeros(p) + 1
+    p >>= t
+    while (t -= 1) > 0
+        x  = rem(x * x, m)
+    end
+    y = x
+    while p > 0
+        t = trailing_zeros(p) + 1
+        p >>= t
+        while (t -= 1) >= 0
+            x  = rem(x * x, m)
+        end
+        y = rem(y * x, m)
+    end
+    return y
 end
 

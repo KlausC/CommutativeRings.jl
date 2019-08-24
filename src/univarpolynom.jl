@@ -543,6 +543,27 @@ function evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
 end
 (p::UnivariatePolynomial)(a) = evaluate(p, a)
 
+"""
+    derive(p::UnivariatePolynomial)
+
+Return formal derivative of polynomial `p`.
+
+For `k in 1:deg(p)` we have `derive(p).coeff[k] = k * p.coeff[k+1]`.
+If `deg(p) * lc(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
+"""
+function derive(p::P) where P<:UnivariatePolynomial
+    n = deg(p)
+    c = similar(p.coeff, n)
+    for k = 1:n
+        c[k] = p.coeff[k+1] * k
+    end
+    while n > 0 && iszero(c[n])
+        n -= 1
+    end
+    resize!(c, n)
+    P(c, NOCHECK)
+end
+
 # efficient implementation of `p(x^m)`. 
 function spread(p::P, m::Integer) where {X,T,P<:UnivariatePolynomial{X,T}}
     c = p.coeff
