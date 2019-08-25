@@ -172,7 +172,7 @@ export sff, ddf
 Squarefree factorization of p.
 """
 function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
-    q = count(Z)
+    q = order(Z)
     p = characteristic(Z)
     i = 1
     R = Pair{P,Int}[]
@@ -209,9 +209,9 @@ function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
 end
 
 
-Base.count(::Type{Z}) where Z<:ZZmod = modulus(Z)
-function Base.count(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
-    modulus(Z)
+order(::Type{Z}) where Z<:ZZmod = modulus(Z)
+function order(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
+    modulus(Z) ^ deg(modulus(T))
 end
 characteristic(::Type{Z}) where Z<:ZZmod = modulus(Z)
 function characteristic(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
@@ -226,7 +226,7 @@ Output is a list of polynomials `g_i, d_i`, each of which is a product of all ir
 monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
 """
 function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
-    q = count(Z)
+    q = order(Z)
     S = Pair{P, Int}[]
     x = monom(typeof(f), 1)
     i = 1
@@ -246,6 +246,51 @@ function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     end
     if isempty(S)
         push!(S, Pair(f, 1))
+    end
+    S
+end
+
+"""
+    rand(Q)
+
+Random field element of `Q = P / (polynomial)`, whith `basetype(P) <: ZZmod`.
+E.g. the Galois fields.
+"""
+function Base.rand(::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+    m = deg(modulus(Q))
+    p = modulus(Z)
+    r = Q(P(rand(0:p, m)))
+end
+# produce a random vector of field elements.
+Base.rand(Q::Type{<:Ring}, n::Integer) = [rand(Q) for i in 1:n]
+
+"""
+    cantor(p::Polynomial, d::Integer)
+
+Algorithm of Cantor-Zassenhaus to find the factors of `p`, a product of monomials of
+degree `d`. (Such polynomials are in the output of by `ddf`.
+The base type for `p` must be a field of odd degree.
+"""
+function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+    q = order(Z)
+    n = deg(f)
+    rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
+    isodd(d) || throw(DomainError(d, "order of base field must be odd"))
+    ex = (q^d - 1) ÷ 2
+    r = div(n, d)
+    S = [f]
+    while length(S) < r
+        h = P(rand(Z, n))
+        g = powermod(h, ex, f) - 1
+        s = length(S)
+        for k = 1:s
+            u = S[k]
+            gu = gcd(g, u)
+            if !isone(gu) && gu != u
+                S[k] = gu
+                push!(S, u / gu)
+            end
+        end
     end
     S
 end
