@@ -43,6 +43,7 @@ promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Union{I
 
 
 convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{X}) where {X,R} = P(convert.(R, a.coeff))
+convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{Y}) where {X,Y,R} = P(convert.(R, a.coeff))
 convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
 convert(P::Type{UnivariatePolynomial{X,S}}, a::T) where {X,S,T} = P([convert(S, a)])
 

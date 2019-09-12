@@ -61,7 +61,7 @@ function withoutzeros(Z::Type{<:ZZmod}, n::Integer)
     filter(x->(all(!iszero, ev(x))), monic(Z, n))
 end
 
-function isirreducible(p::P, ip=Vector{P}[]) where {X,Z,P<:UnivariatePolynomial{X,Z}}
+function isirreducible1(p::P, ip=Vector{P}[]) where {X,Z,P<:UnivariatePolynomial{X,Z}}
     c = p.coeff[1]
     c != 0 || return false
     m = modulus(Z)
@@ -96,8 +96,7 @@ function irreducibles(::Type{Z}, n, ip::Vector{Vector{P}}) where {X,Z<:ZZmod,P<:
     println("irreducibles(ZZ/$m,$n)")
     n <= 3 && return withoutzeros(Z, n)
     pol = CommutativeRings.monic(Z, n)
-    isirr(p) = isirreducible(p, ip)
-    filter(isirr, pol)
+    filter(isirreducible, pol)
 end
 
 """
@@ -105,17 +104,17 @@ end
 
 For a prime modulus, factorize polynomial in (ZZ/p)[x]`.
 """
-function factorise(p::P) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
+function factorise1(p::P) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
     m = modulus(Z)
     isprime(m) || throw(ArgumentError("modulus must be prime"))
     n = deg(p)
     n < 2 && return [p]
     c = p.coeff[1]
     x = monom(P, 1)
-    iszero(c) && return vcat(x, factorise(div(p, x)))
+    iszero(c) && return vcat(x, factorise1(div(p, x)))
     for b in 1:m-1
         if iszero(rem(c, gcd(b, m))) && iszero(p(Z(b)))
-            return vcat(x - b, factorise(div(p, x - b)))
+            return vcat(x - b, factorise1(div(p, x - b)))
         end
     end
     ip = [irreducibles(Z, k) for k = 2:n÷2]
@@ -124,7 +123,7 @@ function factorise(p::P) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
         if iszero(rem(c, gcd(b, m)))
             d, r = divrem(p, pk)
             if iszero(r)
-                return vcat(pk, factorise(d))
+                return vcat(pk, factorise1(d))
             end
         end
     end
@@ -157,8 +156,9 @@ function GF(p::Integer, m::Integer=1)
     if m == 1
         Z
     else
-        P = Z[:x]
+        P = Z[:γ]
         gen = irreducibles(Z, m)[1]
+        gen = convert(P, gen)
         P / gen
     end
 end
@@ -261,6 +261,10 @@ function Base.rand(::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q
     p = modulus(Z)
     r = Q(P(rand(0:p, m)))
 end
+function Base.rand(Z::Type{<:ZZmod})
+    p = modulus(Z)
+    Z(rand(0:p))
+end
 # produce a random vector of field elements.
 Base.rand(Q::Type{<:Ring}, n::Integer) = [rand(Q) for i in 1:n]
 
@@ -274,11 +278,12 @@ The base type for `p` must be a field of odd degree.
 function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     q = order(Z)
     n = deg(f)
-    rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
-    isodd(d) || throw(DomainError(d, "order of base field must be odd"))
-    ex = (q^d - 1) ÷ 2
-    r = div(n, d)
     S = [f]
+    n == d && return S
+    rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
+    #isodd(q) || throw(DomainError(q, "order of base field must be odd"))
+    ex = isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
+    r = div(n, d)
     while length(S) < r
         h = P(rand(Z, n))
         g = powermod(h, ex, f) - 1
@@ -294,4 +299,68 @@ function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomi
     end
     S
 end
+
+function factorise(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+    res = Pair{P,Int}[]
+    pp = sff(p)
+    for (q, k) in pp
+        qq = ddf(q)
+        for (r, l) in qq
+            rr = cantor(r, l)
+            for s in rr
+                push!(res, s => k)
+            end
+        end
+    end
+    res
+end
+
+function isirreducible(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+    pp = sff(p)
+    length(pp) != 1 && return false
+    q, k = pp[1]
+    k != 1 && return false
+    qq = ddf(q)
+    length(qq) != 1 && return false
+    r, l = qq[1]
+    deg(r) == l
+end
+
+# Jacobi symbol
+function jacobi(n::Integer, k::Integer)
+    k > 0 && k & 1 == 1 || throw(DomainError(k, "k must be positive odd number"))
+    n = mod(n, k)
+    t = 1
+    while n != 0
+        while n & 1 == 0
+            n >>= 1
+            r = k & 7
+            if r == 3 || r == 5
+                t = -t
+            end
+        end
+        n, k = k, n
+        if n & 3 == k & 3 == 3
+            t = -t
+        end
+        n = mod(n, k)
+    end
+    k == 1 ? t : 0
+end
+
+# Kronecker symbol
+function kronecker(n::Integer, k::Integer)
+    n&1 == 0 && k&1 == 0 && return 0
+    k == 0 && return n == 1 || n == -1 ? 1 : 0
+    ks = k < 0 && n < 0 ? -1 : 1
+    if k < 0
+        k = -k
+    end
+    t = trailing_zeros(k)
+    k >>= t
+    ks = (n&7 == 3 || n&7 == 5 ) && t&1 == 1 ? -ks : ks
+    jacobi(n, k) * ks
+end
+
+
 

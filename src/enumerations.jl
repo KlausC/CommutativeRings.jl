@@ -1,6 +1,5 @@
 
 
-
 isqrt2(i::T) where T<:Integer = T(floor(sqrt(8*i+1) - 1)) ÷ 2
 function ipair(i::Integer)
     m = isqrt2(i)
@@ -8,7 +7,7 @@ function ipair(i::Integer)
     m - i + c, i - c
 end
 
-# assume n1/n2 == 0 means no limitation
+# assume n1 == 0, n2 == 0 means no limitation
 function index(i::T, n1::T, n2::T) where T<:Integer
     (n1 >= 0 && n2 >= 0) || throw(ArgumentError("(n1, n2) = $((n1, n2)) >= 0 required"))
     0 <= i || throw(ArgumentError("no negative index: $i"))
@@ -53,12 +52,17 @@ function len(T::Type{<:FractionField{S}}, d...) where S
     n == 0 ? 0 : (n-1)^2 + 1
 end
 len(T::Type{UnivariatePolynomial{X,S}}, d::Integer) where {X,S} = len(S)^d
+len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T)-1))
 
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
 ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a+1) >> 1
 ofindex(a::Integer, T::Type{ZZ{S}}) where S = T(ofindex(a, S))
 ofindex(a::Integer, T::Type{<:ZZmod{m,S}}) where {m,S} = T(ofindex(a, unsigned(S)))
-ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where S = T(ofindex(a, S))
+function ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where {S<:UnivariatePolynomial}
+    d = deg(modulus(T))
+    T(ofindex(a, S, d) - monom(S,d))
+end
+
 function ofindex(a::Integer, T::Type{<:FractionField{S}}) where S
     a == 0 && return zero(T)
     s, t = index(a - 1, len(T), len(T))
@@ -69,4 +73,22 @@ function ofindex(a::Integer, T::Type{<:UnivariatePolynomial{X,S}}, d::Integer) w
     cc = ([ofindex.(index(a, nn), S); 1])
     T(cc)
 end
+
+struct Filter{I,F}
+    f::F
+    iter::I
+end
+
+import Base: iterate, Generator
+export Filter, Generator
+
+function iterate(F::Filter, s...)
+    y = iterate(F.iter, s...)
+    while y !== nothing && !F.f(y[1])
+        y = iterate(F.iter, y[2])
+    end
+    y
+end
+
+IteratorEltype(::Type{Filter{I,T}}) where {I,T} = IteratorEltype(I)
 

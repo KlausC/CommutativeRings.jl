@@ -163,7 +163,7 @@ function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
     elseif p == 0
         return one(x)
     elseif p == 2
-        return x*x
+        return rem(x * x, m)
     elseif p < 0
         isone(x) && return copy(x)
         isone(-x) && return iseven(p) ? one(x) : copy(x)
