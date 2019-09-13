@@ -273,6 +273,26 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
     vf, vr, f
 end
 
+function rem(p::T, q::T) where T<:UnivariatePolynomial
+    m = deg(p)
+    n = deg(q)
+    m < n && return p
+    c = p.coeff[m-n+2:m+1]
+    uc = lc(q)
+    isunit(uc) || divrem(p, q)[2]
+    uc = inv(uc)
+    cp = p.coeff
+    cq = q.coeff
+    for i = m-n+1:-1:1
+        fc = c[n] * uc
+        for k = n:-1:2
+            c[k] = c[k-1] - cq[k] * fc
+        end
+        c[1] = cp[i] - cq[1] * fc
+    end
+    typeof(q)(c)
+end
+
 function divrem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff; cq = q.coeff
     d, r = divrem(cp, cq, Val(false))
@@ -289,11 +309,6 @@ function div(p::T, q::T) where T<:UnivariatePolynomial
     tweak(d, cp, p)
 end
 
-function rem(p::T, q::T) where T<:UnivariatePolynomial
-    cp = p.coeff; cq = q.coeff
-    r = divrem(cp, cq, Val(false))[2]
-    tweak(r, cp, p)
-end
 function divrem(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
     n = length(g)
     a = zeros(T, n)
@@ -406,9 +421,13 @@ end
     lc(p::UnivariatePolynomial)
 
 Return the leading coefficient of a non-zero polynomial. This coefficient
-cannot be zero.
+cannot be zero. Return zero for zero polynomial.
 """
-lc(p::UnivariatePolynomial{X,S}) where {X,S} = deg(p) < 0 ? zero(S) : p.coeff[end]
+function lc(p::UnivariatePolynomial{X,S}) where {X,S}
+    c = p.coeff
+    n = length(c)
+    n == 0 ? zero(S) : c[n]
+end
 
 # pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
 
