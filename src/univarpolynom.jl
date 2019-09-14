@@ -277,10 +277,11 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
     m = deg(p)
     n = deg(q)
     m < n && return p
-    c = p.coeff[m-n+2:m+1]
     uc = lc(q)
-    isunit(uc) || divrem(p, q)[2]
+    isunit(uc) || return divrem(p, q)[2]
+    n > 0 || return zero(typeof(q))
     uc = inv(uc)
+    c = p.coeff[m-n+2:m+1]
     cp = p.coeff
     cq = q.coeff
     for i = m-n+1:-1:1

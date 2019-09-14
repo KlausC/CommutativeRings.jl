@@ -197,5 +197,6 @@ include("univarpolynom.jl")
 include("ideal.jl")
 include("applications.jl")
 include("enumerations.jl")
+include("linearalgebra.jl")
 
 end # module

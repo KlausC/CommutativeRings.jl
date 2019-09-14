@@ -31,14 +31,6 @@ function cyclotomic(::Type{P}, n::Integer) where P<:UnivariatePolynomial
     n == v1 ? q : spread(q, n ÷ v1)
 end
    
-#= alternative implemention
-function irreducibles_sets(Z::Type{<:ZZmod}, n::Integer)
-    collect(setdiff(Set(monic(Z, n)), products(Z, n)))
-end
-# set of all products of monic polynomials of degrees summing up to `n`.
-products(Z, n) = union(products.(Z, n, 1:n÷2)...)
-products(Z, n, k) = Set([p * q for p in monic(Z, k) for q in monic(Z, n-k)])
-=#
 # all monic polynomials
 monic(Z::Type{<:ZZmod}, n) = Z[:x].([[p; 1] for p in poldeg(modulus(Z),n)])
 # generate polynomial coefficients for all possible polynomials of degree `n`
@@ -48,6 +40,77 @@ function poldeg(m::Integer, n::Integer)
     pd = poldeg(m, n-1)
     [ [p; j] for p in pd for j in 0:m-1]
 end
+
+import Base: length, iterate, eltype
+export Monic
+
+struct Monic{X,T<:QuotientRing}
+    n::Int
+    Monic(X::Symbol, ::Type{T}, n) where T = new{X,T}(n)
+end
+eltype(mo::Type{Z}) where Z<:Ring = Z
+function iterate(m::Type{Z}) where Z<:QuotientRing
+    z = zero(Z)
+    (z, z)
+end
+length(mo::Type{Z}) where Z<:ZZmod = modulus(Z)
+function iterate(m::Type{Z}, s) where Z<:ZZmod
+    v = s + 1
+    iszero(v) ? nothing : (v, v)
+end
+function length(mo::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+    modulus(Z)^deg(modulus(Q))
+end
+function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+    c = copy(s.val.coeff)
+    m = length(c)
+    n = deg(modulus(Q))
+    for i = 1:m
+        ci = iterate(Z, c[i])
+        if ci != nothing
+            c[i] = ci[1]
+            z = Q(c)
+            return (z, z)
+        else
+            c[i] = zero(Z)
+        end
+    end
+    if m < n
+        resize!(c, m+1)
+        c[m+1] = one(Z)
+        m >= 1 && (c[m] = zero(Z))
+        z = Q(c)
+        return (z, z)
+    end
+    nothing
+end
+
+Base.length(mo::Monic{X,Z}) where {X,Z<:Ring} = length(Z)^mo.n
+Base.eltype(mo::Monic{X,Z}) where {X,Z<:Ring} = Z[X]
+function Base.iterate(mo::Monic{X,Z}) where {X,Z<:Ring}
+    p0 = monom(Z[X], mo.n)
+    p0, p0
+end
+function Base.iterate(mo::Monic{X,Z}, s) where {X,Z<:Ring}
+    c = copy(s.coeff)
+    n = deg(s)
+    for i = 1:n
+        ci = iterate(Z, c[i])
+        if ci != nothing
+            c[i] = ci[1]
+            z = Z[X](c)
+            return (z, z)
+        else
+            c[i] = zero(Z)
+        end
+    end
+    nothing
+end
+    
+
+
+
+
 
 export irreducibles
 """
@@ -73,7 +136,7 @@ function isirreducible1(p::P, ip=Vector{P}[]) where {X,Z,P<:UnivariatePolynomial
     n <= 3 && return true
     for m = 2:n÷2
         while length(ip) < m-1
-            push!(ip, irreducibles(Z, 2+length(ip), ip))
+            push!(ip, irreducibles1(Z, 2+length(ip), ip))
         end
         ipk = ip[m-1]
         for pk in ipk
@@ -86,18 +149,23 @@ function isirreducible1(p::P, ip=Vector{P}[]) where {X,Z,P<:UnivariatePolynomial
     return true
 end
 
-function irreducibles(::Type{Z}, n) where {X,Z<:ZZmod}
+function irreducibles1(::Type{Z}, n) where {X,Z<:ZZmod}
     P = UnivariatePolynomial{:x,Z}
-    irreducibles(Z, n, Vector{P}[])
+    irreducibles1(Z, n, Vector{P}[])
 end
 
-function irreducibles(::Type{Z}, n, ip::Vector{Vector{P}}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
+function irreducibles1(::Type{Z}, n, ip::Vector{Vector{P}}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{X,Z}}
     m = modulus(Z)
     println("irreducibles(ZZ/$m,$n)")
     n <= 3 && return withoutzeros(Z, n)
     pol = CommutativeRings.monic(Z, n)
     filter(isirreducible, pol)
 end
+
+function irreducible_filter(X, ::Type{Z}, n) where Z<:QuotientRing
+    Filter(isirreducible, Monic(X, Z, n))
+end
+irreducibles(X, ::Type{Z}, n) where Z = collect(irreducible_filter(X, Z, n))
 
 """
     factorise(p::ZZmod[:x])
@@ -156,10 +224,8 @@ function GF(p::Integer, m::Integer=1)
     if m == 1
         Z
     else
-        P = Z[:γ]
-        gen = irreducibles(Z, m)[1]
-        gen = convert(P, gen)
-        P / gen
+        gen = first(irreducible_filter(:γ, Z, m))
+        typeof(gen) / gen
     end
 end
 
@@ -250,23 +316,38 @@ function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     S
 end
 
+function isddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
+    q = order(Z)
+    x = monom(typeof(f), 1)
+    i = 1
+    fs = f
+    xqi = x
+    while deg(fs) >= 2i
+        xqi = powermod(xqi, q, fs)
+        g = gcd(fs, xqi - x)
+        isone(g) || return false
+        i += 1
+    end
+    return true
+end
+
+# random samplers
+import Random: rand, SamplerType, AbstractRNG
+function rand(r::AbstractRNG, ::SamplerType{Z}) where {Z<:ZZmod}
+    m = modulus(Z)
+    Z(rand(r, 0:m-1))
+end
 """
     rand(Q)
 
 Random field element of `Q = P / (polynomial)`, whith `basetype(P) <: ZZmod`.
 E.g. the Galois fields.
 """
-function Base.rand(::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+function rand(r::AbstractRNG, ::SamplerType{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
     m = deg(modulus(Q))
     p = modulus(Z)
-    r = Q(P(rand(0:p, m)))
+    r = Q(P(rand(r, 0:p, m)))
 end
-function Base.rand(Z::Type{<:ZZmod})
-    p = modulus(Z)
-    Z(rand(0:p))
-end
-# produce a random vector of field elements.
-Base.rand(Q::Type{<:Ring}, n::Integer) = [rand(Q) for i in 1:n]
 
 """
     cantor(p::Polynomial, d::Integer)
@@ -281,12 +362,11 @@ function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomi
     S = [f]
     n == d && return S
     rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
-    #isodd(q) || throw(DomainError(q, "order of base field must be odd"))
     ex = isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
     r = div(n, d)
     while length(S) < r
         h = P(rand(Z, n))
-        g = powermod(h, ex, f) - 1
+        g = (q & 1 == 1 ? powermod : powersum)(h, ex, f) - 1
         s = length(S)
         for k = 1:s
             u = S[k]
@@ -298,6 +378,23 @@ function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomi
         end
     end
     S
+end
+
+
+"""
+    powersum(h, ex, f)
+
+Calculate the sum `h + h^2 + h^4 + h^8 + ... + h^ex mod f`
+"""
+function powersum(h, ex, f)
+    s = h
+    n = 1
+    while n < ex
+        h = rem(h * h, f)
+        n *= 2
+        s += h
+    end
+    s
 end
 
 function factorise(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
@@ -316,14 +413,11 @@ function factorise(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
 end
 
 function isirreducible(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
-    pp = sff(p)
-    length(pp) != 1 && return false
-    q, k = pp[1]
-    k != 1 && return false
-    qq = ddf(q)
-    length(qq) != 1 && return false
-    r, l = qq[1]
-    deg(r) == l
+    deg(p) <= 1 && return true
+    iszero(p.coeff[1]) && return false
+    pp = gcd(p, derive(p))
+    deg(pp) > 0 && return false
+    isddf(p)
 end
 
 # Jacobi symbol
@@ -360,87 +454,5 @@ function kronecker(n::Integer, k::Integer)
     k >>= t
     ks = (n&7 == 3 || n&7 == 5 ) && t&1 == 1 ? -ks : ks
     jacobi(n, k) * ks
-end
-
-
-
-# linear algebra
-function pivot(A::Matrix, i::Integer, j::Integer)
-    amax = abs(A[i,j])
-    imax = i
-    m = last(axes(A,1))
-    for k = i+1:m
-        bmax = abs(A[k,j])
-        if bmax > amax
-            amax = bmax;
-            imax = k
-        end
-    end
-    amax, imax
-end
-
-function swaprows(A::Matrix, pr::Vector, i::Integer, j::Integer)
-    pr[i], pr[j] = pr[j], pr[i]
-    for k = axes(A, 2)
-        A[i,k], A[j,k] = A[j,k], A[i,k]
-    end
-end
-function swapcols(A::Matrix, pc::Vector, i::Integer, j::Integer)
-    pc[i], pc[j] = pc[j], pc[i]
-    for k = axes(A, 1)
-        A[k,i], A[k,j] = A[k,j], A[k,i]
-    end
-end
-
-function lu_total!(A::Matrix)
-    m, n = size(A)
-    mn = min(m, n)
-    pr = collect(1:m)
-    pc = collect(1:n)
-    jmax = mn
-    for j = 1:mn
-        amax, imax = pivot(A, j, j)
-        if !iszero(amax)
-            if imax != j
-                swaprows(A, pr, j, imax)
-            end
-        else
-            amax = zero(amax)
-            imax = 0
-            kmax = j
-            while kmax < n && iszero(amax)
-                kmax += 1
-                amax, imax = pivot(A, j, kmax)
-            end
-            if !iszero(amax)
-                swapcols(A, pc, j, kmax)
-                if imax != j
-                    swaprows(A, pr, j, imax)
-                end
-            else
-                jmax = j - 1
-            end
-        end
-        iszero(amax) && break
-        aa = A[j, j]
-        for i = j+1:m
-            ab = A[i,j] / aa
-            A[i,j] = ab
-            for k = j+1:n
-                A[i,k] -= A[j,k] * ab
-            end
-        end
-    end
-    jmax, pr, pc
-end
-
-import LinearAlgebra: UpperTriangular, Diagonal, nullspace
-function nullspace(A::Matrix{T}) where T
-    r, pr, pc = lu_total!(A)
-    m = size(A, 2)
-    r == 0 && return Diagonal(ones(T, m))
-    r == m && return Matrix{T}(undef, m, 0)
-    M = [-UpperTriangular(view(A, 1:r, 1:r)) \ view(A, 1:r, r+1:m); Matrix(Diagonal(ones(T, m-r)))]
-    M[invperm(pc),:]
 end
 

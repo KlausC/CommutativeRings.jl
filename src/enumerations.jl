@@ -79,15 +79,40 @@ struct Filter{I,F}
     iter::I
 end
 
-import Base: iterate, Generator
+import Base: iterate, collect, Generator, IteratorSize, SizeUnknown
 export Filter, Generator
 
-function iterate(F::Filter, s...)
-    y = iterate(F.iter, s...)
-    while y !== nothing && !F.f(y[1])
-        y = iterate(F.iter, y[2])
+function iterate(itr::Filter, s...)
+    y = iterate(itr.iter, s...)
+    f = itr.f
+    itr2 = itr.iter
+    while y !== nothing && !f(y[1])
+        y = iterate(itr2, y[2])
     end
     y
+end
+
+function collect(itr::Filter)
+    isz = IteratorSize(itr.iter)
+    v = eltype(itr.iter)[]
+    f = itr.f
+    if isa(isz, SizeUnknown)
+        for x in itr.iter
+            if f(x)
+                push!(v, x)
+            end
+        end
+    else
+        resize!(v, length(itr.iter))
+        i = 0
+        for x in itr.iter
+            if f(x)
+                v[i += 1] = x
+            end
+        end
+        resize!(v, i)
+    end
+    v
 end
 
 IteratorEltype(::Type{Filter{I,T}}) where {I,T} = IteratorEltype(I)
