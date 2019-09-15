@@ -33,13 +33,37 @@ inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-un
 abs(a::Ring) = isunit(a) ? 1 : 0
 
 """
+    order(Z::Type{<:Ring})
+
+Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`. 
+"""
+order(::Type{Z}) where Z<:ZZmod = modulus(Z)
+function order(::Type{T}) where {m,X,Z,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
+    order(Z) ^ deg(modulus(T))
+end
+order(::Type{<:Ring}) = 0
+
+"""
+    characteristic(Z::Type{<:Ring})
+
+Returns the characteristic `c` of ring `Z`. `c` is the smallest positive integer
+with `c * one(Z) == 0`, or `0` if `c * one(Z) != 0` for all positive integers `c`.
+"""
+characteristic(::Type{Z}) where Z<:ZZmod = order(Z)
+characteristic(::Type{T}) where {m,Z,T<:Quotient{m,Z}} = characteristic(Z)
+characteristic(::Type{T}) where {Z,T<:Frac{Z}} = characteristic(Z)
+characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
+characteristic(::Type{<:Ring}) = 0
+
+"""
     deg(r::Ring)
 
-Return the degree of `r`. For zero elements, that is `-1`, otherwise `0`
+Return the degree of ring element `r`. For zero elements, that is `-1`, otherwise `0`
 for non-polynomials, the ordinary degree for univariate polynomials and the
 maximum degree for multivariate polynomials.
 """
 deg(x::Ring) = iszero(x) ? -1 : 0 # fallback
+
 divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]

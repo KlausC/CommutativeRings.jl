@@ -1,6 +1,6 @@
 
 export cyclotomic
-using Primes: isprime, factor
+using Primes
 """
     cyclotomic(P, n)
 
@@ -107,11 +107,6 @@ function Base.iterate(mo::Monic{X,Z}, s) where {X,Z<:Ring}
     nothing
 end
     
-
-
-
-
-
 export irreducibles
 """
     irreducibles(ZZp, n)
@@ -166,6 +161,7 @@ function irreducible_filter(X, ::Type{Z}, n) where Z<:QuotientRing
     Filter(isirreducible, Monic(X, Z, n))
 end
 irreducibles(X, ::Type{Z}, n) where Z = collect(irreducible_filter(X, Z, n))
+irreducible(X, ::Type{Z}, n) where Z = first(irreducible_filter(X, Z, n))
 
 """
     factorise(p::ZZmod[:x])
@@ -224,18 +220,20 @@ function GF(p::Integer, m::Integer=1)
     if m == 1
         Z
     else
-        gen = first(irreducible_filter(:γ, Z, m))
+        gen = irreducible(:γ, Z, m)
         typeof(gen) / gen
     end
 end
 
 
-export sff, ddf
+export sff, ddf, edf
 
 """
     sff(p)
 
-Squarefree factorization of p.
+`Square-free factorization`.
+Algorithm to split polynomial `p` into a product of powers of squarefree factors.
+Return an array of pairs of squarefree factors and corresponding powers.
 """
 function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     q = order(Z)
@@ -274,22 +272,13 @@ function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
     P(c)
 end
 
-
-order(::Type{Z}) where Z<:ZZmod = modulus(Z)
-function order(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
-    modulus(Z) ^ deg(modulus(T))
-end
-characteristic(::Type{Z}) where Z<:ZZmod = modulus(Z)
-function characteristic(::Type{T}) where {m,X,Z<:ZZmod,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
-    modulus(Z)
-end
-
 """
     ddf(p)
 
+`Distinct-degree factorization`.
 Input is a squarefree polynomial.
-Output is a list of polynomials `g_i, d_i`, each of which is a product of all irreducible
-monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
+Returns a list of pairs `g_i => d_i` of polynomials g_i, each of which is a product of
+all irreducible monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
 """
 function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     q = order(Z)
@@ -350,19 +339,20 @@ function rand(r::AbstractRNG, ::SamplerType{Q}) where {X,Y,Z<:ZZmod,P<:Univariat
 end
 
 """
-    cantor(p::Polynomial, d::Integer)
+    edf(p::Polynomial, d::Integer)
 
+`Equal-degree factorization`. 
 Algorithm of Cantor-Zassenhaus to find the factors of `p`, a product of monomials of
-degree `d`. (Such polynomials are in the output of by `ddf`.
-The base type for `p` must be a field of odd degree.
+degree `d`. (Such polynomials are in the output of `ddf`).
+The base type for `p` must be a finite field. Odd charcteristic is a covered special case.
 """
-function cantor(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+function edf(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     q = order(Z)
     n = deg(f)
     S = [f]
     n == d && return S
     rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
-    ex = isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
+    ex = q^d ÷ 2 # isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
     r = div(n, d)
     while length(S) < r
         h = P(rand(Z, n))
@@ -403,7 +393,7 @@ function factorise(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     for (q, k) in pp
         qq = ddf(q)
         for (r, l) in qq
-            rr = cantor(r, l)
+            rr = edf(r, l)
             for s in rr
                 push!(res, s => k)
             end
@@ -419,6 +409,9 @@ function isirreducible(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,
     deg(pp) > 0 && return false
     isddf(p)
 end
+
+
+export jacobi, kronecker, moebius, necklace
 
 # Jacobi symbol
 function jacobi(n::Integer, k::Integer)
@@ -454,5 +447,40 @@ function kronecker(n::Integer, k::Integer)
     k >>= t
     ks = (n&7 == 3 || n&7 == 5 ) && t&1 == 1 ? -ks : ks
     jacobi(n, k) * ks
+end
+
+# moebius function
+function moebius(n::Integer)
+    f = Primes.factor(n)
+    if maximum(values(f)) == 1
+        ifelse(iseven(length(f)), -1, 1)
+    else
+        0
+    end
+end
+
+# necklace polynomial - Moreau's necklace-counting function
+necklace(q::Integer, n::Integer) = _necklace(q, n) ÷ n
+necklace(q::Ring, n::Integer) = _necklace(q, n) / n
+function _necklace(q, n::Integer)
+    f = Primes.factor(n)
+    p = collect(keys(f))
+    m = length(p)
+    s = 0
+    for x = 0:(2^m-1)
+        d = n
+        μ = 1
+        k = 1
+        while x != 0
+            if x & 1 == 1
+                d ÷= p[k]
+                μ = -μ
+            end
+            x >>= 1
+            k += 1
+        end
+        s += q^d * μ
+    end
+    s
 end
 
