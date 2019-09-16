@@ -1,13 +1,9 @@
+
 using Random
 using LinearAlgebra
 
 const rng = MersenneTwister(1)
 mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
-
-@testset "cyclotomic" begin
-    P = ZZ{Int}[:x]
-    @test deg(cyclotomic(P, 385)) == totient(385)
-end
 
 @testset "Galois Fields" begin
     

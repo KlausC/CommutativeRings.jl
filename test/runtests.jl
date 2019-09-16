@@ -7,5 +7,6 @@ using CommutativeRings
 @testset "univarpolynom" begin include("univarpolynom.jl") end
 @testset "fraction" begin include("fraction.jl") end
 @testset "quotient" begin include("quotient.jl") end
-@testset "applications" begin include("applications.jl") end
+@testset "galoisfields" begin include("galoisfields.jl") end
+@testset "numbertheory" begin include("numbertheoretical.jl") end
 

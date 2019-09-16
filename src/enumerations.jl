@@ -1,4 +1,70 @@
 
+import Base: length, iterate, eltype
+export Monic
+
+struct Monic{X,T<:QuotientRing}
+    n::Int
+    Monic(X::Symbol, ::Type{T}, n) where T = new{X,T}(n)
+end
+eltype(mo::Type{Z}) where Z<:Ring = Z
+function iterate(m::Type{Z}) where Z<:QuotientRing
+    z = zero(Z)
+    (z, z)
+end
+length(mo::Type{Z}) where Z<:ZZmod = modulus(Z)
+function iterate(m::Type{Z}, s) where Z<:ZZmod
+    v = s + 1
+    iszero(v) ? nothing : (v, v)
+end
+function length(mo::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+    modulus(Z)^deg(modulus(Q))
+end
+function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+    c = copy(s.val.coeff)
+    m = length(c)
+    n = deg(modulus(Q))
+    for i = 1:m
+        ci = iterate(Z, c[i])
+        if ci != nothing
+            c[i] = ci[1]
+            z = Q(c)
+            return (z, z)
+        else
+            c[i] = zero(Z)
+        end
+    end
+    if m < n
+        resize!(c, m+1)
+        c[m+1] = one(Z)
+        m >= 1 && (c[m] = zero(Z))
+        z = Q(c)
+        return (z, z)
+    end
+    nothing
+end
+
+Base.length(mo::Monic{X,Z}) where {X,Z<:Ring} = length(Z)^mo.n
+Base.eltype(mo::Monic{X,Z}) where {X,Z<:Ring} = Z[X]
+function Base.iterate(mo::Monic{X,Z}) where {X,Z<:Ring}
+    p0 = monom(Z[X], mo.n)
+    p0, p0
+end
+function Base.iterate(mo::Monic{X,Z}, s) where {X,Z<:Ring}
+    c = copy(s.coeff)
+    n = deg(s)
+    for i = 1:n
+        ci = iterate(Z, c[i])
+        if ci != nothing
+            c[i] = ci[1]
+            z = Z[X](c)
+            return (z, z)
+        else
+            c[i] = zero(Z)
+        end
+    end
+    nothing
+end
+    
 
 isqrt2(i::T) where T<:Integer = T(floor(sqrt(8*i+1) - 1)) ÷ 2
 function ipair(i::Integer)

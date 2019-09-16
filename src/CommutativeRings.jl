@@ -195,8 +195,11 @@ include("fraction.jl")
 include("univarpolynom.jl")
 #include("multivarpolynom.jl")
 include("ideal.jl")
-include("applications.jl")
 include("enumerations.jl")
+include("factorization.jl")
+include("numbertheoretical.jl")
+include("galoisfields.jl")
 include("linearalgebra.jl")
+
 
 end # module
