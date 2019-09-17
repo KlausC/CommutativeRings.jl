@@ -2,7 +2,8 @@
 using Random
 using LinearAlgebra
 
-const rng = MersenneTwister(1)
+
+let rng = MersenneTwister(1), x
 mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
 
 @testset "Galois Fields" begin
@@ -21,4 +22,5 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
+end
 end

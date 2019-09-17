@@ -28,6 +28,8 @@ promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Integer} = Quotient
 convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
 convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
 
+Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
+
 ## Arithmetic
 
 +(a::T, b::T) where T<:Quotient =  T(a.val + b.val)

@@ -73,9 +73,11 @@ end
 
 # moebius function
 function moebius(n::Integer)
+    n > 0 || throw(ArgumentError("moebius defined for positive integers only"))
+    n == 1 && return 1
     f = Primes.factor(n)
     if maximum(values(f)) == 1
-        ifelse(iseven(length(f)), -1, 1)
+        ifelse(isodd(length(f)), -1, 1)
     else
         0
     end

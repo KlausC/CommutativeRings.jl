@@ -8,13 +8,13 @@ export Hom, Ideal
 export isunit, deg, content, primpart, lc, lcunit, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
 export iscoprime, evaluate, derive
-export isirreducible, irreducibles, monic, factorise
+export isirreducible, irreducible, irreducibles, monic, factorise
 export characteristic, order
 export ofindex, index
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule, convert, abs
+import Base: copy, show, promote_rule, convert, abs, isless
 
 using Base.Checked
 

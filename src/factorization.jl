@@ -52,7 +52,7 @@ function factor(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
             end
         end
     end
-    res
+    sort(res)
 end
 
 """
@@ -207,5 +207,19 @@ function rand(r::AbstractRNG, ::SamplerType{Q}) where
     
     m = deg(modulus(Q))
     r = Q(P(rand(r, Z, m)))
+end
+
+function Base.isless(p::T, q::T) where T<:Pair{<:Ring,<:Integer}
+    p.first < q.first ||
+    p.first == q.first && p.second == q.second
+end
+
+import Base: prod
+function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
+    res = one(T)
+    for p in ff
+        res *= p.first^p.second
+    end
+    res
 end
 

@@ -1,8 +1,7 @@
 
+let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
+
 @testset "construction of quotient ring" begin
-    S = ZZ{BigInt}
-    P = S[:x]
-    x = P([0, 1])
     ideal = x^2 + 1
     @test P / ideal <: (Quotient{X,P} where X)
     @test P / (x^3+1) <: Quotient{X,P} where X
@@ -41,4 +40,4 @@
     @test String(take!(io)) isa String
 
 end
-
+end

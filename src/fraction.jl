@@ -51,6 +51,8 @@ function (h::Hom{F,R,S})(p::Frac{<:R}) where {F,R,S}
     Frac(F(a.num), F(a.den))
 end
 
+Base.isless(p::T, q::T) where T<:Frac = isless(p.num * q.den, q.num * p.den)
+
 # operations for Frac
 
 function +(x::T, y::T) where T<:Frac

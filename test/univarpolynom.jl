@@ -3,14 +3,6 @@ using CommutativeRings
 using Test
 using Polynomials
 
-const S = ZZ{Int}
-const P = UnivariatePolynomial{:x,S}
-const PQ = UnivariatePolynomial{:x,QQ{Int}}
-
-const x = P([0, 1])
-
-CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
-
 import Base: ==
 function ==(a::UnivariatePolynomial, b::Poly)
     va = getproperty.(a.coeff, :val)
@@ -21,6 +13,11 @@ function ==(a::UnivariatePolynomial, b::Poly)
     end
     va == vb[1:n]
 end
+
+let S = ZZ{Int}, P = UnivariatePolynomial{:x,S}, PQ = UnivariatePolynomial{:x,QQ{Int}}
+
+x = P([0, 1])
+CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
 
 @testset "constructors" begin
     @test basetype(P) == S
@@ -226,4 +223,4 @@ end
     @test !ismonic(P([2,-1]))
 
 end
-
+end

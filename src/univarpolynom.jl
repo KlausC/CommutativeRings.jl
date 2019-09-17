@@ -596,6 +596,20 @@ function spread(p::P, m::Integer) where {X,T,P<:UnivariatePolynomial{X,T}}
     P(v)
 end
 
+function Base.isless(p::T, q::T) where T<:UnivariatePolynomial
+    cp = p.coeff
+    cq = q.coeff
+    lp = length(cp)
+    lq = length(cq)
+    lp < lq && return true
+    lq < lp && return false 
+    for k = lp:-1:1
+        isless(cp[k], cq[k]) && return true
+        isless(cq[k], cp[k]) && return false
+    end
+    false
+end
+
 ### Display functions
 
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true

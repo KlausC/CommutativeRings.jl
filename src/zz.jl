@@ -34,6 +34,8 @@ for op in (:+, :-, :/, :(==), :div, :rem, :divrem, :gcd, :gcdx, :pgcd, :pgcdx)
     end
 end
 
+Base.isless(p::T, q::T) where T<:ZZ = isless(p.val, q.val)
+
 # operations for ZZ
 +(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_add(a.val, b.val))
 -(a::ZZ{T}, b::ZZ{T}) where T = ZZ(checked_sub(a.val, b.val))
