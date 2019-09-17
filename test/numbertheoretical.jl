@@ -7,7 +7,7 @@ let x = monom(QQ{Int}[:x], 1), P = ZZ{Int}[:x]
     @test deg(cyclotomic(P, 385)) == totient(385)
 end
 
-@testset "kronecker ($n, $k, $r)" for (n, k, r) in ((1,1,1), (1,13,1), (12,1,1), (5, 8, -1), (12,18,0))
+@testset "kronecker ($n, $k, $r)" for (n, k, r) in ((1,1,1), (1,13,1), (12,1,1), (5, 8, -1), (12,18,0), (6, 17, -1), (6, -17, -1), (-6, 17, -1), (-6, -17, 1))
     @test kronecker(n, k) == r
 end
 
