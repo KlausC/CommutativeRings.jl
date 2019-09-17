@@ -9,6 +9,7 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
 @testset "Galois Fields" begin
     
     @test GF(7) <: ZZmod{7}
+    @test GF(3) == GF(3,1)
     @test GF(5,3) <: Quotient{X,<:UnivariatePolynomial{:γ,<:ZZmod{5}}} where X
     
     G7 = GF(7)
@@ -22,5 +23,9 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
+    io = IOBuffer()
+    show(io, GF(5,3)([1,2,3]))
+    s = String(take!(io))
+    @test s == "{3:2:1%5}"
 end
 end

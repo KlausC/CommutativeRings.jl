@@ -10,4 +10,5 @@ using CommutativeRings
 @testset "factorization" begin include("factorization.jl") end
 @testset "galoisfields" begin include("galoisfields.jl") end
 @testset "numbertheory" begin include("numbertheoretical.jl") end
+@testset "enumerations" begin include("enumerations.jl") end
 

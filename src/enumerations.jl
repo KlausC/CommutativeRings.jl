@@ -7,17 +7,15 @@ struct Monic{X,T<:QuotientRing}
     Monic(X::Symbol, ::Type{T}, n) where T = new{X,T}(n)
 end
 eltype(mo::Type{Z}) where Z<:Ring = Z
+length(mo::Type{Z}) where Z<:Ring = order(Z)
+
 function iterate(m::Type{Z}) where Z<:QuotientRing
     z = zero(Z)
     (z, z)
 end
-length(mo::Type{Z}) where Z<:ZZmod = modulus(Z)
 function iterate(m::Type{Z}, s) where Z<:ZZmod
     v = s + 1
     iszero(v) ? nothing : (v, v)
-end
-function length(mo::Type{Q}) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
-    modulus(Z)^deg(modulus(Q))
 end
 function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
     c = copy(s.val.coeff)
