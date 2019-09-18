@@ -90,6 +90,7 @@ function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     R
 end
 
+# assuming p(x) = q(x^p), return q. Formally q(x) = p(x^(1/p)).
 function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
     n = deg(a)
     c = similar(a.coeff, (n÷p)+1)

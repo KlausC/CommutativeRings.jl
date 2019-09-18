@@ -549,7 +549,17 @@ can be converted to `basetype(p)` or another polynomial.
 Convenient method ot evaluate is is `p(y)`.
 """
 function evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
-    T <: Polynomial && ismonic(x) && ismonom(x) && return spread(p, deg(x))
+    _evaluate(p, x)
+end
+function evaluate(p::U, x::V) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePolynomial{Y,T}}
+    if ismonic(x) && ismonom(x)
+        spread(p, deg(x), Y, T)
+     else
+        _evaluate(p, x)
+    end
+end
+
+function _evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
     c = p.coeff
     n = length(c)
     R = promote_type(S,T)
@@ -587,13 +597,21 @@ end
 
 # efficient implementation of `p(x^m)`. 
 function spread(p::P, m::Integer) where {X,T,P<:UnivariatePolynomial{X,T}}
-    c = p.coeff
+    P(_spread(p.coeff, m, T))
+end
+function spread(p::P, m::Integer, Y, S) where {X,T,P<:UnivariatePolynomial{X,T}}
+    c = _spread(p.coeff, m, S)
+    UnivariatePolynomial{Y}(c)
+end
+
+function _spread(c::Vector{T}, m::Integer, ::Type{S}) where {T,S}
     n = length(c)
-    v = zeros(T, (n - 1) * m + 1)
+    R = promote_type(S, T)
+    v = zeros(R, (n - 1) * m + 1)
     for k = 1:n
         v[(k-1)*m+1] = c[k]
     end
-    P(v)
+    v
 end
 
 function Base.isless(p::T, q::T) where T<:UnivariatePolynomial
@@ -613,6 +631,7 @@ end
 ### Display functions
 
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
+issimple(::Quotient{X,<:UnivariatePolynomial{:γ}}) where X = true
 issimple(::Any) = false
 
 function showvar(io::IO, var, n::Integer)
@@ -631,7 +650,7 @@ function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
         el = p.coeff[n+1]
         bra = !issimple(el)
         if !iszero(el)
-            bra && n != N && print(io, " + ")
+            # bra && n != N && print(io, " + ")
             if !isone(el) || n == 0
                 io2 = IOBuffer()
                 show(io2, el)
