@@ -76,7 +76,7 @@ function index(i::T, n1::T, n2::T) where T<:Integer
     (n1 >= 0 && n2 >= 0) || throw(ArgumentError("(n1, n2) = $((n1, n2)) >= 0 required"))
     0 <= i || throw(ArgumentError("no negative index: $i"))
     if n1 > 0 && n2 > 0
-        i = mod(i, n1 * n2)
+        i = n1 * n2 <= 0 ? i : mod(i, n1 * n2)
     end
     m1, m2 = (n2 == 0) || (0 < n1 <= n2) ? (n1, n2) : (n2, n1)
     m = (m1 + 1) * m1 ÷ 2
