@@ -607,7 +607,7 @@ end
 function _spread(c::Vector{T}, m::Integer, ::Type{S}) where {T,S}
     n = length(c)
     R = promote_type(S, T)
-    v = zeros(R, (n - 1) * m + 1)
+    v = zeros(R, max(0, (n - 1) * m + 1))
     for k = 1:n
         v[(k-1)*m+1] = c[k]
     end

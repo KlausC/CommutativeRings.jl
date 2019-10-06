@@ -223,4 +223,13 @@ end
     @test !ismonic(P([2,-1]))
 
 end
+
+@testset "apply polynomial" begin
+    x = monom(ZZ{Int}[:x], 1)
+    y = monom(ZZ{Int}[:y], 1)
+    @test x(1) == 1
+    @test x(0) == 0
+    @test (y^2)(x+1) == x^2 + 2x + 1
+    @test (0*y)(x^2) == 0
+end
 end
