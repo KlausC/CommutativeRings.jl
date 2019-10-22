@@ -77,7 +77,7 @@ function lu_total!(A::Matrix)
     jmax, pr, pc
 end
 
-import LinearAlgebra: UpperTriangular, Diagonal, nullspace
+import LinearAlgebra: UpperTriangular, Diagonal, nullspace, rank
 function nullspace(AA::Matrix{T}) where T
     A = copy(AA)
     r, pr, pc = lu_total!(A)
@@ -86,5 +86,10 @@ function nullspace(AA::Matrix{T}) where T
     r == m && return Matrix{T}(undef, m, 0)
     M = [-UpperTriangular(view(A, 1:r, 1:r)) \ view(A, 1:r, r+1:m); Matrix(Diagonal(ones(T, m-r)))]
     M[invperm(pc),:]
+end
+
+function rank(AA::Matrix{T}) where T
+    r, pr, pc = lu_total!(copy(AA))
+    r
 end
 
