@@ -1,6 +1,13 @@
 
 # linear algebra
 
+struct LU_total{T,MT}
+    factors::MT
+    pivr::Vector{Int}
+    pivc::Vector{Int}
+    rank::Int
+end
+
 # find maximal element in A[i:end,j]
 function pivot(A::Matrix, i::Integer, j::Integer)
     amax = abs(A[i,j])
@@ -35,7 +42,7 @@ end
 # 0 <= abs(a) ∈ Real
 # Input matrix A is overwritten with the components of L and R.
 # Return r = rank(A) and permutation vectors for rows and columns
-function lu_total!(A::Matrix)
+function lu_total!(A::Matrix{T}) where T
     m, n = size(A)
     mn = min(m, n)
     pr = collect(1:m)
@@ -74,22 +81,25 @@ function lu_total!(A::Matrix)
             end
         end
     end
-    jmax, pr, pc
+    LU_total{T,Matrix{T}}(A, pr, pc, jmax)
 end
 
 import LinearAlgebra: UpperTriangular, Diagonal, nullspace, rank
-function nullspace(AA::Matrix{T}) where T
-    A = copy(AA)
-    r, pr, pc = lu_total!(A)
+function nullspace(fac::LU_total{T}) where T
+    r = rank(fac)
+    A = fac.factors
     m = size(A, 2)
     r == 0 && return Diagonal(ones(T, m))
     r == m && return Matrix{T}(undef, m, 0)
     M = [-UpperTriangular(view(A, 1:r, 1:r)) \ view(A, 1:r, r+1:m); Matrix(Diagonal(ones(T, m-r)))]
+    pc = fac.pivc
     M[invperm(pc),:]
 end
 
-function rank(AA::Matrix{T}) where T
-    r, pr, pc = lu_total!(copy(AA))
-    r
+function rank(fac::LU_total) where T
+    fac.rank
 end
+
+nullspace(A::Matrix) = nullspace(lu_total!(copy(A)))
+rank(A::Matrix) = rank(lu_total!(copy(A)))
 

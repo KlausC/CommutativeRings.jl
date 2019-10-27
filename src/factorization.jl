@@ -17,7 +17,7 @@ function isirreducible(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,
     isddf(p)
 end
 
-
+import Base.Iterators: Filter, take, drop
 """
     irreducibles(X, F, n)
 
@@ -29,9 +29,10 @@ over field `F`.
 Returns an irreducible polynomial with variable 'X' of degree `n`.
 """
 irreducible(X, ::Type{Z}, n) where Z = first(irreducible_filter(X, Z, n))
+irreducible(X, ::Type{Z}, n, nr::Integer) where Z = first(drop(irreducible_filter(X, Z, n), nr-1))
 irreducibles(X, ::Type{Z}, n) where Z = collect(irreducible_filter(X, Z, n))
 function irreducible_filter(X, ::Type{Z}, n) where Z<:QuotientRing
-    Filter(isirreducible, Monic(X, Z, n))
+    Base.Iterators.Filter(isirreducible, Monic(X, Z, n))
 end
 
 """
