@@ -133,11 +133,12 @@ function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyno
     mod(s, r) == 0 || throw(ArgumentError("dimension of Q ($r) must divide that of R ($s)"))
     f = normalbase(Q)
     M = normalmatrix(f, r)
-    k = characteristic(Q) == 2 ? 3 : 2
+    p = characteristic(Q)
+    k = p == 2 ? 3 : 2
     h = (inv(M) * f^k).val.coeff
     for g in R
         N = normalmatrix(g, r)
-        if rank(N) == r && g^k == R(N * h)
+        if g^k == R(N * h) && R(view(N,:,r))^p == R(view(N,:,1))
             M1 = inv(M)
             iso(a::Q) = R(N * (M1 * a.val.coeff))
             return iso
@@ -160,5 +161,19 @@ function isomorphism(::Type{Q}, ::Type{R}, nr::Integer) where {Z<:ZZmod,P<:Univa
     M1 = iso1.M1
     iso(a::Q) = R(N * (M1 * a.val.coeff))
     iso
+end
+
+function rank(a::Q) where Q
+    p = characteristic(Q)
+    r = Q <: Quotient ? deg(modulus(Q)) : 1
+    iszero(a) && return 0
+    m = 1
+    b = a
+    while m < r
+        b = b^p
+        b == a && break
+        m += 1
+    end
+    m
 end
 
