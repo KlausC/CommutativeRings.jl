@@ -138,7 +138,7 @@ function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyno
     h = (inv(M) * f^k).val.coeff
     for g in R
         N = normalmatrix(g, r)
-        if g^k == R(N * h) && R(view(N,:,r))^p == R(view(N,:,1))
+        if g^k == R(N * h) && R(view(N,:,r))^p == R(view(N,:,1)) && rank(N) == r
             M1 = inv(M)
             iso(a::Q) = R(N * (M1 * a.val.coeff))
             return iso
