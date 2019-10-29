@@ -50,21 +50,24 @@ function Base.show(io::IO, q::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z
 end
 
 """
-    normalmatrix(a::Q)
+    normalmatrix(a::Q[, m])
 
-Return a square matrix of element type `ZZ/p`, whose colums are the coefficient
-vectors of `a^(p^i) for i = 0:r-1`.
+Return a matrix of element type `ZZ/p`, whose colums are the coefficient
+vectors of `a^(p^i) for i = 0:m-1`.
 
 Here Q is a galois field of characteristic `p` and order `p^r`.
+
+`m` m defaults to `r`.
 
 If `normalmatrix(a))` is regular, the field elements `a^(p^i) for i = 0:r-1` form a
 base of `Q` as a vector space over `ZZ/p` (a normal base).
 """
-function normalmatrix(a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function normalmatrix(a::Q, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
     p = characteristic(Q)
     r = deg(modulus(Q))
-    M = Matrix{Z}(undef, r, r)
-    for i = 0:r-1
+    m = m <= 0 ? r : m
+    M = Matrix{Z}(undef, r, m)
+    for i = 0:m-1
         c = a.val.coeff
         k = length(c)
         for j = 1:r
@@ -76,17 +79,17 @@ function normalmatrix(a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:
 end
 
 """
-    normalmatrix(::Type{Q})
+    normalmatrix(::Type{Q}[, m])
 
-Return `normalmatrix(a)` for the first `a` in `Q` for which this is regular. 
+Return `normalmatrix(a, m)` for the first `a` in `Q` for which this ihas maximal rank. 
 """
-function normalmatrix(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
-    normalmatrix(normalbase(Q))
+function normalmatrix(::Type{Q}, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+    normalmatrix(normalbase(Q), m)
 end
 
 function normalbases(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
     r = deg(modulus(Q))
-    Base.Iterators.filter(x->rank(normalmatrix(x)) == r, Q)
+    Base.Iterators.filter(x->rank(normalmatrix(x, r)) == r, Q)
 end
 """
     normalbase(::Type{Q})
@@ -124,22 +127,38 @@ Return a function `iso:Q -> R`, which describes an isomorphism between two galoi
 `Q` and `R` of the same order.
 """
 function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
-    characteristic(Q) == characteristic(R) || throw(ArgumentError("both fields have different characteristics"))
-    order(Q) == order(R) || throw(ArgumentError("both fields have different orders"))
-    f = normalbase(Q)
-    M = normalmatrix(f)
+
     r = deg(modulus(Q))
+    s = deg(modulus(R))
+    mod(s, r) == 0 || throw(ArgumentError("dimension of Q ($r) must divide that of R ($s)"))
+    f = normalbase(Q)
+    M = normalmatrix(f, r)
     k = characteristic(Q) == 2 ? 3 : 2
-    nrep(M, f) = (inv(M) * f^k).val
-    h = nrep(M, f)
+    h = (inv(M) * f^k).val.coeff
     for g in R
-        N = normalmatrix(g)
-        if rank(N) == r && nrep(N, g) == h
+        N = normalmatrix(g, r)
+        if rank(N) == r && g^k == R(N * h)
             M1 = inv(M)
             iso(a::Q) = R(N * (M1 * a.val.coeff))
             return iso
         end
     end
     throw(ErrorException("no isomorphism found - not reachable"))
+end
+
+function isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Y,R<:Quotient{Y,P}}
+    iso(a::Z) = R(a)
+end
+
+function isomorphism(::Type{Q}, ::Type{R}, nr::Integer) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q,Y,R<:Quotient{Y,P}}
+
+    iso1 = isomorphism(Q, R)
+    r = Q <: Quotient ? deg(modulus(Q)) : 1
+    nr = mod(nr, r)
+    r == 0 && return iso1
+    N = hcat(iso1.N[:,nr+1:r], iso1.N[:,1:nr])
+    M1 = iso1.M1
+    iso(a::Q) = R(N * (M1 * a.val.coeff))
+    iso
 end
 
