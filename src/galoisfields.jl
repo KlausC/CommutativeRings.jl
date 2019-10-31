@@ -112,19 +112,18 @@ function sized(a::Vector{Z}, r::Integer) where Z
     n == r ? a : n < r ? vcat(a, zeros(Z, r - n)) : a[1:r]
 end
 
-function *(M::Matrix{Z}, a::Vector{Z}) where Z<:Ring
-    invoke(*, Tuple{AbstractMatrix,AbstractVector}, M, sized(a, size(M, 2)))
-end
+mulsized(M::Matrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
 function *(M::Matrix{Z}, a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
-    Q(M * a.val.coeff)
+    Q(mulsized(M, a.val.coeff))
 end
 
 """
     isomorphism(Q, R)
 
 Return a function `iso:Q -> R`, which describes an isomorphism between two galois fields
-`Q` and `R` of the same order.
+`Q` and `R` of the same order, or `Q` being mapped to a subfield of `R`. In both cases, if `order(Q) == p^r`,
+then necessarily `order(R) == p^(r*s)` for some positive integer `s`.
 """
 function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
 
@@ -137,10 +136,10 @@ function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyno
     k = p == 2 ? 3 : 2
     h = (inv(M) * f^k).val.coeff
     for g in R
-        N = normalmatrix(g, r)
-        if g^k == R(N * h) && R(view(N,:,r))^p == R(view(N,:,1)) && rank(N) == r
+        N, ind = rank_bound(g, r)
+        if ind && g^k == R(mulsized(N, h)) && rank(N) == r
             M1 = inv(M)
-            iso(a::Q) = R(N * (M1 * a.val.coeff))
+            iso(a::Q) = R(mulsized(N, (M1 * a)))
             return iso
         end
     end
@@ -163,17 +162,28 @@ function isomorphism(::Type{Q}, ::Type{R}, nr::Integer) where {Z<:ZZmod,P<:Univa
     iso
 end
 
-function rank(a::Q) where Q
+"""
+
+Return a normal-base matrix `M = [a a^p a^p^2 ... a^p^(r-1)]` and an indication if `a^p^r == a.
+"""
+function rank_bound(a::Q, r::Integer) where Q
+    r >= 0 || throw(ArgumentError("requested negative rank"))
     p = characteristic(Q)
-    r = Q <: Quotient ? deg(modulus(Q)) : 1
-    iszero(a) && return 0
-    m = 1
+    m = Q <: Quotient ? deg(modulus(Q)) : 1
+    Z = Q <: Quotient ? basetype(basetype(Q)) : Q
+    M = Matrix{Z}(undef, m, r)
+    r == 0 && return (M, iszero(a))
+    iszero(a) && return (M, false)
     b = a
-    while m < r
+    for i = 1:r
+        c = b.val.coeff
+        k = length(c)
+        for j = 1:m
+            M[j,i] = j <= k ? c[j] : 0
+        end
         b = b^p
-        b == a && break
-        m += 1
+        (b == a) == (i < r) && return (M, false)
     end
-    m
+    (M, true)
 end
 

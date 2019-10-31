@@ -47,7 +47,7 @@ function lu_total!(A::Matrix{T}) where T
     mn = min(m, n)
     pr = collect(1:m)
     pc = collect(1:n)
-    jmax = mn
+    jmax = 0
     for j = 1:mn
         amax, imax = pivot(A, j, j)
         if !iszero(amax)
@@ -55,7 +55,6 @@ function lu_total!(A::Matrix{T}) where T
                 swaprows(A, pr, j, imax)
             end
         else
-            amax = zero(amax)
             imax = 0
             kmax = j
             while kmax < n && iszero(amax)
@@ -67,11 +66,10 @@ function lu_total!(A::Matrix{T}) where T
                 if imax != j
                     swaprows(A, pr, j, imax)
                 end
-            else
-                jmax = j - 1
             end
         end
         iszero(amax) && break
+        jmax = j
         aa = A[j, j]
         for i = j+1:m
             ab = A[i,j] / aa
