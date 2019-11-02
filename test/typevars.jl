@@ -9,3 +9,9 @@ using CommutativeRings: sintern
     @test sintern(big"2.0") === Symbol(hash(big"2.0"))
 end
 
+
+@testset "gettypevar" begin
+    @test deg(modulus(GF(3, 12))) == 12
+    @test deg(modulus(GF(3, 12))) == 12
+end
+
