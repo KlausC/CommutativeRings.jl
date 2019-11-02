@@ -8,7 +8,7 @@ Associate type with a value.
 The value can be retrieved by calling `gettypevar(t)`.
 """
 function settypevar!(t::Type, value)
-    ex = :( gettypevar(::Type{$t}) = $value )
+    ex = :( gettypevar_impl(::Type{$t}) = ($value) )
     eval(ex)
 end
 
@@ -17,7 +17,25 @@ end
 
 Return value, which has previously been associated with this type
 """
-function gettypevar end
+function gettypevar(t::Type{<:Ring{T}}) where T
+    try
+        gettypevar_impl(t)
+    catch ex
+        if ex isa MethodError
+            try
+                Base.invokelatest(gettypevar_impl, t)::T
+            catch
+                rethrow(ex)
+            end
+        else
+            rethrow()
+        end
+    end
+end
+"""
+Define function before first method will be defined.
+"""
+function gettypevar_impl end
 
 """
     new_class(t::Type{<:Ring{T}}, args...) where T<:RingClass
