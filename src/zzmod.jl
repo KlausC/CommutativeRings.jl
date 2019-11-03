@@ -140,7 +140,7 @@ _unsigned(x::Integer) = unsigned(x)
 function Base.show(io::IO, a::ZZmod)
     v = a.val
     m = modulus(a)
-    if v > m÷2
+    if m >= 100 && v > m÷2
         print(io, '-', signed(m-v), '°')
     else
         print(io, signed(v), '°')

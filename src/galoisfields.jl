@@ -135,11 +135,18 @@ function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyno
     p = characteristic(Q)
     k = p == 2 ? 3 : 2
     h = (inv(M) * f^k).val.coeff
-    for g in R
-        N, ind = rank_bound(g, r)
+
+    L = (R(monom(P, k))^p^r for k = 0:s-1)
+    S = hcat(collect(sized(x.val.coeff, s) for x in L)...)
+    E = [Int(i == j) for i = 0:s-1, j = 0:s-1]
+    K = nullspace(S - E)
+
+    for g0 in Q
+        g = R(mulsized(K, g0.val.coeff))
+        N, ind = normalmatrix_of_maxrank(g, r)
         if ind && g^k == R(mulsized(N, h)) && rank(N) == r
             M1 = inv(M)
-            iso(a::Q) = R(mulsized(N, (M1 * a)))
+            iso(a::Q) = R(mulsized(N, (M1 * a).val.coeff))
             return iso
         end
     end
@@ -158,7 +165,7 @@ function isomorphism(::Type{Q}, ::Type{R}, nr::Integer) where {Z<:ZZmod,P<:Univa
     r == 0 && return iso1
     N = hcat(iso1.N[:,nr+1:r], iso1.N[:,1:nr])
     M1 = iso1.M1
-    iso(a::Q) = R(N * (M1 * a.val.coeff))
+    iso(a::Q) = R(mulsized(N, (M1 * a).val.coeff))
     iso
 end
 
@@ -166,7 +173,7 @@ end
 
 Return a normal-base matrix `M = [a a^p a^p^2 ... a^p^(r-1)]` and an indication if `a^p^r == a.
 """
-function rank_bound(a::Q, r::Integer) where Q
+function normalmatrix_of_maxrank(a::Q, r::Integer) where Q
     r >= 0 || throw(ArgumentError("requested negative rank"))
     p = characteristic(Q)
     m = Q <: Quotient ? deg(modulus(Q)) : 1
@@ -185,5 +192,22 @@ function rank_bound(a::Q, r::Integer) where Q
         (b == a) == (i < r) && return (M, false)
     end
     (M, true)
+end
+
+
+"""
+    allzeros(p, vx)
+
+Assuming `p(vx) == 0` for an irreducible polynomial `p` and a galois field element `vx`
+find all zeros of `p` inthe galois field, vx belongs to.
+"""
+function allzeros(p::P, vx::Q) where {X,P<:UnivariatePolynomial{X,<:ZZmod},Y,Q<:Quotient{Y,P}}
+    r = deg(p)
+    m = deg(modulus(Q))
+    M = normalmatrix(normalbase(P/p), r)
+    N = hcat( (sized((vx^k).val.coeff, m) for k = 0:r-1)...) *  M
+    a = inv(M)[:,2]
+    cp(N, k) = [N[:,k+1:r] N[:,1:k]] # cyclically permutating columns
+    [ Q(cp(N, k) * a) for k in 0:r-1]
 end
 
