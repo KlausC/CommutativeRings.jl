@@ -2,6 +2,7 @@ module CommutativeRings
 
 export Ring, RingInt, FractionField, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
+export GaloisField
 
 export Hom, Ideal
 
@@ -16,6 +17,7 @@ import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
 
+using LinearAlgebra
 using Base.Checked
 
 # RingClass subtypes describe the different categories
@@ -34,6 +36,12 @@ end
 abstract type PolyRingClass <: RingClass end
 struct UniPolyRingClass{X,R} <: PolyRingClass end
 struct MultiPolyRingClass{X,N,R} <: PolyRingClass end
+
+struct GaloisFieldClass{Id,T,Q} <: RingClass
+    generator::T
+    logtable::Vector{T}
+    exptable::Vector{T}
+end
 
 const NCT = Val{:nocheck}
 const NOCHECK = Val(:nocheck)
@@ -161,6 +169,10 @@ struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass{I
     coeff::Dict{NTuple{N,Int},S}
 end
 
+struct GaloisField{Id,T,Q} <: Ring{GaloisFieldClass{Id,T,Q}}
+    val::T
+    GaloisField{Id,T,Q}(v::Integer, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
+end
 
 ## End of Ring classes
 

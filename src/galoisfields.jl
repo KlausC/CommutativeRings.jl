@@ -1,5 +1,92 @@
 
-export GF
+export GF, isomorphism, normalmatrix, allzeros
+
+function GaloisField(p::Integer, r::Integer; nr::Integer=0)
+    Q = GF(p, r)
+    T = UInt32
+    ord = order(Q)
+    Id = Int(ord)
+    gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
+    c = fill(gen, ord)
+    c[1] = c[2] = 1
+    cumprod!(c, c)
+    exptable = [T(tonumber(x, p)) for x in c]
+    exptable[1] = 0
+    logtable = invperm(exptable .+ 1) .- 1
+    new_class(GaloisField{Id,T,Q}, tonumber(gen, p), logtable, exptable)
+end
+
+function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
+    ord = order(Q)
+    exp = mod(num, ord) + 1
+    tv = gettypevar(GaloisField{Id,T,Q})
+    logtable = tv.logtable
+    GaloisField{Id,T,Q}(logtable[exp], NOCHECK)
+end
+
+order(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = order(Q)
+characteristic(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = characteristic(Q)
+
+function *(a::G, b::G) where G<:GaloisField
+    ord = order(G)
+    a.val == 0 && return a
+    b.val == 0 && return b
+    G(mod(a.val + b.val - 2, ord - 1) + 1, NOCHECK) 
+end
+
+function +(a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    ord = order(Q)
+    p = characteristic(Q)
+    tv = gettypevar(G)
+    exptable = tv.exptable
+    na = exptable[a.val+1]
+    nb = exptable[b.val+1]
+    if p == 2
+        ns = xor(na, nb)
+    else
+        s = toquotient(na, Q) + toquotient(nb, Q)
+        ns = tonumber(s, p)
+    end
+    logtable = tv.logtable
+    nl = logtable[ns+1]
+    G(nl, NOCHECK)
+end
+
+iszero(a::G) where G<:GaloisField = v.val == order(G)
+
+import Base: ^
+function ^(a::G, x::Integer) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    ord = order(Q)
+    a.val == ord && x != 0 && return a
+    nlog = mod(widemul(a.val - 1, x), ord-1) + 1
+    G(nlog, NOCHECK)
+end
+
+function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    tvar = gettypevar(G)
+    exptable = tvar.exptable
+    Base.show(io, toquotient(exptable[g.val+1], Q))
+end
+
+function tonumber(a::Quotient, p::Integer)
+    s = 0
+    for c = reverse(a.val.coeff)
+        s = s * p + c.val
+    end
+    s
+end
+
+function toquotient(a::Integer, ::Type{Q}) where {X,Z,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+    p = characteristic(Q)
+    r = deg(modulus(Q))
+    c = zeros(Z, r)
+    b = a % (p^r)
+    for i = 1:r
+        iszero(b) && break
+        b, c[i] = divrem(b, p)
+    end
+    Q(c)
+end
 
 """
     GF(p[, m=1])
@@ -97,7 +184,9 @@ end
 Find the first `a in Q` for which `normalmatrix(a)` is regular.
 """
 function normalbase(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
-    first(normalbases(Q))
+    bases = normalbases(Q)
+    isempty(bases) && throw(ArgumentError("quotient type with modulus $(modulus(Q)) has no normal bases - probably modulus is not an irreducible polynomial"))
+    first(bases)
 end
 
 import Base: *
@@ -113,9 +202,14 @@ function sized(a::Vector{Z}, r::Integer) where Z
 end
 
 mulsized(M::Matrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
+mulsized(M::Diagonal{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
-function *(M::Matrix{Z}, a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
-    Q(mulsized(M, a.val.coeff))
+function *(M::AbstractMatrix{Z}, a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+    mulsized(M, a.val.coeff)
+end
+
+function monom(::Type{Q}, k::Integer) where {X, P<:UnivariatePolynomial,Q<:Quotient{X,P}}
+    Q(monom(P, k))
 end
 
 """
@@ -125,75 +219,75 @@ Return a function `iso:Q -> R`, which describes an isomorphism between two galoi
 `Q` and `R` of the same order, or `Q` being mapped to a subfield of `R`. In both cases, if `order(Q) == p^r`,
 then necessarily `order(R) == p^(r*s)` for some positive integer `s`.
 """
-function isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
+function isomorphism end
+function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
 
     r = deg(modulus(Q))
     s = deg(modulus(R))
+    p = characteristic(Q)
+    pr = p^r
     mod(s, r) == 0 || throw(ArgumentError("dimension of Q ($r) must divide that of R ($s)"))
     f = normalbase(Q)
     M = normalmatrix(f, r)
-    p = characteristic(Q)
-    k = p == 2 ? 3 : 2
-    h = (inv(M) * f^k).val.coeff
+    M1 = inv(M)
+    k = 3 - (p % 2)
+    h = M1 * f^k
 
-    L = (R(monom(P, k))^p^r for k = 0:s-1)
+    xr = monom(R, 1)
+    L = ((xr^k)^pr for k = 0:s-1)
     S = hcat(collect(sized(x.val.coeff, s) for x in L)...)
-    E = [Int(i == j) for i = 0:s-1, j = 0:s-1]
-    K = nullspace(S - E)
+    for i = 1:s
+        S[i,i] -= 1
+    end
+    K = nullspace(S)
 
     for g0 in Q
-        g = R(mulsized(K, g0.val.coeff))
-        N, ind = normalmatrix_of_maxrank(g, r)
-        if ind && g^k == R(mulsized(N, h)) && rank(N) == r
-            M1 = inv(M)
-            iso(a::Q) = R(mulsized(N, (M1 * a).val.coeff))
-            return iso
+        if R == Q
+            g = f
+            N = M
+        else
+            g = R(K * g0)
+            deg(g.val) <= 1 && continue
+            N = normalmatrix(g, r)
+        end
+        if sized((g^k).val.coeff, s) == N * h
+            #if rank(N) != r
+            #    throw(ErrorException("expected rank $r, but was $(rank(N)) $g"))
+            #end
+            return N, M1
         end
     end
     throw(ErrorException("no isomorphism found - not reachable"))
 end
 
-function isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Y,R<:Quotient{Y,P}}
-    iso(a::Z) = R(a)
+function _isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Y,R<:Quotient{Y,P}}
+    1, 1
 end
 
-function isomorphism(::Type{Q}, ::Type{R}, nr::Integer) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q,Y,R<:Quotient{Y,P}}
+function isomorphism(iso::Function, nr::Integer=0)
+    N = iso.A.N
+    M1 = iso.A.M1
+    Q = iso.A.Q
+    R = iso.A.R
+    _isomorphism(Q, R, N, M1, nr)
+end
 
-    iso1 = isomorphism(Q, R)
-    r = Q <: Quotient ? deg(modulus(Q)) : 1
+function isomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q,Y,R<:Quotient{Y,P}}
+
+    N, M1 = _isomorphism(Q, R)
+    _isomorphism(Q, R, N, M1, nr)
+end
+
+function _isomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
+    r = size(N, 2)
     nr = mod(nr, r)
-    r == 0 && return iso1
-    N = hcat(iso1.N[:,nr+1:r], iso1.N[:,1:nr])
-    M1 = iso1.M1
-    iso(a::Q) = R(mulsized(N, (M1 * a).val.coeff))
+    if nr != 0
+        N = hcat(N[:,nr+1:r], N[:,1:nr])
+    end
+    A = (T = N * M1, N = N, M1 = M1, Q = Q, R = R)
+    iso(a::Q) = R(A[1] * a)
     iso
 end
-
-"""
-
-Return a normal-base matrix `M = [a a^p a^p^2 ... a^p^(r-1)]` and an indication if `a^p^r == a.
-"""
-function normalmatrix_of_maxrank(a::Q, r::Integer) where Q
-    r >= 0 || throw(ArgumentError("requested negative rank"))
-    p = characteristic(Q)
-    m = Q <: Quotient ? deg(modulus(Q)) : 1
-    Z = Q <: Quotient ? basetype(basetype(Q)) : Q
-    M = Matrix{Z}(undef, m, r)
-    r == 0 && return (M, iszero(a))
-    iszero(a) && return (M, false)
-    b = a
-    for i = 1:r
-        c = b.val.coeff
-        k = length(c)
-        for j = 1:m
-            M[j,i] = j <= k ? c[j] : 0
-        end
-        b = b^p
-        (b == a) == (i < r) && return (M, false)
-    end
-    (M, true)
-end
-
 
 """
     allzeros(p, vx)

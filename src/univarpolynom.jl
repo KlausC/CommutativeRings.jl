@@ -90,7 +90,7 @@ Allow all coefficient classes, which can be mapped to S, that means
 the canonical homomorphism is used.
 """
 function UnivariatePolynomial{X,S}(v::AbstractVector) where {X,S}
-    isempty(v) ? UnivariatePolynomial{X,S}(S[]) : UnivariatePolynomial{X,S}(S.(v))
+    isempty(v) ? UnivariatePolynomial{X,S}(S[]) : UnivariatePolynomial{X,S}([S(x) for x = v])
 end
 
 # canonical embedding homomorphism from base ring
