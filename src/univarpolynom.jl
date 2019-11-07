@@ -646,7 +646,7 @@ end
     
 function show(io::IO, p::UnivariatePolynomial{X,T}) where {X,T}
     N = length(p.coeff)-1
-    N < 0 && print(io, zero(T))
+    N < 0 && return show(io, zero(T))
     start = true
     for n = N:-1:1
         el = p.coeff[n+1]
