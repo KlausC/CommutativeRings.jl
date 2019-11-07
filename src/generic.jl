@@ -4,6 +4,8 @@ function promote_rule(T::Type{<:Ring}, S::Type{<:Ring})
     depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
 end
 
+depth(::Type{<:Number}) = 0
+
 for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)

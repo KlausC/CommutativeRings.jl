@@ -29,7 +29,7 @@ over field `F`.
 Returns an irreducible polynomial with variable 'X' of degree `n`.
 """
 irreducible(X, ::Type{Z}, n) where Z = first(irreducible_filter(X, Z, n))
-irreducible(X, ::Type{Z}, n, nr::Integer) where Z = first(drop(irreducible_filter(X, Z, n), nr-1))
+irreducible(X, ::Type{Z}, n, nr::Integer) where Z = first(drop(irreducible_filter(X, Z, n), nr))
 irreducibles(X, ::Type{Z}, n) where Z = collect(irreducible_filter(X, Z, n))
 function irreducible_filter(X, ::Type{Z}, n) where Z<:QuotientRing
     Base.Iterators.Filter(isirreducible, Monic(X, Z, n))

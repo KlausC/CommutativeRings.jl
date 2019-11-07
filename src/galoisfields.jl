@@ -1,8 +1,16 @@
 
-export GF, isomorphism, normalmatrix, allzeros
+export GF, dimension, isomorphism, normalmatrix, allzeros
 
-function GaloisField(p::Integer, r::Integer; nr::Integer=0)
-    Q = GF(p, r)
+"""
+    GF(p, r; nr=0)
+
+Create a class of element type `GaloisField` of order `p^r`.
+`p` must be a prime integer and `r` a positive integer.
+If `nr != 0` is given, it triggers the use of an alternate modulus
+for the `GFImpl` class.
+"""
+function GF(p::Integer, r::Integer; nr::Integer=0)
+    Q = GFImpl(p, r, nr=nr)
     T = UInt32
     ord = order(Q)
     Id = Int(ord)
@@ -16,6 +24,14 @@ function GaloisField(p::Integer, r::Integer; nr::Integer=0)
     new_class(GaloisField{Id,T,Q}, tonumber(gen, p), logtable, exptable)
 end
 
+"""
+    GaloisField{Id,T,Q}(num::Integer)
+
+Ring element constructor. `num` is *not* the canonical isomorphism, but enumerates
+all elements of `GF(p, r)` in `0:p^r-1`.
+The numbers `0:p-1` correspond to the base field, and `p` to the polynomial `x` in
+the representation of `Q`.
+"""
 function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
     ord = order(Q)
     exp = mod(num, ord) + 1
@@ -24,8 +40,22 @@ function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
     GaloisField{Id,T,Q}(logtable[exp], NOCHECK)
 end
 
-order(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = order(Q)
-characteristic(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = characteristic(Q)
+function GaloisField{Id,T,Q}(q::Q) where {Id,T,Q}
+    convert(GaloisField{Id,T,Q}, q)
+end
+
+function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    G(tonumber(q, characteristic(Q)))
+end
+
+basetype(a::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
+depth(::Type{<:GaloisField}) = 1
+
+for op in (:characteristic, :order, :dimension, :modulus)
+    @eval begin
+        $op(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = $op(Q)
+    end
+end
 
 function *(a::G, b::G) where G<:GaloisField
     ord = order(G)
@@ -34,32 +64,124 @@ function *(a::G, b::G) where G<:GaloisField
     G(mod(a.val + b.val - 2, ord - 1) + 1, NOCHECK) 
 end
 
-function +(a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
++(a::G, b::G) where G<:GaloisField = addop(+, a, b)
+-(a::G, b::G) where G<:GaloisField = addop(-, a, b)
+-(a::G) where G<:GaloisField = minusop(a)
+*(a::G, b::Integer) where G<:GaloisField = mulop(a, b)
+*(b::Integer, a::G) where G<:GaloisField = mulop(a, b)
+==(a::G, b::G) where G<:GaloisField = a.val == b.val
+
+function addop(op::Function, a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     ord = order(Q)
     p = characteristic(Q)
     tv = gettypevar(G)
     exptable = tv.exptable
-    na = exptable[a.val+1]
-    nb = exptable[b.val+1]
-    if p == 2
-        ns = xor(na, nb)
-    else
-        s = toquotient(na, Q) + toquotient(nb, Q)
-        ns = tonumber(s, p)
-    end
     logtable = tv.logtable
-    nl = logtable[ns+1]
+    nl = addop(op, a.val, b.val, p, exptable, logtable)
     G(nl, NOCHECK)
 end
 
-iszero(a::G) where G<:GaloisField = v.val == order(G)
+function minusop(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    ord = order(Q)
+    p = characteristic(Q)
+    tv = gettypevar(G)
+    exptable = tv.exptable
+    logtable = tv.logtable
+    nl = minusop(a.val, p, exptable, logtable)
+    G(nl, NOCHECK)
+end
+
+function mulop(a::G, b::Integer) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    ord = order(Q)
+    p = characteristic(Q)
+    tv = gettypevar(G)
+    exptable = tv.exptable
+    logtable = tv.logtable
+    nl = mulop(a.val, b, p, exptable, logtable)
+    G(nl, NOCHECK)
+end
+
+function addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logtable)
+    na = exptable[a+1]
+    nb = exptable[b+1]
+    if p == 2
+        ns = xor(na, nb)
+    else
+        ns = oftype(na, 0)
+        pp = oftype(p, 1)
+        while !iszero(na) || !iszero(nb)
+            na, xa = fldmod(na, p)
+            nb, xb = fldmod(nb, p)
+            xc = op(xa, xb)
+            xc = mod(xc, p)
+            ns += xc * pp
+            pp *= p
+        end
+    end
+    logtable[ns+1]
+end
+
+function minusop(a::Integer, p::Integer, exptable, logtable)
+    p == 2 && return a
+    na = exptable[a+1]
+    ns = oftype(na, 0)
+    pp = oftype(p, 1)
+    while !iszero(na)
+        na, xa = fldmod(na, p)
+        xc = mod(-xa, p)
+        ns += xc * pp
+        pp *= p
+    end
+    logtable[ns+1]
+end
+    
+function mulop(a::Integer, b::Integer, p::Integer, exptable, logtable)
+    p == 2 && return iseven(b) ? oftype(a, 0) : a
+    na = exptable[a+1]
+    ns = oftype(na, 0)
+    pp = oftype(p, 1)
+    while !iszero(na)
+        na, xa = fldmod(na, p)
+        xc = mod(xa * b, p)
+        ns += xc * pp
+        pp *= p
+    end
+    logtable[ns+1]
+end
+    
+iszero(a::G) where G<:GaloisField = iszero(a.val)
+isunit(a::GaloisField) = !iszero(a)
+issimple(a::GaloisField) = true
 
 import Base: ^
-function ^(a::G, x::Integer) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    ord = order(Q)
-    a.val == ord && x != 0 && return a
+
+function ^(a::G, x::Integer) where G<:GaloisField
+    ord = order(G)
+    if iszero(a)
+        return x > 0 ? a : throw(ArgumentError("cannot invert zero"))
+    end
     nlog = mod(widemul(a.val - 1, x), ord-1) + 1
     G(nlog, NOCHECK)
+end
+
+function inv(a::G) where G<:GaloisField
+    ord = order(G)
+    iszero(a) && throw(ArgumentError("cannot invert zero"))
+    nlog = mod(ord-a.val, ord - 1) + 1
+    G(nlog, NOCHECK)
+end
+
+zero(::Type{G}) where G<:GaloisField = G(0)
+one(::Type{G}) where G<:GaloisField = G(1)
+
+function /(a::G, b::G) where G<:GaloisField
+    iszero(b) && throw(ArgumentError("cannot invert zero"))
+    a * inv(b)
+end
+
+function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
+    ord = order(G)
+    G(rand(0:ord-1))
 end
 
 function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
@@ -67,6 +189,12 @@ function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     exptable = tvar.exptable
     Base.show(io, toquotient(exptable[g.val+1], Q))
 end
+
+function Base.show(io::IO, g::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    print(io, G.name, "{", Id, "}")
+end
+
+tonumber(a::Q) where Q<:Quotient = tonumber(a, characteristic(Q))
 
 function tonumber(a::Quotient, p::Integer)
     s = 0
@@ -78,7 +206,7 @@ end
 
 function toquotient(a::Integer, ::Type{Q}) where {X,Z,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
     p = characteristic(Q)
-    r = deg(modulus(Q))
+    r = dimension(Q)
     c = zeros(Z, r)
     b = a % (p^r)
     for i = 1:r
@@ -89,9 +217,9 @@ function toquotient(a::Integer, ::Type{Q}) where {X,Z,P<:UnivariatePolynomial{:�
 end
 
 """
-    GF(p[, m=1])
+    GFImpl(p[, m=1])
 
-Return a representation for Galois Field `GF(p, m)`. `p` must be a prime number and
+Return a representation for Galois Field `GFImpl(p, m)`. `p` must be a prime number and
 `m` a positive integer.
 
 If `m == 1`, `ZZmod{p}` is returned,
@@ -100,19 +228,19 @@ otherwise an irreducible polynomial `g ∈ ZZmod{p}[:x] and deg(g) == m` is gene
 
 Elements of the field can be created like
 ```´
-    GF7 = GF(7)
+    GF7 = GFImpl(7)
     GF7(5)  # or
-    GF53 = GF(5, 3)
+    GF53 = GFImpl(5, 3)
     GF53([1,2,3])
 ```
 """
-function GF(p::Integer)
+function GFImpl(p::Integer)
     isprime(p) || throw(ArgumentError("p=$p is not prime"))
     typeof(p) / p
 end
 
-function GF(p::Integer, m::Integer; nr::Integer=1)
-    Z = GF(p)
+function GFImpl(p::Integer, m::Integer; nr::Integer=0)
+    Z = GFImpl(p)
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
     if m == 1
         Z
@@ -122,9 +250,13 @@ function GF(p::Integer, m::Integer; nr::Integer=1)
     end
 end
 
+function dimension(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+    deg(modulus(Q))
+end
+
 function Base.show(io::IO, q::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
 
-    m = deg(modulus(Q))
+    m = dimension(Q)
     p = modulus(Z)
     c = q.val.coeff
     n = length(c)
@@ -151,7 +283,7 @@ base of `Q` as a vector space over `ZZ/p` (a normal base).
 """
 function normalmatrix(a::Q, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
     p = characteristic(Q)
-    r = deg(modulus(Q))
+    r = dimension(Q)
     m = m <= 0 ? r : m
     M = Matrix{Z}(undef, r, m)
     for i = 0:m-1
@@ -175,7 +307,7 @@ function normalmatrix(::Type{Q}, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePo
 end
 
 function normalbases(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
-    r = deg(modulus(Q))
+    r = dimension(Q)
     Base.Iterators.filter(x->rank(normalmatrix(x, r)) == r, Q)
 end
 """
@@ -222,8 +354,8 @@ then necessarily `order(R) == p^(r*s)` for some positive integer `s`.
 function isomorphism end
 function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
 
-    r = deg(modulus(Q))
-    s = deg(modulus(R))
+    r = dimension(Q)
+    s = dimension(R)
     p = characteristic(Q)
     pr = p^r
     mod(s, r) == 0 || throw(ArgumentError("dimension of Q ($r) must divide that of R ($s)"))
@@ -297,7 +429,7 @@ find all zeros of `p` inthe galois field, vx belongs to.
 """
 function allzeros(p::P, vx::Q) where {X,P<:UnivariatePolynomial{X,<:ZZmod},Y,Q<:Quotient{Y,P}}
     r = deg(p)
-    m = deg(modulus(Q))
+    m = dimension(Q)
     M = normalmatrix(normalbase(P/p), r)
     N = hcat( (sized((vx^k).val.coeff, m) for k = 0:r-1)...) *  M
     a = inv(M)[:,2]
