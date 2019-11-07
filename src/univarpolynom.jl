@@ -630,6 +630,8 @@ end
 
 ### Display functions
 
+import Base: show
+
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Quotient{X,<:UnivariatePolynomial{:γ}}) where X = true
 issimple(::Any) = false
@@ -642,41 +644,50 @@ function showvar(io::IO, var, n::Integer)
     end
 end
     
-function Base.show(io::IO, p::UnivariatePolynomial{X}) where X
-    var = X
+function show(io::IO, p::UnivariatePolynomial{X,T}) where {X,T}
     N = length(p.coeff)-1
-    N < 0 && print(io, '0')
-    for n = N:-1:0
+    N < 0 && print(io, zero(T))
+    start = true
+    for n = N:-1:1
         el = p.coeff[n+1]
-        bra = !issimple(el)
-        if !iszero(el)
-            # bra && n != N && print(io, " + ")
-            if !isone(el) || n == 0
-                io2 = IOBuffer()
-                show(io2, el)
-                es = String(take!((io2)))
-                bra && print(io, '(')
-                if !bra && n < N
-                    print(io, ' ')
-                    if isempty(es) || (es[1] != '-' && es[1] != '+')
-                        print(io, '+')
-                        print(io, ' ')
-                        print(io, es)
-                    else
-                        print(io, es[1], ' ', es[2:end])
-                    end
-                else
-                  print(io, es)
-                end
-                bra && print(io, ')')
-                if n != 0
-                    print(io, '⋅')
-                end
-            elseif n != N
-                print(io, " + ")
-            end  
-            showvar(io, var, n)
+        iszero(el) && n > 0 && continue
+        !start && print(io, ' ')
+        if isone(el)
+            !start && print(io, "+ ")
+        elseif isone(-el)
+            print(io, '-')
+            !start && print(io, ' ')
+        else
+            if !issimple(el)
+                !start && print(io, "+ ")
+                print(io, '(')
+                show(io, el)
+                print(io, ')')
+            else
+                showelem(io, el, start)
+            end
+            print(io, '⋅')
         end
+        showvar(io, X, n)
+        start = false
+    end
+    el = p.coeff[1]
+    if !iszero(el) || start
+        !start && print(io, ' ')
+        showelem(io, el, start)
+    end
+end
+
+function showelem(io::IO, el, start::Bool)
+    v = sprint(show, el, context=io)
+    v1 = v[1]
+    if v1 == '-'
+        print(io, '-')
+        !start && print(io, ' ')
+        print(io, SubString(v, nextind(v, 1)))
+    else
+        start || print(io, "+ ")
+        print(io, v1 == '+' ? SubString(v, nextind(v, 1)) : v)
     end
 end
 
