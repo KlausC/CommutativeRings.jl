@@ -1,6 +1,5 @@
 
-
-using CommutativeRings: len
+using CommutativeRings: len, GFImpl
 
 @testset "iterate" begin
     @test length(collect(ZZ/7)) == 7

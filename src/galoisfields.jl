@@ -11,6 +11,7 @@ for the `GFImpl` class.
 """
 function GF(p::Integer, r::Integer; nr::Integer=0)
     Q = GFImpl(p, r, nr=nr)
+    r == 1 && return Q
     T = UInt32
     ord = order(Q)
     Id = Int(ord)
@@ -23,6 +24,7 @@ function GF(p::Integer, r::Integer; nr::Integer=0)
     logtable = invperm(exptable .+ 1) .- 1
     new_class(GaloisField{Id,T,Q}, tonumber(gen, p), logtable, exptable)
 end
+GF(p::Integer) = GFImpl(p)
 
 """
     GaloisField{Id,T,Q}(num::Integer)
@@ -38,6 +40,10 @@ function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
     tv = gettypevar(GaloisField{Id,T,Q})
     logtable = tv.logtable
     GaloisField{Id,T,Q}(logtable[exp], NOCHECK)
+end
+
+function GaloisField{Id,T,Q}(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
 
 function GaloisField{Id,T,Q}(q::Q) where {Id,T,Q}
@@ -191,7 +197,7 @@ function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
 end
 
 function Base.show(io::IO, g::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    print(io, G.name, "{", Id, "}")
+    print(io, G.name, '{', characteristic(G), ',', dimension(G), '}')
 end
 
 tonumber(a::Q) where Q<:Quotient = tonumber(a, characteristic(Q))

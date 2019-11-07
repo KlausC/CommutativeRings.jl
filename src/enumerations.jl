@@ -41,6 +41,16 @@ function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z
     nothing
 end
 
+function iterate(::Type{G}) where G<:GaloisField
+    G(0), 0
+end
+
+function iterate(::Type{G}, s::Integer) where G<:GaloisField
+    s += 1
+    s >= order(G) && return nothing
+    G(s), s
+end
+
 Base.length(mo::Monic{X,Z}) where {X,Z<:Ring} = length(Z)^mo.n
 Base.eltype(mo::Monic{X,Z}) where {X,Z<:Ring} = Z[X]
 function Base.iterate(mo::Monic{X,Z}) where {X,Z<:Ring}
@@ -117,6 +127,7 @@ function len(T::Type{<:FractionField{S}}, d...) where S
 end
 len(T::Type{UnivariatePolynomial{X,S}}, d::Integer) where {X,S} = len(S)^d
 len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T)-1))
+len(T::Type{<:GaloisField}) where S<:UnivariatePolynomial = order(T)
 
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
 ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a+1) >> 1
@@ -136,5 +147,8 @@ function ofindex(a::Integer, T::Type{<:UnivariatePolynomial{X,S}}, d::Integer) w
     nn = ones(Int, d) * len(S)
     cc = ([ofindex.(index(a, nn), S); 1])
     T(cc)
+end
+function ofindex(a::Integer, G::Type{<:GaloisField})
+    G(mod(a, order(G)))
 end
 
