@@ -54,6 +54,12 @@ function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     G(tonumber(q, characteristic(Q)))
 end
 
+function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}}
+
+    et = gettypevar(G).exptable
+    toquotient(et[g.val+1], Q)
+end
+
 basetype(a::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 depth(::Type{<:GaloisField}) = 1
 
