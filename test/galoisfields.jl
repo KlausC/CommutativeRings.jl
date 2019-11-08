@@ -45,6 +45,10 @@ end
     g1, g2 = rand(rng, G, 2)
     @test convert(G, convert(Q, g1)) == g1
     q1, q2 = convert.(Q, (g1, g2))
+    @test G(1) == Q(1)
+    @test G(p) != Q(p)
+    @test q1 == Q(g1)
+    @test g1 == G(q1)
     @test g1 == q1
     @test g1 * g2 == q1 * q2
     @test g1^17 == q1^17
@@ -68,6 +72,8 @@ end
     @test g2 ^ 2 == g2 * g2
     @test_throws ArgumentError inv(G(0))
     @test_throws ArgumentError G(0) ^ -2
+
+    @test sprint(show, g1) == sprint(show, q1)
 
 end
 

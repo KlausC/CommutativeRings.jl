@@ -60,6 +60,8 @@ function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolyno
     toquotient(et[g.val+1], Q)
 end
 
+(::Type{Q})(g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
+
 basetype(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
 
