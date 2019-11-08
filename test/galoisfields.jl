@@ -42,16 +42,46 @@ end
     @test characteristic(G) == characteristic(Q)
     @test dimension(G) == r
 
-    g1, g2 = rand(G, 2)
+    g1, g2 = rand(rng, G, 2)
     @test convert(G, convert(Q, g1)) == g1
     q1, q2 = convert.(Q, (g1, g2))
-    @test g1 * g2 == convert(G, q1 * q2)
-    @test g1^17 == convert(G, q1^17)
-    @test g1^-17 == convert(G, q1^-17)
-    @test g1 + g2 == convert(G, q1 + q2)
-    @test g1 - g2 == convert(G, q1 - q2)
-    @test -g1 == convert(G, -q1)
-    @test inv(g1) == convert(G, inv(q1))
+    @test g1 == q1
+    @test g1 * g2 == q1 * q2
+    @test g1^17 == q1^17
+    @test g1^-17 == q1^-17
+    @test g1 + g2 == q1 + q2
+    @test g1 - g2 == q1 - q2
+    @test -g1 == -q1
+    @test inv(g1) == inv(q1)
+
+    @test iszero(G(0))
+    @test isone(G(1))
+    @test isunit(G(2))
+    @test zero(G) == 0
+    @test one(G) == 1
+    @test G(10) / G(10) == 1
+    @test one(G) * g1 == g1
+    @test zero(G) * g1 == 0
+    @test g1 * 1 == g1
+    @test 1 * g2 == g2
+    @test 2g1 == g1 + g1
+    @test g2 ^ 2 == g2 * g2
+    @test_throws ArgumentError inv(G(0))
+    @test_throws ArgumentError G(0) ^ -2
+
+end
+
+@testset "Galois Field Implementation - Homomorphisms" begin
+
+    Z1 = GFImpl(3, 2)
+    Z2 = GFImpl(3, 6)
+    z1 = Z1([0, 1])
+    iso = isomorphism(Z1, Z2)
+    z2 = iso(z1)
+    @test iso(Z1(0)) == Z2(0)
+    @test iso(Z1(1)) == Z2(1)
+    @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1
+
 end
 
 end

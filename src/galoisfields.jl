@@ -35,24 +35,24 @@ The numbers `0:p-1` correspond to the base field, and `p` to the polynomial `x` 
 the representation of `Q`.
 """
 function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
-    ord = order(Q)
-    exp = mod(num, ord) + 1
+    exp = mod(num, order(Q))
     tv = gettypevar(GaloisField{Id,T,Q})
-    logtable = tv.logtable
-    GaloisField{Id,T,Q}(logtable[exp], NOCHECK)
+    GaloisField{Id,T,Q}(tv.logtable[exp+1], NOCHECK)
 end
 
 function GaloisField{Id,T,Q}(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
 
-function GaloisField{Id,T,Q}(q::Q) where {Id,T,Q}
-    convert(GaloisField{Id,T,Q}, q)
-end
+convert(G::Type{<:GaloisField}, a::Integer) = G(a)
+GaloisField{Id,T,Q}(q::Q) where {Id,T,Q} = convert(GaloisField{Id,T,Q}, q)
 
 function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     G(tonumber(q, characteristic(Q)))
 end
+
+promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{<:Integer}) where {Id,T,Q} = G
+_promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{Q}) where {Id,T,Q} = G
 
 function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}}
 
@@ -60,8 +60,8 @@ function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolyno
     toquotient(et[g.val+1], Q)
 end
 
-basetype(a::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
-depth(::Type{<:GaloisField}) = 1
+basetype(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
+depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
 
 for op in (:characteristic, :order, :dimension, :modulus)
     @eval begin
@@ -205,8 +205,6 @@ end
 function Base.show(io::IO, g::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     print(io, G.name, '{', characteristic(G), ',', dimension(G), '}')
 end
-
-tonumber(a::Q) where Q<:Quotient = tonumber(a, characteristic(Q))
 
 function tonumber(a::Quotient, p::Integer)
     s = 0
