@@ -257,7 +257,7 @@ function GFImpl(p::Integer, m::Integer; nr::Integer=0)
     if m == 1
         Z
     else
-        gen = irreducible(:γ, Z, m, nr)
+        gen = irreducible(Z[:γ], m, nr)
         typeof(gen) / gen
     end
 end

@@ -4,8 +4,8 @@ using CommutativeRings: len, GFImpl
 @testset "iterate" begin
     @test length(collect(ZZ/7)) == 7
     @test length(collect(GF(3,5))) == 3^5
-    @test length(collect(Monic(:x, ZZ/2, 5))) == 2^5
-    @test eltype(Monic(:x, ZZ/2, 5)) == (ZZ/2)[:x]
+    @test length(collect(Monic((ZZ/2)[:x], 5))) == 2^5
+    @test eltype(Monic((ZZ/2)[:x], 5)) == (ZZ/2)[:x]
 end
 
 

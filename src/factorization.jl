@@ -19,20 +19,22 @@ end
 
 import Base.Iterators: Filter, take, drop
 """
-    irreducibles(X, F, n)
+    irreducible(P, n)
 
-Returns array of all irreducible monic polynomials with variable `X` of degree `n`
-over field `F`.
-
-    irreducible(X, F, n)
-
-Returns an irreducible polynomial with variable 'X' of degree `n`.
+Returns an irreducible polynomial with in `P` with degree `n`.
 """
-irreducible(X, ::Type{Z}, n) where Z = first(irreducible_filter(X, Z, n))
-irreducible(X, ::Type{Z}, n, nr::Integer) where Z = first(drop(irreducible_filter(X, Z, n), nr))
-irreducibles(X, ::Type{Z}, n) where Z = collect(irreducible_filter(X, Z, n))
-function irreducible_filter(X, ::Type{Z}, n) where Z<:QuotientRing
-    Base.Iterators.Filter(isirreducible, Monic(X, Z, n))
+irreducible(::Type{P}, n) where P<:UnivariatePolynomial = first(irreducibles(P, n))
+function irreducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
+    first(drop(irreducibles(P, n), nr))
+end
+
+"""
+    irreducibles(P, n)
+
+Returns array of all irreducible monic polynomials in `P` with degree `n`.
+"""
+function irreducibles(::Type{P}, n) where {X,P<:UnivariatePolynomial{X,<:QuotientRing}}
+    Base.Iterators.Filter(isirreducible, Monic(P, n))
 end
 
 """

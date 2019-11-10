@@ -4,10 +4,10 @@ export Monic
 
 struct Monic{X,T<:QuotientRing}
     n::Int
-    Monic(X::Symbol, ::Type{T}, n) where T = new{X,T}(n)
+    Monic(::Type{P}, n) where {X,T,P<:UnivariatePolynomial{X,T}} = new{X,T}(n)
 end
-eltype(mo::Type{Z}) where Z<:Ring = Z
-length(mo::Type{Z}) where Z<:Ring = order(Z)
+eltype(::Type{Z}) where Z<:Ring = Z
+length(::Type{Z}) where Z<:Ring = order(Z)
 
 function iterate(m::Type{Z}) where Z<:QuotientRing
     z = zero(Z)

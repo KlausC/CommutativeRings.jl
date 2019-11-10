@@ -75,7 +75,7 @@ function UnivariatePolynomial{X,S}(p::UnivariatePolynomial{Y}) where {X,Y,S}
     end 
 end
 
-function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer) where {X,S}
+function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer=1) where {X,S}
     k = max(k, -1)
     v = zeros(S,k+1)
     v[k+1] = one(S)
