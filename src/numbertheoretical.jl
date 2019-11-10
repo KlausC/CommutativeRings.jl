@@ -84,6 +84,13 @@ function moebius(n::Integer)
 end
 
 # necklace polynomial - Moreau's necklace-counting function
+"""
+    necklace(q, n)
+
+Return the value of the `necklace polynomial`
+
+Count of irreducible monic polynomials of degree n over Z/q.
+"""
 necklace(q::Integer, n::Integer) = _necklace(q, n) ÷ n
 necklace(q::Ring, n::Integer) = _necklace(q, n) / n
 function _necklace(q, n::Integer)

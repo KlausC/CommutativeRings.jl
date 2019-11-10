@@ -163,12 +163,13 @@ function edf(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{
     S = [f]
     n == d && return S
     rem(n, d) == 0 || throw(DomainError((n, d), "degree of f must be multiple of d = $d"))
-    ex = q^d ÷ 2 # isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
+    ex = big(q)^d ÷ 2 # isodd(q) ? (q^d - 1) ÷ 2 : (q^d ÷ 2)
     r = div(n, d)
+    power = isodd(q) ? powermod : powersum
     while length(S) < r
         h = P(rand(Z, n))
-        g = (q & 1 == 1 ? powermod : powersum)(h, ex, f) - 1
         s = length(S)
+        g = power(h, ex, f) - 1
         for k = 1:s
             u = S[k]
             gu = gcd(g, u)
@@ -180,7 +181,6 @@ function edf(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{
     end
     S
 end
-
 
 """
     powersum(h, ex, f)

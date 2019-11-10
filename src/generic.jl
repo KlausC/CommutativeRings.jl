@@ -39,7 +39,7 @@ abs(a::Ring) = isunit(a) ? 1 : 0
 
 Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`. 
 """
-order(::Type{Z}) where Z<:ZZmod = modulus(Z)
+order(::Type{Z}) where Z<:ZZmod = Int(modulus(Z))
 function order(::Type{T}) where {m,X,Z,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
     order(Z) ^ deg(modulus(T))
 end

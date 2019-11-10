@@ -14,7 +14,7 @@ function iterate(m::Type{Z}) where Z<:QuotientRing
     (z, z)
 end
 function iterate(m::Type{Z}, s) where Z<:ZZmod
-    v = s + 1
+    v = Z(s.val + 1)
     iszero(v) ? nothing : (v, v)
 end
 function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
