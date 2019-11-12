@@ -51,6 +51,8 @@ function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     G(tonumber(q, characteristic(Q)))
 end
 
+Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
+
 promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{Q}) where {Id,T,Q} = G
 

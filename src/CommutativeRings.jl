@@ -37,7 +37,7 @@ abstract type PolyRingClass <: RingClass end
 struct UniPolyRingClass{X,R} <: PolyRingClass end
 struct MultiPolyRingClass{X,N,R} <: PolyRingClass end
 
-struct GaloisFieldClass{Id,T,Q} <: RingClass
+struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     generator::T
     logtable::Vector{T}
     exptable::Vector{T}
@@ -169,7 +169,7 @@ struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass{I
     coeff::Dict{NTuple{N,Int},S}
 end
 
-struct GaloisField{Id,T,Q} <: Ring{GaloisFieldClass{Id,T,Q}}
+struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
     GaloisField{Id,T,Q}(v::Integer, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
 end

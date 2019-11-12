@@ -22,9 +22,9 @@ function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z
     m = length(c)
     n = deg(modulus(Q))
     for i = 1:m
-        ci = iterate(Z, c[i])
+        ci = next(c[i])
         if ci != nothing
-            c[i] = ci[1]
+            c[i] = ci
             z = Q(c)
             return (z, z)
         else
@@ -41,6 +41,11 @@ function iterate(mo::Type{Q}, s) where {X,Y,Z<:ZZmod,P<:UnivariatePolynomial{X,Z
     nothing
 end
 
+function next(c)
+    cs = iterate(typeof(c), c)
+    cs == nothing ? nothing : cs[1]
+end
+
 function iterate(::Type{G}) where G<:GaloisField
     G(0), 0
 end
@@ -49,6 +54,11 @@ function iterate(::Type{G}, s::Integer) where G<:GaloisField
     s += 1
     s >= order(G) && return nothing
     G(s), s
+end
+
+function next(g::G) where G<:GaloisField
+    s = gettypevar(G).exptable[g.val+1] + 1
+    s >= order(G) ? nothing : G(s)
 end
 
 Base.length(mo::Monic{X,Z}) where {X,Z<:Ring} = length(Z)^mo.n
@@ -61,9 +71,9 @@ function Base.iterate(mo::Monic{X,Z}, s) where {X,Z<:Ring}
     c = copy(s.coeff)
     n = deg(s)
     for i = 1:n
-        ci = iterate(Z, c[i])
+        ci = next(c[i])
         if ci != nothing
-            c[i] = ci[1]
+            c[i] = ci
             z = Z[X](c)
             return (z, z)
         else

@@ -43,8 +43,9 @@ end
     @test dimension(G) == r
 
     g1, g2 = rand(rng, G, 2)
+    while iszero(g1); g1 = rand(rng, G); end
     @test convert(G, convert(Q, g1)) == g1
-    q1, q2 = convert.(Q, (g1, g2))
+    q1, q2 = Quotient.((g1, g2))
     @test G(1) == Q(1)
     @test G(p) != Q(p)
     @test q1 == Q(g1)
@@ -88,6 +89,12 @@ end
     @test iso(Z1(1)) == Z2(1)
     @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1
 
+end
+
+@testset "Galois field - irreducibles GF{$q,$r} ^ $s" for (q, r, s) in ((2, 3, 3), (3, 2, 3))
+    G = GF(q, r)
+    irr = irreducibles(G[:x], s)
+    @test length(collect(irr)) == necklace(order(G), s)
 end
 
 end
