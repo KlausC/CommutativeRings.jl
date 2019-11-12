@@ -101,7 +101,13 @@ maximum degree for multivariate polynomials.
 """
 deg(x::Ring) = iszero(x) ? -1 : 0 # fallback
 
-divrem(a::T, b::T) where T<:Ring =  throw(MethodError(divrem, (a, b)))
+function divrem(a::T, b::T) where T<:Ring
+    if isunit(b)
+        (a * inv(b), zero(b))
+    else
+        throw(MethodError(divrem, (a, b)))
+    end
+end
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 """
@@ -220,15 +226,19 @@ end
 
 function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
     if p == 1
-        return copy(x)
+        return rem(x, m)
     elseif p == 0
         return one(x)
     elseif p == 2
         return rem(x * x, m)
     elseif p < 0
-        isone(x) && return copy(x)
-        isone(-x) && return iseven(p) ? one(x) : copy(x)
-        throw(ArgumentError("negative powers not supported"))
+        if isunit(x)
+            isone(x) && return copy(x)
+            isone(-x) && return iseven(p) ? one(x) : copy(x)
+            powermod(inv(x), -p, m)
+        else
+            throw(ArgumentError("negative powers not supported"))
+        end
     end
     t = trailing_zeros(p) + 1
     p >>= t
