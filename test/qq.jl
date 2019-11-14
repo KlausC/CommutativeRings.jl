@@ -36,6 +36,7 @@
     @test QQ(2) == QQ(ZZ(2))
     @test QQ(Int8(2)) == QQ{BigInt}(2//1)
     @test QQ{Int8}(2) == QQ(2)
+    @test QQ(1//2) == 1//2
 end
 
 @testset "arithmetic" begin

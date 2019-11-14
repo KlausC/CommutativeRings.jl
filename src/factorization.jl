@@ -45,6 +45,17 @@ Factorize polynomial in `F[X]` where `F` is a field
 """
 function factor(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     res = Pair{P,Int}[]
+    u = lcunit(p)
+    if !isone(u)
+        p /= u
+        push!(res, P(u) => 1)
+    end
+    if deg(p) <= 1
+        if !isone(p) || isempty(res)
+            push!(res, p => 1)
+        end
+        return res
+    end
     pp = sff(p)
     for (q, k) in pp
         qq = ddf(q)
@@ -55,7 +66,7 @@ function factor(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
             end
         end
     end
-    sort(res)
+    sort!(res)
 end
 
 """

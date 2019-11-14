@@ -9,6 +9,7 @@ depth(::Type{<:QQ}) = 1
 issimpler(a::T, b::T) where T<:QQ = abs(a.num) < abs(b.num)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = convert(QQ{T}, a)
+QQ(a::QQ{T}) where T = a
 
 QQ{T}(num::Integer, den::Integer) where T = QQ{T}(Base.divgcd(T(num), T(den))..., NOCHECK)
 QQ(num::T, den::T) where T = QQ{T}(num, den)

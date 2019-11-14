@@ -232,4 +232,9 @@ end
     @test (y^2)(x+1) == x^2 + 2x + 1
     @test (0*y)(x^2) == 0
 end
+
+@testset "abstract types" begin
+    @test QQ[:x]([1//2, 2//3]) == QQ{Int}[:x]([1//2, 2//3])
+end
+
 end

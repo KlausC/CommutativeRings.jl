@@ -16,5 +16,23 @@
 
     @test length(irrn) == necklace(p, n)
     @test length(irrm) == necklace(p, m)
+
+end
+
+@testset "factor non-monic" begin
+    Z = ZZ/3
+    x = monom(Z[:x])
+    p = (-x+1)^9
+    @test prod(factor(p)) == p
+    p = zero(p)
+    @test factor(p) == [p => 1]
+    p = one(p)
+    @test factor(p) == [p => 1]
+    p = x + 1
+    @test factor(p) == [p => 1]
+    p = -x + 1
+    @test factor(p) == [-one(x) => 1, x - 1 => 1]
+    p = -(x+1)^3
+    @test factor(p) == [-one(x) => 1, x + 1 => 3]
 end
 

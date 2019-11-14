@@ -48,7 +48,7 @@ convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
 convert(P::Type{UnivariatePolynomial{X,S}}, a::T) where {X,S,T} = P([convert(S, a)])
 
 # convert coefficient vector to polynomial
-function UnivariatePolynomial{X,S}(v::Vector{S}) where {X,S<:Ring}
+function UnivariatePolynomial{X,T}(v::Vector{S}) where {X,T<:Ring,S<:T}
     x = Symbol(X)
     n = length(v)
     while n > 0 && iszero(v[n])
@@ -364,7 +364,7 @@ end
 """
     content(p::UnivariatePolynomial)
 
-Return the degree of the polynimial p, i.e. the `gcd` of its coefficients.
+Return the content of the polynimial p, i.e. the `gcd` of its coefficients.
 """
 content(p::UnivariatePolynomial) = gcd(p.coeff)
 function content(q::UnivariatePolynomial{X,Q}) where {X,Q<:Union{QQ,Quotient}}

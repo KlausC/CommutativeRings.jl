@@ -35,9 +35,11 @@ The numbers `0:p-1` correspond to the base field, and `p` to the polynomial `x` 
 the representation of `Q`.
 """
 function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
-    exp = mod(num, order(Q))
+    s = num < 0 ? -1 : 1
+    exp = abs(num)
     tv = gettypevar(GaloisField{Id,T,Q})
-    GaloisField{Id,T,Q}(tv.logtable[exp+1], NOCHECK)
+    g = GaloisField{Id,T,Q}(tv.logtable[exp+1], NOCHECK)
+    s < 0 ? -g : g
 end
 
 function GaloisField{Id,T,Q}(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
@@ -63,6 +65,11 @@ function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolyno
 end
 
 (::Type{Q})(g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
+
+
+function isless(a::G, b::G) where G<:GaloisField
+    isless(Quotient(a), Quotient(b))
+end
 
 basetype(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
