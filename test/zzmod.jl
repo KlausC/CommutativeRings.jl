@@ -122,7 +122,7 @@ end
     p2 = ZZp2(-1)
     @test ZZp1(p2) !== p2
     @test ZZp1(p2).val == p2.val
-    @test_throws InexactError ZZp1(128)
+    @test ZZp1(128) == ZZp1(9)
     @test modulus(Int8/17) == 17
     @test modulus(BigInt/31) == 31
     @test (Int8/17)(1) == ZZp1(1)

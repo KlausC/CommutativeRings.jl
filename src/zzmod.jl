@@ -2,7 +2,7 @@
 # class constructors
 /(::Type{T}, m::Integer) where T<:Integer = new_class(ZZmod{sintern(m),T}, T(m))
 /(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / T(m)
-/(::Type{ZZ}, m::T) where T<:Integer = T / m
+/(::Type{ZZ}, m::Integer) = mintype_for(Unsigned, m, 1) / m
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
@@ -12,8 +12,8 @@ issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
-    mo > 0 && return ZZmod{m,T}(mod(T(a), T(mo)), NOCHECK)
-    throw(DomainError(m, "modulus > 0 required."))
+    mo > 0 || throw(DomainError(m, "modulus > 0 required."))
+    ZZmod{m,T}(T(mod(a, T(mo))), NOCHECK)
 end
 #ZZmod{m}(a::Integer) where {m} = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T,S} = (S/m)(S(a))
@@ -145,5 +145,14 @@ function Base.show(io::IO, a::ZZmod)
     else
         print(io, signed(v), '°')
     end
+end
+
+function mintype_for(::Type{Unsigned}, v::Integer, ex::Integer)
+    v > typemax(UInt128) && return BigInt
+    len = Integer(floor(log2(v) * ex))
+    for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
+        len < sizeof(T) * 8 && return T
+    end
+    BigInt
 end
 

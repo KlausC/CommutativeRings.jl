@@ -17,7 +17,7 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     @test G7(3)^2 == G7(2)
 
     G53 = GFImpl(5,3)
-    @test inv(G53([1,0,1])) * G53([1,0,1]) == 1
+    @test isone(inv(G53([1,0,1])) * G53([1,0,1]))
    
     x = monom(basetype(G53), 1)
     ma53(p, n, k) = Matrix{G53}(mat(p, n) .* x^k)
@@ -85,6 +85,9 @@ end
     z1 = Z1([0, 1])
     iso = isomorphism(Z1, Z2)
     z2 = iso(z1)
+    @test z1 != z2
+    @test iso(z1) == z2
+    @test z1 + 1 == z1 + Z1(1)
     @test iso(Z1(0)) == Z2(0)
     @test iso(Z1(1)) == Z2(1)
     @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1

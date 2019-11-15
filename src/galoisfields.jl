@@ -12,7 +12,7 @@ for the `GFImpl` class.
 function GF(p::Integer, r::Integer; nr::Integer=0)
     Q = GFImpl(p, r, nr=nr)
     r == 1 && return Q
-    T = UInt32
+    T = mintype_for(Unsigned, p, r)
     ord = order(Q)
     Id = Int(ord)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
@@ -255,13 +255,8 @@ Elements of the field can be created like
     GF53([1,2,3])
 ```
 """
-function GFImpl(p::Integer)
-    isprime(p) || throw(ArgumentError("p=$p is not prime"))
-    typeof(p) / p
-end
-
-function GFImpl(p::Integer, m::Integer; nr::Integer=0)
-    Z = GFImpl(p)
+function GFImpl(p::Integer, m::Integer=1; nr::Integer=0)
+    Z = ZZ / p
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
     if m == 1
         Z
@@ -390,7 +385,7 @@ function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyn
     L = ((xr^k)^pr for k = 0:s-1)
     S = hcat(collect(sized(x.val.coeff, s) for x in L)...)
     for i = 1:s
-        S[i,i] -= 1
+        S[i,i] -= one(Z)
     end
     K = nullspace(S)
 

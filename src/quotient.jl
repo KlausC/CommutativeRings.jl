@@ -22,8 +22,9 @@ Quotient{X,R}(v::Quotient{X,R}) where {X,R<:Ring} = Quotient{X,R}(v.val)
 Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
 
 # promotion and conversion
+_promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
 _promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type(R,S)}
-promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{X,promote_type(R,S)}
+promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{X,R}
 
 convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
 convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
@@ -32,6 +33,8 @@ Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 
 ## Arithmetic
 
+==(a::T, b::T) where T<:Quotient =  a.val == b.val
+==(a::Quotient, b::Quotient) =  false
 +(a::T, b::T) where T<:Quotient =  T(a.val + b.val)
 -(a::T, b::T) where T<:Quotient =  T(a.val - b.val)
 *(a::T, b::T) where T<:Quotient =  T(a.val * b.val)
