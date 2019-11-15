@@ -89,9 +89,9 @@ end
 
 +(a::G, b::G) where G<:GaloisField = addop(+, a, b)
 -(a::G, b::G) where G<:GaloisField = addop(-, a, b)
--(a::G) where G<:GaloisField = minusop(a)
-*(a::G, b::Integer) where G<:GaloisField = mulop(a, b)
-*(b::Integer, a::G) where G<:GaloisField = mulop(a, b)
+-(a::G) where G<:GaloisField = a * (-1) 
+*(a::G, b::Integer) where G<:GaloisField = G(mod(b, characteristic(G))) * a
+*(b::Integer, a::G) where G<:GaloisField =  a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
 
 function addop(op::Function, a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
@@ -100,31 +100,11 @@ function addop(op::Function, a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     tv = gettypevar(G)
     exptable = tv.exptable
     logtable = tv.logtable
-    nl = addop(op, a.val, b.val, p, exptable, logtable)
+    nl = _addop(op, a.val, b.val, p, exptable, logtable)
     G(nl, NOCHECK)
 end
 
-function minusop(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    ord = order(Q)
-    p = characteristic(Q)
-    tv = gettypevar(G)
-    exptable = tv.exptable
-    logtable = tv.logtable
-    nl = minusop(a.val, p, exptable, logtable)
-    G(nl, NOCHECK)
-end
-
-function mulop(a::G, b::Integer) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    ord = order(Q)
-    p = characteristic(Q)
-    tv = gettypevar(G)
-    exptable = tv.exptable
-    logtable = tv.logtable
-    nl = mulop(a.val, b, p, exptable, logtable)
-    G(nl, NOCHECK)
-end
-
-function addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logtable)
+function _addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logtable)
     na = exptable[a+1]
     nb = exptable[b+1]
     if p == 2
@@ -144,34 +124,6 @@ function addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logta
     logtable[ns+1]
 end
 
-function minusop(a::Integer, p::Integer, exptable, logtable)
-    p == 2 && return a
-    na = exptable[a+1]
-    ns = oftype(na, 0)
-    pp = oftype(p, 1)
-    while !iszero(na)
-        na, xa = fldmod(na, p)
-        xc = mod(-xa, p)
-        ns += xc * pp
-        pp *= p
-    end
-    logtable[ns+1]
-end
-    
-function mulop(a::Integer, b::Integer, p::Integer, exptable, logtable)
-    p == 2 && return iseven(b) ? oftype(a, 0) : a
-    na = exptable[a+1]
-    ns = oftype(na, 0)
-    pp = oftype(p, 1)
-    while !iszero(na)
-        na, xa = fldmod(na, p)
-        xc = mod(xa * b, p)
-        ns += xc * pp
-        pp *= p
-    end
-    logtable[ns+1]
-end
-    
 iszero(a::G) where G<:GaloisField = iszero(a.val)
 isunit(a::GaloisField) = !iszero(a)
 issimple(a::GaloisField) = true
