@@ -13,6 +13,8 @@ export isirreducible, irreducible, irreducibles, monic, factorise
 export characteristic, order
 export ofindex, index
 
+export VectorSpace, complement, sum, intersect, isequal, issubset
+
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
@@ -193,6 +195,11 @@ Represent a ring homomorphism `function:R -> R'`.
 """
 struct Hom{F,R<:RingInt,S<:RingInt}
     Hom{R,S}(f::Union{Function,Type}) where {R,S} = new{f,R,S}()
+end
+
+struct VectorSpace{T}
+    base::T
+    pivr::Vector{Int} # row permutation vector
 end
 
 # implementation

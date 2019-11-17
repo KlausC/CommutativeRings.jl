@@ -339,7 +339,7 @@ function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyn
     for i = 1:s
         S[i,i] -= one(Z)
     end
-    K = nullspace(S)
+    K = Matrix(nullspace(S))
 
     for g0 in Q
         if R == Q
