@@ -146,15 +146,18 @@ size(v::VectorSpace, i::Integer) = i == 1 ? sum(size(v.base)) : size(v.base, 2)
 
 import Base: intersect, sum
 function intersect(v::V, w::V) where {T,V<:VectorSpace{T}}
-    m, r = size(v)
-    n, s = size(w)
-    s < r && return intersect(w, v)
+    m, rv = size(v)
+    n, rw = size(w)
+    rv <= rw || return intersect(w, v)
     m == n || throw(ArgumentError("dimension mismatch of vector spaces ($m,$n)"))
+    if rv == 0 || rw == m
+        return v
+    end
     BT = eltype(T)
     vpiv = v.pivr
     wpiv = invperm(w.pivr)
-    AB = vcat(diagm(ones(BT, s)), w.base)[wpiv[vpiv],:]
-    LAB = v.base * AB[1:r,:] - AB[r+1:m,:]
+    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv],:]
+    LAB = v.base * AB[1:rv,:] - AB[rv+1:m,:]
     N = nullspace(LAB)
     rr = rank(N)
     N = vcat(diagm(ones(BT,rr)), N.base)[invperm(N.pivr),:]
@@ -162,22 +165,25 @@ function intersect(v::V, w::V) where {T,V<:VectorSpace{T}}
 end
 
 function sum(v::V, w::V) where {T,V<:VectorSpace{T}}
-    m, r = size(v)
-    n, s = size(w)
-    s > r && return sum(w, v)
+    m, rv = size(v)
+    n, rw = size(w)
+    rv >= rw || return sum(w, v)
     m == n || throw(ArgumentError("dimension mismatch of vector spaces ($m,$n)"))
+    if rw == 0 || rv == m
+        return v
+    end
     BT = eltype(T)
     vbase = v.base
     vpiv = copy(v.pivr)
     wpiv = invperm(w.pivr)
-    AB = vcat(diagm(ones(BT, s)), w.base)[wpiv[vpiv],:]
-    LAB = AB[r+1:n,:] - vbase * AB[1:r,:]
+    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv],:]
+    LAB = AB[rv+1:n,:] - vbase * AB[1:rv,:]
     N = VectorSpace(LAB)
     rr = rank(N)
     spiv = N.pivr
     sbase = N.base
-    vpiv[r+1:n] = vpiv[spiv .+ r]
-    v1 = vbase[spiv[rr+1:n-r],:]
+    vpiv[rv+1:n] = vpiv[spiv .+ rv]
+    v1 = vbase[spiv[rr+1:n-rv],:]
     v2 = sbase * vbase[spiv[1:rr],:]
     VectorSpace(hcat(v1 - v2, sbase), vpiv)
 end

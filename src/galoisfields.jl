@@ -393,9 +393,13 @@ end
     allzeros(p, vx)
 
 Assuming `p(vx) == 0` for an irreducible polynomial `p` and a galois field element `vx`
-find all zeros of `p` inthe galois field, vx belongs to.
+find all zeros of `p` inrreducibles the galois field, vx belongs to.
 """
 function allzeros(p::P, vx::Q) where {X,P<:UnivariatePolynomial{X,<:ZZmod},Y,Q<:Quotient{Y,P}}
+    q = characteristic(Q)
+    r = deg(p)
+    return (vx^q^k for k = 0:r-1)
+    #=
     r = deg(p)
     m = dimension(Q)
     M = normalmatrix(normalbase(P/p), r)
@@ -403,5 +407,6 @@ function allzeros(p::P, vx::Q) where {X,P<:UnivariatePolynomial{X,<:ZZmod},Y,Q<:
     a = inv(M)[:,2]
     cp(N, k) = [N[:,k+1:r] N[:,1:k]] # cyclically permutating columns
     [ Q(cp(N, k) * a) for k in 0:r-1]
+    =#
 end
 
