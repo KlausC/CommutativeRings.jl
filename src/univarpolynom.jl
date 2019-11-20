@@ -7,7 +7,11 @@ getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
 ### Constructors
 basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
 depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
-_lcunit(a::UnivariatePolynomial) = lcunit(lc(a))
+function lcunit(a::UnivariatePolynomial)
+    lco = lc(a)
+    isunit(lco) ? lco : one(lco)
+end
+
 """
     iscoprime(a, b)
 

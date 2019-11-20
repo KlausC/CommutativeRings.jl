@@ -9,7 +9,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     ZZ14 = Int / 14
     @test basetype(ZZmod{:p,Int}) == ZZ{Int}
     @test depth(ZZmod{13,BigInt}) == 1
-    @test lcunit(ZZmod{13,Int}(7)) == 20
+    @test lcunit(ZZmod{13,Int}(7)) == 1
     @test lcunit(ZZmod{14,Int}(7)) == 1
     @test ZZmod{13,Int}(ZZ(8)) == ZZ13(8)
     @test ZZ13(1) + ZZ13(Int8(12)) == 0

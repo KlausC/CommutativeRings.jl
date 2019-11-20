@@ -2,18 +2,18 @@
 @testset "construction" begin
     P = UnivariatePolynomial{:x,ZZ{Int}}
     p = P([1, -2])
-    q = P([1, 1])
+    q = P([1, -1])
     pq = Frac(p, q)
     F = Frac{P}
     @test basetype(F) == P
     @test depth(F) == 3
     @test !issimpler(pq, pq)
-    @test lcunit(pq) == pq
+    @test lcunit(pq) == 1
     @test copy(pq) == pq
     @test F(pq) === pq
     @test Frac(p) == p
     P2 = UnivariatePolynomial{:x,ZZ{Int8}}
-    pq2 = P2([1, -2]) // P2([1, 1])
+    pq2 = P2([1, -2]) // P2([1, -1])
     @test F(pq2) == pq
     @test F(13) == F(13, 1)
     @test F(ZZ(11)) == F(ZZ(22), ZZ(2))
@@ -28,7 +28,7 @@
     @test Frac(p, q) != nothing
     @test p // q == Frac(p, q)
     @test p // p == 1
-    @test pq * pq == F(p * p, P([1, 2, 1]))
+    @test pq * pq == F(p * p, P([1, -2, 1]))
     @test pq / pq == 1
     @test isunit(F(-1))
     @test isunit(pq)
@@ -44,6 +44,6 @@
     show(io, F(p))
     @test String(take!(io)) == "-2⋅x + 1"
     show(io, pq)
-    @test String(take!(io)) == "(-2⋅x + 1)/(x + 1)"
+    @test String(take!(io)) == "(2⋅x - 1)/(x - 1)"
 
 end

@@ -6,7 +6,7 @@ QQ(::Type{ZZ{T}}) where T = QQ{T}
 # construction
 basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 depth(::Type{<:QQ}) = 1
-issimpler(a::T, b::T) where T<:QQ = abs(a.num) < abs(b.num)
+issimpler(a::T, b::T) where T<:QQ = QQ(abs(a.num),a.den) < QQ(abs(b.num),b.den)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = convert(QQ{T}, a)
 QQ(a::QQ{T}) where T = a
@@ -51,6 +51,7 @@ end
 divrem(a::T, b::T) where T<:QQ = (a / b, zero(T))
 div(a::T, b::T) where T<:QQ = a / b
 rem(a::T, b::T) where T<:QQ = zero(T)
+isless(a::T, b::T) where T<:QQ = isless(Rational(a), Rational(b))
 
 isunit(a::QQ) = !iszero(a.num)
 isone(a::QQ) = a.num == a.den

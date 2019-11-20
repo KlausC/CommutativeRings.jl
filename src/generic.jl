@@ -6,7 +6,7 @@ end
 
 depth(::Type{<:Number}) = 0
 
-for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx)
+for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx, :isless)
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
         ($op)(a::Ring, b::Union{Integer,Rational}) = ($op)(promote(a, b)...)
@@ -135,12 +135,11 @@ lc(x::Ring) = x
 """
     lcunit(r::Ring)
 
-Return `r` if it's a unit, otherwise return a unit element `s` of the same ring or of
+Return `one(r)` if it's a unit, otherwise return a unit element `s` of the same ring or of
 an object, which may be promoted to this ring, so `r / s` has a simplified form.
-Example, for a polynomial over a field, the the leading coefficient.
+Example, for a polynomial over a field, the leading coefficient.
 """
-lcunit(x::Ring) = isunit(x) ? x : _lcunit(x)
-_lcunit(x::Ring) = one(x)
+lcunit(x::Ring) = one(x)
 
 modulus(::T) where T<:Ring = modulus(T)
 copy(p::QuotientRing) = typeof(p)(p.val)
@@ -150,10 +149,19 @@ Base.broadcastable(x::Ring) = Ref(x)
 # apply homimorphism
 (h::Hom{F,R,S})(a::R) where {F,R,S} = F(a)::S
 
+divrem2(a::T, b::T) where T = divrem(a, b)
+rem2(a::T, b::T) where T = divrem2(a, b)[2]
+
+function divrem2(a::T, b::T) where T<:FractionField
+    c = div(a, b)
+    d, r = divrem2(c.num, c.den)
+    d, a - d * b
+end
+
 # generic Euclid's algorithm
 function gcd(a::T, b::T) where T<:Ring
     while !iszero(b)
-        a, b = b, rem(a, b)
+        a, b = b, rem2(a, b)
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
     end
     u = lcunit(a)
@@ -167,7 +175,7 @@ function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     n == 1 && return aa[1]
     g = gcd(aa[1], aa[2])
     for i = 3:n
-        isunit(g) && break
+        isone(g) && break
         g = gcd(aa[i], g)
     end
     g
@@ -180,16 +188,18 @@ function gcdx(a::T, b::T) where T<:Ring
     t0, t1 = s1, s0
     # invariant: a * s0 + b * t0 == gcd(a, b)
     while !iszero(b)
-        q, r = divrem(a, b)
+        q, r = divrem2(a, b)
         a, b = b, r
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
         s0, s1 = s1, s0 - q * s1
         t0, t1 = t1, t0 - q * t1
     end
-    if isunit(a)
-        a, s0, t0 = one(T), s0 / a, t0 / a
+    u = lcunit(a)
+    if isone(a) 
+        a, s0, t0
+    else
+        a, s0, t0 = a / u, s0 / u, t0 / u
     end
-    a, s0, t0
 end
 
 function gcdx(a::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
