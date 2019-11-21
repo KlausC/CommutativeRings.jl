@@ -347,7 +347,7 @@ function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyn
             N = M
         else
             g = R(K * g0)
-            deg(g.val) <= 1 && continue
+            deg(g.val) <= 0 && continue
             N = normalmatrix(g, r)
         end
         if sized((g^k).val.coeff, s) == N * h
@@ -381,11 +381,12 @@ end
 function _isomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
     r = size(N, 2)
     nr = mod(nr, r)
+    # cyclic permutation of columns of N
     if nr != 0
         N = hcat(N[:,nr+1:r], N[:,1:nr])
     end
     A = (T = N * M1, N = N, M1 = M1, Q = Q, R = R)
-    iso(a::Q) = R(A[1] * a)
+    iso(a::Q) = R(A.T * a)
     iso
 end
 

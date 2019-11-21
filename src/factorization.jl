@@ -87,7 +87,7 @@ function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
     while !isunit(w)
         y = gcd(w, c)
         z = w / y
-        if !isone(z)
+        if deg(z) > 0
             push!(R, Pair(z, i))
         end
         c /= y
@@ -95,7 +95,7 @@ function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
         i += 1
     end
     
-    if !isone(c)
+    if deg(c) > 0
         c = shrink(c, p)
         for (g, i) in sff(c)
             push!(R, Pair(g, i * p))
@@ -132,13 +132,13 @@ function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     while deg(fs) >= 2i
         xqi = powermod(xqi, q, fs)
         g = gcd(fs, xqi - x)
-        if !isone(g)
+        if deg(g) > 0
             push!(S, Pair(g, i))
             fs /= g
         end
         i += 1
     end
-    if !isone(fs)
+    if deg(fs) > 0
         push!(S, Pair(fs, deg(fs)))
     end
     if isempty(S)
@@ -156,7 +156,7 @@ function isddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     while deg(fs) >= 2i
         xqi = powermod(xqi, q, fs)
         g = gcd(fs, xqi - x)
-        isone(g) || return false
+        deg(g) > 0 && return false
         i += 1
     end
     return true
@@ -186,7 +186,7 @@ function edf(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{
         for k = 1:s
             u = S[k]
             gu = gcd(g, u)
-            if !isone(gu) && gu != u
+            if 0 < deg(gu) < deg(u)
                 S[k] = gu
                 push!(S, u / gu)
             end

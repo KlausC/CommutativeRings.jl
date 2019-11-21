@@ -80,9 +80,9 @@ end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
 
-    Z1 = GFImpl(3, 2)
-    Z2 = GFImpl(3, 6)
-    z1 = Z1([0, 1])
+    Z1 = GFImpl(5, 2)
+    Z2 = GFImpl(5, 6)
+    z1 = Z1(monom(basetype(Z1)))
     iso = isomorphism(Z1, Z2)
     z2 = iso(z1)
     @test z1 != z2
