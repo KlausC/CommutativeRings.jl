@@ -37,7 +37,9 @@ struct ZZmodClass{m,T<:Integer} <: QuotientRingClass
 end
 abstract type PolyRingClass <: RingClass end
 struct UniPolyRingClass{X,R} <: PolyRingClass end
-struct MultiPolyRingClass{X,N,R} <: PolyRingClass end
+struct MultiPolyRingClass{X,N,R} <: PolyRingClass
+    varnames::Vector{Symbol}
+end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     generator::T
@@ -168,7 +170,8 @@ The `Id` identifies on object of type `MultiPolyRingClass` which is needed to st
 the variable names and properties.
 """
 struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass{Id,N,S}}
-    coeff::Dict{NTuple{N,Int},S}
+    ind::Vector{Int}
+    coeff::Vector{S}
 end
 
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
@@ -212,7 +215,7 @@ include("zzmod.jl")
 include("quotient.jl")
 include("fraction.jl")
 include("univarpolynom.jl")
-#include("multivarpolynom.jl")
+include("multivarpolynom.jl")
 include("ideal.jl")
 include("enumerations.jl")
 include("factorization.jl")
