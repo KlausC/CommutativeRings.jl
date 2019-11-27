@@ -6,7 +6,7 @@ getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
 
 ### Constructors
 basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
-depth(::Type{<:UnivariatePolynomial{X, T}}) where {X,T} = depth(T) + 1
+depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
 function lcunit(a::UnivariatePolynomial)
     lco = lc(a)
     isunit(lco) ? lco : one(lco)
@@ -40,7 +40,7 @@ UnivariatePolynomial{X,S}(a::Ring) where {X,S} = convert(UnivariatePolynomial{X,
 UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
 
 # promotion and conversion
-_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{Y,S}}) where {X,Y,R,S} = throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
+_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{<:Polynomial}) where {X,R} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
 _promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
 _promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{X,promote_type(R,S)}
 promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{X,promote_type(R,S)}
@@ -77,6 +77,11 @@ function UnivariatePolynomial{X,S}(p::UnivariatePolynomial{Y}) where {X,Y,S}
     else
         throw(DomainError((X,Y), "cannot convert different variable names"))
     end 
+end
+
+function monom(P::Type{<:UnivariatePolynomial}, xv::Vector{<:Integer})
+    length(xv) > 1 && throw(ArgumentError("univariate monom has only one variable"))
+    monom(P, xv...)
 end
 
 function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer=1) where {X,S}
@@ -177,7 +182,7 @@ function *(p::UnivariatePolynomial, q::Ring)
         T = typeof(p)
         S = basetype(T)
         # make broadcast recognize q as scalar
-        T(p.coeff .* S(q), NOCHECK)
+        T(p.coeff .* Ref(q), NOCHECK)
     end
 end
 *(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = *(p, S(q))
@@ -193,7 +198,7 @@ function /(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}}
 end
 /(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = /(p, S(q))
 
-function ^(p::P, k::Integer) where P<:UnivariatePolynomial
+function ^(p::P, k::Integer) where P<:Polynomial
     k < 0 && throw(DomainError((p,k), "polynom power negative exponent"))
     n = deg(p)
     if k == 0
@@ -202,12 +207,20 @@ function ^(p::P, k::Integer) where P<:UnivariatePolynomial
         p
     elseif n == 0
         P(lc(p)^k)
-    elseif n == 1 && ismonom(p)
-        monom(P, k)
+    elseif n > 0 && ismonom(p)
+        indv = leading_index(p)
+        lco = lc(p)
+        mon = monom(P, k * indv)
+        if !isone(lco) && !isempty(indv)
+            mon.coeff[end] = lco^k
+        end
+        mon
     else
         Base.power_by_squaring(p, k)
     end
 end
+
+leading_index(p::UnivariatePolynomial) = [deg(p)]
 
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r
@@ -392,9 +405,9 @@ nonzero coefficient. The degree of the zero polynomial is defined to be -1.
 """
 deg(p::UnivariatePolynomial) = length(p.coeff) - 1
 
-function inv(p::T) where T<:UnivariatePolynomial
+function inv(p::T) where T<:Polynomial
     if isunit(p)
-        return T([inv(p.coeff[1])])
+        return T(inv(p.coeff[1]))
     else
         throw(DomainError(p, "Only unit polynomials can be inverted"))
     end
@@ -406,14 +419,14 @@ iszero(p::UnivariatePolynomial) = length(p.coeff) == 0
 zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
 one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
-==(p::UnivariatePolynomial{X}, q::UnivariatePolynomial{Y}) where {X, Y} = false
+==(p::Polynomial{X}, q::Polynomial{Y}) where {X, Y} = false
 function hash(p::UnivariatePolynomial{X}, h::UInt) where X
     n = length(p.coeff)
     n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
 end
 
 ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
-ismonic(p::UnivariatePolynomial) = isone(lc(p))
+ismonic(p::Polynomial) = isone(lc(p))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::UnivariatePolynomial{X,<:R}) where {X,F,R,S}
@@ -423,15 +436,15 @@ end
 # auxiliary functions
 
 """
-    lc(p::UnivariatePolynomial)
+    lc(p::Polynomial)
 
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero. Return zero for zero polynomial.
 """
-function lc(p::UnivariatePolynomial{X,S}) where {X,S}
+function lc(p::Polynomial)
     c = p.coeff
     n = length(c)
-    n == 0 ? zero(S) : c[n]
+    n == 0 ? zero(basetype(p)) : c[n]
 end
 
 # pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
@@ -576,7 +589,7 @@ function _evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
     end
     a
 end
-(p::UnivariatePolynomial)(a) = evaluate(p, a)
+(p::Polynomial)(a, b...) = evaluate(p, a, b...)
 
 """
     derive(p::UnivariatePolynomial)
@@ -640,45 +653,46 @@ issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Quotient{X,<:UnivariatePolynomial{:γ}}) where X = true
 issimple(::Any) = false
 
-function showvar(io::IO, var, n::Integer)
-    if n == 1
-        print(io, var)
-    elseif n != 0
-        print(io, string(var, '^', n))
+function showvar(io::IO, var::UnivariatePolynomial{X}, n::Integer) where X
+    if n == 2
+        print(io, X)
+    elseif n != 1
+        print(io, string(X, '^', n - 1))
     end
 end
-    
-function show(io::IO, p::UnivariatePolynomial{X,T}) where {X,T}
-    N = length(p.coeff)-1
-    N < 0 && return show(io, zero(T))
+
+isconstterm(p::UnivariatePolynomial, n::Integer) = n == 1
+
+function show(io::IO, p::Polynomial{T}) where T
+    N = length(p.coeff)
+    N <= 0 && return show(io, zero(T))
     start = true
     for n = N:-1:1
-        el = p.coeff[n+1]
-        iszero(el) && n > 0 && continue
+        el = p.coeff[n]
+        iszero(el) && !start && continue
         !start && print(io, ' ')
-        if isone(el)
-            !start && print(io, "+ ")
-        elseif isone(-el)
-            print(io, '-')
-            !start && print(io, ' ')
+        if isconstterm(p, n)
+            showelem(io, el, start)
         else
-            if !issimple(el)
+            if isone(el)
                 !start && print(io, "+ ")
-                print(io, '(')
-                show(io, el)
-                print(io, ')')
-            else
-                showelem(io, el, start)
+            elseif isone(-el)
+                print(io, '-')
+                !start && print(io, ' ')
+            elseif !isconstterm(p, n)
+                if !issimple(el)
+                    !start && print(io, "+ ")
+                    print(io, '(')
+                    show(io, el)
+                    print(io, ')')
+                else
+                    showelem(io, el, start)
+                end
+                print(io, '⋅')
             end
-            print(io, '⋅')
         end
-        showvar(io, X, n)
+        showvar(io, p, n)
         start = false
-    end
-    el = p.coeff[1]
-    if !iszero(el) || start
-        !start && print(io, ' ')
-        showelem(io, el, start)
     end
 end
 

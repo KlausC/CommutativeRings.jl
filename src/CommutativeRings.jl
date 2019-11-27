@@ -37,7 +37,7 @@ struct ZZmodClass{m,T<:Integer} <: QuotientRingClass
 end
 abstract type PolyRingClass <: RingClass end
 struct UniPolyRingClass{X,R} <: PolyRingClass end
-struct MultiPolyRingClass{X,N,R} <: PolyRingClass
+struct MultiPolyRingClass{X,R,N} <: PolyRingClass
     varnames::Vector{Symbol}
 end
 
@@ -163,13 +163,13 @@ struct UnivariatePolynomial{X,S<:Ring} <: Polynomial{S,UniPolyRingClass{X,S}}
 end
 
 """
-    MultivariatePolynomial{Id,N,S<:RingInt}
+    MultivariatePolynomial{Id,S<:RingInt,N}
 
 Polynomials of ring elemets `S` in `N` variables.
 The `Id` identifies on object of type `MultiPolyRingClass` which is needed to store
 the variable names and properties.
 """
-struct MultivariatePolynomial{Id,N,S<:Ring} <: Polynomial{S,MultiPolyRingClass{Id,N,S}}
+struct MultivariatePolynomial{Id,S<:Ring,N} <: Polynomial{S,MultiPolyRingClass{Id,S,N}}
     ind::Vector{Int}
     coeff::Vector{S}
 end

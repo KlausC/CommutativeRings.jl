@@ -66,7 +66,7 @@ end
     @test promote_type(P, ZZ{Int}) == P
     @test promote_type(P, Int) == P
     @test promote_type(P, Rational{Int8}) == UnivariatePolynomial{:x,QQ{Int}}
-    @test_throws DomainError promote_rule(P, UnivariatePolynomial{:y,S})
+    @test promote_rule(P, UnivariatePolynomial{:y,S}) == Base.Bottom
 end
 
 @testset "operation $cp $(string(op)) $cq" for op in (+, -, *), cp in CP, cq in CP

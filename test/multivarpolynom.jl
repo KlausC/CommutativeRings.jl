@@ -58,12 +58,13 @@ end
     @test zero(P) * zero(P) == zero(P)
     @test zero(P) * one(P) == zero(P)
     @test one(P) * one(P) == one(P)
-    x = P([2], [1])
-    y = P([3], [1])
+    x = P([3], [1])
+    y = P([2], [1])
     @test (x + y)^2 == x^2 + 2x*y + y^2
-    xy = 5x + 2y^2 + x*y
+    @test (x + y) * (x - y) == x^2 - y^2
+    xy = x * 5 + 2y^2 + x*y
     @test one(P) * xy == xy
     @test xy * zero(P) == zero(P)
-    @test xy^2 == 25x^2 + 10x^2*y + 20x*y^2 + x^2*y^2 + 4x*y^3 + 4y^4 
+    @test xy^2 == 25x^2 + x^2*y*10 + 20x*y^2 + x^2*y^2 + 4x*y^3 + 4y^4
     @test xy * x == 5x^2 + 2x*y^2 + x^2*y 
 end
