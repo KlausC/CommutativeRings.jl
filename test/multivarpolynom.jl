@@ -68,3 +68,25 @@ end
     @test xy^2 == 25x^2 + x^2*y*10 + 20x*y^2 + x^2*y^2 + 4x*y^3 + 4y^4
     @test xy * x == 5x^2 + 2x*y^2 + x^2*y 
 end
+
+@testset "division" begin
+    P = ZZ{Int}[:x, :y]
+    x = monom(P, [1, 0])
+    y = monom(P, [0, 1])
+    f = x^2 - y
+    g = x^3 - x
+    G = [f, g]
+    h = f * (x^2+y^2) + g * (x + y) + 1
+    r, a, d = red(h, G)
+    @test d == 1
+    @test sum(a .* G) + r == h
+end
+
+@testset "Gröbner base" begin
+    P = ZZ{Int}[:x, :y]
+    x = monom(P, [1, 0])
+    y = monom(P, [0, 1])
+    f = x^2 - y
+    g = x^3 - x
+    @test groebnerbase([f, g]) == [x^2 - y, x*y - x, y^2 - y]
+end

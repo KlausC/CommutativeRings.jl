@@ -275,6 +275,10 @@ function indexsum(x::T, y::T, d::Int) where T<:Integer
     tuple2index(index2tuple(x, d) + index2tuple(y, d))
 end
 
+function divides(x::V, y::V) where V<:AbstractVector{<:Integer}
+    all(x .<= y)
+end
+
 varnames(p::T) where T<:MultivariatePolynomial = gettypevar(T).varnames
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
@@ -293,3 +297,151 @@ end
 
 isconstterm(p::MultivariatePolynomial, n::Integer) = n <= 0 || p.ind[n] <= 1
 
+# division and Gröbner base calculation
+
+function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
+
+    lig = leading_index(g)
+    xif = 0
+    lif = lig
+    for i = length(f.ind):-1:1
+        li = index2tuple(f.ind[i], N)
+        if divides(lig, li)
+            lif = li
+            xif = i
+            break
+        end
+    end
+    xif == 0 && return f, zero(P), one(T)
+    c = f.coeff[xif]
+    d = lc(g)
+    q = monom(P, lif .- lig)
+    if isone(d)
+        k = q * c
+        f - g * k, k, one(T) 
+    elseif isunit(d)
+        k = q * (c / d)
+        f - g * k, k, one(T)
+    else
+        h = gcd(c, d)
+        k = q * (c / h )
+        f * h - g * k, k, h
+    end
+end
+
+function red(f::P, G::AbstractArray{P}) where {T,P<:MultivariatePolynomial{T}}
+    f0 = f
+    fp = zero(P)
+    a = zeros(P, length(G))
+    dd = one(T)
+    while f !== fp && !iszero(f)
+        fp = f
+        for (i, g) in enumerate(G)
+            ffp = f
+            f, k, d = red(f, g)
+            if f !== ffp
+                if !isone(d)
+                    a .*= d
+                    dd *= d
+                end
+                a[i] += k
+            elseif iszero(f)
+                break
+            end
+        end
+    end
+    f, a, dd
+end
+
+function buchberger_s(f::P, g::P) where P<:MultivariatePolynomial
+    lcf = lc(f)
+    lcg = lc(g)
+    lif = leading_index(f)
+    lig = leading_index(g)
+
+    h = gcd(lcf, lcg)
+    af = lcf / h
+    ag = lcg / h
+    bf = max.(lif - lig, 0)
+    bg = max.(lig - lif, 0)
+    monom(P, bg) * ag * f - monom(P, bf) * af * g
+end
+
+using Base.Iterators
+
+# find initial Gröbner base using Buchberger's algorithm
+function buchberger(H::AbstractArray{P}) where P<:MultivariatePolynomial
+    G = unique(H)
+    K = empty(G)
+    while K != G
+        K = copy(G)
+        for (p, q) in product(K, K)
+            pq = buchberger_s(p, q)
+            s, a, d = red(pq, G)
+            if !iszero(s) && !in(s, G)
+                push!(G, s)
+            end
+        end
+    end
+    G
+end
+
+# eliminiate generators with leading terms spanned by other leading terms
+function minimize!(H::AbstractArray{P}) where P<:MultivariatePolynomial
+    n = length(H)
+    for i = 1:n
+        f = H[i]
+        if !iszero(f)
+            lif = leading_index(H[i])
+            for g in H
+                if !iszero(g) && f != g
+                    if all(lif .>= leading_index(g))
+                        cf = lc(f)
+                        cg = lc(g)
+                        if iszero(rem(cf, cg))
+                            H[i] = zero(P)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    j = 0
+    for i = 1:n
+        f = H[i]
+        if !iszero(f)
+            j += 1
+            if i != j
+                H[j] = f
+            end
+        end
+    end
+    resize!(H, j)
+    H
+end
+
+# reduced Gröbner base
+function reduce!(H::AbstractArray{P}) where P<:Polynomial
+    n = length(H)
+    for i = 1:n
+        f = H[i]
+        g, a, c = red(f, [g for g in H if g != f])
+        if g !== f
+            H[i] = g
+        end
+    end
+    H
+end
+
+"""
+    groebnerbase(H::AbstractVector{<:Polynomial})
+
+Calculate the reduced groebner base from a set of generators of an ideal `<H>`.
+
+see for example:
+https://en.wikipedia.org/wiki/Gr%C3%B6bner_basis
+http://www.crypto.rub.de/imperia/md/content/may/12/ws1213/kryptanal12/13_buchberger.pdf
+"""
+function groebnerbase(H::AbstractArray{P}) where P<:Polynomial
+    buchberger(H) |> minimize! |> reduce!
+end
