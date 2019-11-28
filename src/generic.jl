@@ -40,7 +40,7 @@ abs(a::Ring) = isunit(a) ? 1 : 0
 Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`. 
 """
 order(::Type{Z}) where Z<:ZZmod = Int(modulus(Z))
-function order(::Type{T}) where {m,X,Z,T<:Quotient{m,UnivariatePolynomial{X,Z}}}
+function order(::Type{T}) where {Z,T<:Quotient{<:UnivariatePolynomial{Z}}}
     order(Z) ^ deg(modulus(T))
 end
 order(::Type{<:Ring}) = 0
@@ -87,7 +87,7 @@ Returns the characteristic `c` of ring `Z`. `c` is the smallest positive integer
 with `c * one(Z) == 0`, or `0` if `c * one(Z) != 0` for all positive integers `c`.
 """
 characteristic(::Type{Z}) where Z<:ZZmod = order(Z)
-characteristic(::Type{T}) where {m,Z,T<:Quotient{m,Z}} = characteristic(Z)
+characteristic(::Type{T}) where {Z,T<:Quotient{Z}} = characteristic(Z)
 characteristic(::Type{T}) where {Z,T<:Frac{Z}} = characteristic(Z)
 characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
 characteristic(::Type{<:Ring}) = 0
@@ -265,5 +265,23 @@ function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
         y = rem(y * x, m)
     end
     return y
+end
+
+const SUPERSCRIPTS = Char[0x2070, 0xb9, 0xb2, 0xb3, 0x2074, 0x2075, 0x2076, 0x2077, 0x2078, 0x2079, 0x207a, 0x207b]
+const SUBSCRIPTS = Char[0x2080, 0x2081, 0x2082, 0x2083, 0x2084, 0x2085, 0x2086, 0x2087, 0x2088, 0x2089, 0x208a, 0x208b]
+
+tosuper(a::Integer; sign::Bool=false) = _integer_to_script(a, SUPERSCRIPTS, sign)
+tosub(a::Integer; sign::Bool=false) = _integer_to_script(a, SUBSCRIPTS, sign)
+function _integer_to_script(a::Integer, chars::Vector{Char}, sign::Bool)
+    io = IOBuffer()
+    if a < 0
+        print(io, chars[12])
+    elseif sign
+        print(io, chars[11])
+    end
+    for d in reverse(digits(a))
+        print(io, chars[abs(d)+1])
+    end
+    String(take!(io))
 end
 

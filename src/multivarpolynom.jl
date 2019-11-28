@@ -1,59 +1,59 @@
 
 # class constructors
 # convenience type constructor:
-# enable `R[:x,:y,:z,...]` as short for `MultivariatePolynomial{X,R,N}`
+# enable `R[:x,:y,:z,...]` as short for `MultivariatePolynomial{R,N,Id}`
 function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
     vs = collect((s, t...))
     N = length(vs)
     Id = sintern(vs)
-    new_class(MultivariatePolynomial{Id,R,N}, vs)
+    new_class(MultivariatePolynomial{R,N,Id}, vs)
 end
 
 import Base: copy, convert, promote_rule
 import Base: +, -, *, zero, one, ==
 
-(::Type{P})(a) where {X,N,T,P<:MultivariatePolynomial{X,T,N}} = convert(P, a)
+(::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
 copy(a::MultivariatePolynomial) = a
-basetype(::Type{<:MultivariatePolynomial{X,T,N}}) where {X,T,N} = T
+basetype(::Type{<:MultivariatePolynomial{T}}) where T = T
 
 # promotion and conversion
-_promote_rule(::Type{MultivariatePolynomial{X,R,M}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
-_promote_rule(::Type{MultivariatePolynomial{X,R,N}}, ::Type{MultivariatePolynomial{X,S,N}}) where {X,N,R,S} = MultivariatePolynomial{X,promote_type(R,S),N}
-_promote_rule(::Type{MultivariatePolynomial{X,R,N}}, ::Type{S}) where {X,N,R,S<:Ring} = MultivariatePolynomial{X,promote_type(R,S),N}
-promote_rule(::Type{MultivariatePolynomial{X,R,N}}, ::Type{S}) where {X,N,R,S<:Union{Integer,Rational}} = MultivariatePolynomial{X,promote_type(R,S),N}
+_promote_rule(::Type{MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
+_promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{MultivariatePolynomial{S,N,X}}) where {X,N,R,S} = MultivariatePolynomial{promote_type(R,S),N,X}
+_promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{S}) where {X,N,R,S<:Ring} = MultivariatePolynomial{promote_type(R,S),N,X}
+promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{S}) where {X,N,R,S<:Union{Integer,Rational}} = MultivariatePolynomial{promote_type(R,S),N,X}
 
-function convert(P::Type{MultivariatePolynomial{X,R,N}}, a::MultivariatePolynomial{X,S,N}) where {X,N,R,S}
+function convert(P::Type{MultivariatePolynomial{R,N,X}}, a::MultivariatePolynomial{S,N,X}) where {X,N,R,S}
     P(a.ind, convert.(R, a.coeff))
 end
-function convert(P::Type{MultivariatePolynomial{X,S,N}}, a::S) where {X,N,S}
+function convert(P::Type{<:MultivariatePolynomial{S}}, a::S) where S
     iszero(a) ? zero(P) : P([1], [a])
 end
-function convert(P::Type{MultivariatePolynomial{X,S,N}}, a::T) where {X,N,S,T}
+function convert(P::Type{<:MultivariatePolynomial{S}}, a::T) where {S,T}
     iszero(a) ? zero(P) : P([1], [convert(S, a)])
 end
 
-function deg(a::MultivariatePolynomial{X,S,N}) where {X,N,S}
+function deg(a::MultivariatePolynomial{S,N}) where {N,S}
     isempty(a.ind) ? -1 : sum(index2tuple(a.ind[end], N))
 end
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
-function monom(P::Type{<:MultivariatePolynomial{X,S,N}}, xv::Vector{<:Integer}) where {X,N,S}
+function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) where {N,S}
     n = length(xv)
     n == 0 && return zero(P)
     length(xv) != N && throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
     P([tuple2index(xv)], [1])
 end
 
-function leading_index(p::MultivariatePolynomial{X,S,N}) where {X,N,S}
+function leading_index(p::MultivariatePolynomial{S,N}) where {N,S}
     isempty(p.ind) ? Int[] : index2tuple(p.ind[end], N)
 end
 
 # arithmetic
-function zero(::Type{<:T}) where {Id,S,T<:MultivariatePolynomial{Id,S}}
+function zero(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     T(Int[], S[])
 end
-function one(::Type{<:T}) where {Id,S,T<:MultivariatePolynomial{Id,S}}
+function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     convert(T, 1)
 end
 
@@ -109,7 +109,7 @@ function +(a::T...) where T<:MultivariatePolynomial
     T(d, c)
 end
 
-function *(a::T, b::T) where {Id,N,S,T<:MultivariatePolynomial{Id,S,N}}
+function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     m = length(a.ind)
     n = length(b.ind)
     m >= n || return *(b, a)
@@ -158,7 +158,7 @@ function *(a::T, b::T) where {Id,N,S,T<:MultivariatePolynomial{Id,S,N}}
 end
 
 
-function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {Id,N,S,T<:MultivariatePolynomial{Id,S,N}}
+function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:MultivariatePolynomial{S,N}}
     length(a) != N && throw(ArgumentError("wrong number of arguments of polynomial with $N variables"))
     n = length(p.ind)
     R = promote_type(S, typeof.(a)...)
@@ -277,7 +277,7 @@ end
 
 varnames(p::T) where T<:MultivariatePolynomial = gettypevar(T).varnames
 
-function showvar(io::IO, var::MultivariatePolynomial{Id,S,N}, n::Integer) where {Id,N,S}
+function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
     ex = index2tuple(var.ind[n], N)
     vn = varnames(var)
     start = true

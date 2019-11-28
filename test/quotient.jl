@@ -3,8 +3,8 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
 
 @testset "construction of quotient ring" begin
     ideal = x^2 + 1
-    @test P / ideal <: (Quotient{X,P} where X)
-    @test P / (x^3+1) <: Quotient{X,P} where X
+    @test P / ideal <: Quotient{P}
+    @test P / (x^3+1) <: Quotient{P}
     Q = P / ideal
     Qp = P / (x^3+1)
 

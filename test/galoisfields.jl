@@ -11,7 +11,7 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     
     @test GFImpl(7) <: ZZmod{7}
     @test GFImpl(3) == GFImpl(3,1)
-    @test GFImpl(5,3) <: Quotient{X,<:UnivariatePolynomial{:γ,<:ZZmod{5}}} where X
+    @test GFImpl(5,3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5},:γ}}
     
     G7 = GFImpl(7)
     @test G7(3)^2 == G7(2)
@@ -35,7 +35,7 @@ end
     @test GF(p) == GF(p,1)
     @test GF(p, r) <: GaloisField{p^r}
     G = GF(p, r)
-    @test basetype(G) <: Quotient{X,<:UnivariatePolynomial{:γ,<:ZZmod{p}}} where X
+    @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:γ}}
     Q = basetype(G)
     @test modulus(G) == modulus(Q)
     @test order(G) == order(Q)

@@ -9,7 +9,7 @@ export factor
 
 Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `factor`.
 """
-function isirreducible(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+function isirreducible(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     deg(p) <= 1 && return true
     iszero(p.coeff[1]) && return false
     pp = gcd(p, derive(p))
@@ -33,7 +33,7 @@ end
 
 Returns array of all irreducible monic polynomials in `P` with degree `n`.
 """
-function irreducibles(::Type{P}, n) where {X,P<:UnivariatePolynomial{X,<:QuotientRing}}
+function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
     Base.Iterators.Filter(isirreducible, Monic(P, n))
 end
 
@@ -43,7 +43,7 @@ end
 Factorize polynomial in `F[X]` where `F` is a field
 (`ZZ/p` or `GF(p,m)` with `p` prime number).
 """
-function factor(p::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     res = Pair{P,Int}[]
     u = lcunit(p)
     if !isone(u)
@@ -76,7 +76,7 @@ end
 Algorithm to split polynomial `p` into a product of powers of squarefree factors.
 Return an array of pairs of squarefree factors and corresponding powers.
 """
-function sff(f::P) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     p = characteristic(Z)
     i = 1
@@ -122,7 +122,7 @@ Input is a squarefree polynomial.
 Returns a list of pairs `g_i => d_i` of polynomials g_i, each of which is a product of
 all irreducible monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
 """
-function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
+function ddf(f::P) where {Z<:QuotientRing, P<:UnivariatePolynomial{Z}}
     q = order(Z)
     S = Pair{P, Int}[]
     x = monom(typeof(f), 1)
@@ -147,7 +147,7 @@ function ddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
     S
 end
 
-function isddf(f::P) where {X,Z<:QuotientRing, P<:UnivariatePolynomial{X,Z}}
+function isddf(f::P) where {Z<:QuotientRing, P<:UnivariatePolynomial{Z}}
     q = order(Z)
     x = monom(typeof(f), 1)
     i = 1
@@ -170,7 +170,7 @@ Algorithm of Cantor-Zassenhaus to find the factors of `p`, a product of monomial
 degree `d`. (Such polynomials are in the output of `ddf`).
 The base type for `p` must be a finite field. Odd charcteristic is a covered special case.
 """
-function edf(f::P, d::Integer) where {X,Z<:QuotientRing,P<:UnivariatePolynomial{X,Z}}
+function edf(f::P, d::Integer) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     n = deg(f)
     S = [f]
@@ -217,8 +217,7 @@ function rand(r::AbstractRNG, ::SamplerType{Z}) where {Z<:ZZmod}
     Z(rand(r, 0:m-1))
 end
 # Random field element of `Q = P / (polynomial)`, whith `basetype(P) <: ZZmod`.
-function rand(r::AbstractRNG, ::SamplerType{Q}) where 
-    {X,Y,Z,P<:UnivariatePolynomial{X,Z},Q<:Quotient{Y,P}}
+function rand(r::AbstractRNG, ::SamplerType{Q}) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     
     m = deg(modulus(Q))
     r = Q(P(rand(r, Z, m)))

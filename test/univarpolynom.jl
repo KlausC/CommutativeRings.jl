@@ -14,7 +14,7 @@ function ==(a::UnivariatePolynomial, b::Poly)
     va == vb[1:n]
 end
 
-let S = ZZ{Int}, P = UnivariatePolynomial{:x,S}, PQ = UnivariatePolynomial{:x,QQ{Int}}
+let S = ZZ{Int}, P = UnivariatePolynomial{S,:x}, PQ = UnivariatePolynomial{QQ{Int},:x}
 
 x = P([0, 1])
 CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
@@ -26,11 +26,11 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
     @test P([1]).coeff[1] == S(1)
     @test length(P(Int[]).coeff) == 0
     @test length(P(Int[0]).coeff) == 0
-    @test eltype(UnivariatePolynomial{:x}(S[]).coeff) == S
+    @test eltype(UnivariatePolynomial(:x, S[]).coeff) == S
     @test iscoprime(x^2 + 1, x + 1)
     @test !iscoprime(4x^2 + 4x + 1, 2x + 1)
 
-    @test typeof(UnivariatePolynomial{:x}(ZZ(1))) == P
+    @test typeof(UnivariatePolynomial(:x, ZZ(1))) == P
     co = [1,2,3]
     @test copy(P(co)) == P(co)
     @test copy(P(co)).coeff !== P(co).coeff
@@ -55,18 +55,18 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
     @test 1 + P(1) == P(2)
     @test ZZ(1) + P(1) == P(2)
     @test ZZ(1) - P(1) == z
-    @test P(1) != UnivariatePolynomial{:y,ZZ{Int}}([1])
-    @test P(1) == UnivariatePolynomial{:x,ZZ{Int}}([1])
-    @test UnivariatePolynomial{:X,S}([1]) != P([1])
-    @test hash(UnivariatePolynomial{:X,S}([1])) == hash(P([1]))
+    @test P(1) != UnivariatePolynomial{ZZ{Int},:y}([1])
+    @test P(1) == UnivariatePolynomial{ZZ{Int},:x}([1])
+    @test UnivariatePolynomial{ZZ{Int8},:x}([1]) != P([1])
+    @test hash(UnivariatePolynomial{ZZ{Int8},:x}([1])) == hash(P([1]))
 end
 
 @testset "promotion of types" begin
     @test promote_type(P, PQ) == PQ
     @test promote_type(P, ZZ{Int}) == P
     @test promote_type(P, Int) == P
-    @test promote_type(P, Rational{Int8}) == UnivariatePolynomial{:x,QQ{Int}}
-    @test promote_rule(P, UnivariatePolynomial{:y,S}) == Base.Bottom
+    @test promote_type(P, Rational{Int8}) == UnivariatePolynomial{QQ{Int},:x}
+    @test promote_rule(P, UnivariatePolynomial{S,:y}) == Base.Bottom
 end
 
 @testset "operation $cp $(string(op)) $cq" for op in (+, -, *), cp in CP, cq in CP
@@ -103,7 +103,7 @@ end
 
 @testset "gcd calculations" begin
 
-    P = UnivariatePolynomial{:x,ZZ{Int}}
+    P = UnivariatePolynomial{ZZ{Int},:x}
     @test P([0, 1]) != nothing
     x = P([0,1])
     @test deg(x + 2x^2 + 1 +0*x^3) == 2
@@ -122,13 +122,13 @@ end
     @test lcm(p, q) == p
     @test lcm([p, q, p]) == p
 
-    @test UnivariatePolynomial{:x,ZZ{Int}}(p) === p
-    @test UnivariatePolynomial{:x,ZZ{Int32}}(p) != p
+    @test UnivariatePolynomial{ZZ{Int},:x}(p) === p
+    @test UnivariatePolynomial{ZZ{Int32},:x}(p) != p
     @test div(p, q) == q
     @test content(p) == ZZ(1)
     @test primpart(p) == p
 
-    Q = UnivariatePolynomial{:x,QQ{Int}}
+    Q = UnivariatePolynomial{QQ{Int},:x}
     qp = Q(p) / 12
     @test primpart(qp) == Q(p)
     @test content(qp) == 1//12
@@ -136,7 +136,7 @@ end
     @test iszero(lc(zero(P)))
     @test isone(lc(one(P)))
 
-    PP = UnivariatePolynomial{:z,P}
+    PP = UnivariatePolynomial{P,:z}
     pp = PP([p, q, s])
 
     # call show
@@ -149,7 +149,7 @@ end
 
 @testset "pseudo gcd" begin
     S = ZZ{BigInt}
-    P = UnivariatePolynomial{:x,S}
+    P = UnivariatePolynomial{S,:x}
     p = P([1, 4, 5, 1, 6, 0, 3])
     q = P([5, 1, 1, 3])
     x = P([0, 1])
@@ -180,7 +180,7 @@ end
     @test isdiv(g, s)
 
     S = ZZmod{31,Int}
-    P = UnivariatePolynomial{:x,S}
+    P = UnivariatePolynomial{S,:x}
     x = P([0, 1])
     p = x^3 + 3x^2 - 4
     q = 4 - (-x)
@@ -198,7 +198,7 @@ end
     a, r = divrem(p, qq)
     @test sum(a .* qq) + r == p
 
-    x = UnivariatePolynomial{:x,ZZ{Int}}([0, 1])
+    x = UnivariatePolynomial{ZZ{Int},:x}([0, 1])
     @test CommutativeRings.invert(x, x^2 + 1) == -x
     @test_throws DomainError CommutativeRings.invert(x + 1, x^2 + 1)
 

@@ -1,6 +1,6 @@
 
 @testset "construction" begin
-    P = UnivariatePolynomial{:x,ZZ{Int}}
+    P = UnivariatePolynomial{ZZ{Int},:x}
     p = P([1, -2])
     q = P([1, -1])
     pq = Frac(p, q)
@@ -12,7 +12,7 @@
     @test copy(pq) == pq
     @test F(pq) === pq
     @test Frac(p) == p
-    P2 = UnivariatePolynomial{:x,ZZ{Int8}}
+    P2 = UnivariatePolynomial{ZZ{Int8},:x}
     pq2 = P2([1, -2]) // P2([1, -1])
     @test F(pq2) == pq
     @test F(13) == F(13, 1)

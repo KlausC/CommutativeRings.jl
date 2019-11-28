@@ -126,17 +126,19 @@ struct Frac{P<:Union{Polynomial,ZZ}} <: FractionField{P,FractionClass{P}}
 end
 
 """
-    Quotient{m,R} 
+    Quotient{R,m} 
 
 The quotient ring of `R` modulo `m`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
 Typically `m` is replaced by a symbolic Id, and the actual `m` is given as argument(s)
-to the type constructor like  `new_class(Quotient{:Id,ZZ}, m...)`.
-If the `Id`is omitted, an anonymous symbol is used. Also `Zm = Z/m` works.
+to the type constructor like  `new_class(Quotient{ZZ,Id}, m...)`.
+If the `Id`is omitted, an anonymous symbol is used.
+
+The preferred way of construction is via `Zm = Z/m`.
 """
-struct Quotient{Id,R<:Ring} <: QuotientRing{R,QuotientClass{Id,R}}
+struct Quotient{R<:Ring,Id} <: QuotientRing{R,QuotientClass{Id,R}}
     val::R
-    Quotient{Id,R}(v::R, ::NCT) where {Id,R<:Ring} = new{Id,R}(v)
+    Quotient{R,Id}(v::R, ::NCT) where {Id,R<:Ring} = new{R,Id}(v)
 end
 
 """
@@ -151,25 +153,28 @@ struct QQ{S<:Integer} <: FractionField{S,QQClass{S}}
 end
 
 """
-    UnivariatePolynomial{Var,S<:RingInt}
+    UnivariatePolynomial{S<:RingInt,Id}
 
-Polynomials of ring elemets `S` in one variable `Var` (by default `:X`).
+Polynomials of ring elemets `S` in one variable `Id` (by default `:x`).
 The variable name is specified as a `Symbol`.
-Besides `UnivariatePolynomial{:X,Ring}` also the constructor `R[:X]` works.
+
+A convenience constructor `S[:x]` is the preferred way to construct this class.
 """
-struct UnivariatePolynomial{X,S<:Ring} <: Polynomial{S,UniPolyRingClass{X,S}}
+struct UnivariatePolynomial{S<:Ring,X} <: Polynomial{S,UniPolyRingClass{X,S}}
     coeff::Vector{S}
-    UnivariatePolynomial{X,S}(v::Vector{S}, ::NCT) where {X,S<:Ring} = new{X,S}(v)
+    UnivariatePolynomial{S,X}(v::Vector{S}, ::NCT) where {X,S<:Ring} = new{S,X}(v)
 end
 
 """
-    MultivariatePolynomial{Id,S<:RingInt,N}
+    MultivariatePolynomial{S<:RingInt,N,Id}
 
 Polynomials of ring elemets `S` in `N` variables.
 The `Id` identifies on object of type `MultiPolyRingClass` which is needed to store
 the variable names and properties.
+
+A convenience constructor `S[:x,:y...]` is the preferred way to construct this class.
 """
-struct MultivariatePolynomial{Id,S<:Ring,N} <: Polynomial{S,MultiPolyRingClass{Id,S,N}}
+struct MultivariatePolynomial{S<:Ring,N,Id} <: Polynomial{S,MultiPolyRingClass{Id,S,N}}
     ind::Vector{Int}
     coeff::Vector{S}
 end

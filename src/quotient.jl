@@ -1,33 +1,33 @@
 
 # class constructors
-Quotient(X,::Type{R}) where R<:Ring = new_class(Quotient{sintern(X),R}, X)
+Quotient(X,::Type{R}) where R<:Ring = new_class(R,Quotient{sintern(X)}, X)
 Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
 
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
-/(::Type{R}, m) where R<:Ring = new_class(Quotient{sintern(m),R}, new_ideal(R, m))
+/(::Type{R}, m) where R<:Ring = new_class(Quotient{R,sintern(m)}, new_ideal(R, m))
 
 # Constructors
-basetype(::Type{<:Quotient{m,T}}) where {m,T} = T
-depth(::Type{<:Quotient{m,T}}) where {m,T} = depth(T) + 1
+basetype(::Type{<:Quotient{T}}) where T = T
+depth(::Type{<:Quotient{T}}) where T = depth(T) + 1
 
-function Quotient{X,R}(a::R) where {X,R<:Ring}
-    m = modulus(Quotient{X,R})
+function Quotient{R,X}(a::R) where {X,R<:Ring}
+    m = modulus(Quotient{R,X})
     v = rem(a, m)
-    Quotient{X,R}(v, NOCHECK)
+    Quotient{R,X}(v, NOCHECK)
 end
 
 # convert argument to given R
-Quotient{X,R}(v::Quotient{X,R}) where {X,R<:Ring} = Quotient{X,R}(v.val)
-Quotient{X,R}(v) where {X,R<:Ring} = Quotient{X,R}(R(v))
+Quotient{R,X}(v::Quotient{R,X}) where {X,R<:Ring} = Quotient{R,X}(v.val)
+Quotient{R,X}(v) where {X,R<:Ring} = Quotient{R,X}(R(v))
 
 # promotion and conversion
 _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
-_promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{X,promote_type(R,S)}
-promote_rule(::Type{Quotient{X,R}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{X,R}
+_promote_rule(::Type{Quotient{R,X}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{promote_type(R,S),X}
+promote_rule(::Type{Quotient{R,X}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{R,X}
 
-convert(Q::Type{Quotient{X,R}}, a::Quotient{X,R}) where {X,R} = a
-convert(Q::Type{Quotient{X,R}}, a::S) where {X,R,S} = Q(convert(R, a))
+convert(::Type{Q}, a::Q) where {X,R,Q<:Quotient{R}} = a
+convert(::Type{Q}, a::S) where {R,S,Q<:Quotient{R}} = Q(convert(R, a))
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 
@@ -46,11 +46,11 @@ inv(a::T) where T<:Quotient = T(invert(a.val, modulus(T)), NOCHECK)
 isunit(a::T) where T<:Quotient = isunit(a.val) || isinvertible(modulus(T), a.val)
 iszero(x::Quotient) = iszero(x.val)
 isone(x::Quotient) = isone(x.val)
-zero(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(zero(S), NOCHECK)
-one(::Type{<:Quotient{X,S}}) where {X,S} = Quotient{X,S}(one(S), NOCHECK)
+zero(::Type{Q}) where {S,Q<:Quotient{S}} = Q(zero(S), NOCHECK)
+one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
-function (h::Hom{F,R,S})(a::Q) where {X,F,R,S,Q<:Quotient{X,<:R}}
+function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}
     iszero(F(modulus(Q))) || throw(DomainError((F,R), "ideal not in kernel of homomorphism"))
     F(a.val)
 end
@@ -62,10 +62,10 @@ end
 ## Help functions
 
 # return the ideal associated uniquely with this quotient ring
-modulus(t::Type{<:Quotient{X,R}}) where {X,R} = gettypevar(t).modulus
+modulus(t::Type{<:Quotient{R}}) where R = gettypevar(t).modulus
 
 # standard functions
-==(a::Quotient{X},b::Quotient{X}) where X = a.val == b.val
+==(a::Quotient{S,X},b::Quotient{T,X}) where {X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
 function Base.show(io::IO, a::Quotient)

@@ -14,7 +14,7 @@ end
 # Arithmetic
 
 # successively add to for Groebner basis
-function add(id::Ideal{R}, m::R) where {T,R<:UnivariatePolynomial{T}}
+function add(id::Ideal{R}, m::R) where {T,R<:Polynomial{T}}
     base = id.base
     push!(base, m)
     id

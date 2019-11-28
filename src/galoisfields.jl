@@ -58,13 +58,13 @@ Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
 promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{Q}) where {Id,T,Q} = G
 
-function convert(::Type{Q}, g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}}
+function convert(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:γ}},G<:GaloisField{Id,T,Q}}
 
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
 end
 
-(::Type{Q})(g::G) where {Id,T,X,Z,Q<:Quotient{X,UnivariatePolynomial{:γ,Z}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
+(::Type{Q})(g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:γ}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
 
 
 function isless(a::G, b::G) where G<:GaloisField
@@ -177,7 +177,7 @@ function tonumber(a::Quotient, p::Integer)
     s
 end
 
-function toquotient(a::Integer, ::Type{Q}) where {X,Z,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     c = zeros(Z, r)
@@ -218,11 +218,11 @@ function GFImpl(p::Integer, m::Integer=1; nr::Integer=0)
     end
 end
 
-function dimension(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function dimension(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     deg(modulus(Q))
 end
 
-function Base.show(io::IO, q::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function Base.show(io::IO, q::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
 
     m = dimension(Q)
     p = modulus(Z)
@@ -249,7 +249,7 @@ Here Q is a galois field of characteristic `p` and order `p^r`.
 If `normalmatrix(a))` is regular, the field elements `a^(p^i) for i = 0:r-1` form a
 base of `Q` as a vector space over `ZZ/p` (a normal base).
 """
-function normalmatrix(a::Q, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function normalmatrix(a::Q, m::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     m = m <= 0 ? r : m
@@ -270,11 +270,11 @@ end
 
 Return `normalmatrix(a, m)` for the first `a` in `Q` for which this ihas maximal rank. 
 """
-function normalmatrix(::Type{Q}, m::Integer=0) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function normalmatrix(::Type{Q}, m::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     normalmatrix(normalbase(Q), m)
 end
 
-function normalbases(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function normalbases(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     r = dimension(Q)
     Base.Iterators.filter(x->rank(normalmatrix(x, r)) == r, Q)
 end
@@ -283,7 +283,7 @@ end
 
 Find the first `a in Q` for which `normalmatrix(a)` is regular.
 """
-function normalbase(::Type{Q}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function normalbase(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     bases = normalbases(Q)
     isempty(bases) && throw(ArgumentError("quotient type with modulus $(modulus(Q)) has no normal bases - probably modulus is not an irreducible polynomial"))
     first(bases)
@@ -304,11 +304,11 @@ end
 mulsized(M::Matrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 mulsized(M::Diagonal{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
-function *(M::AbstractMatrix{Z}, a::Q) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P}}
+function *(M::AbstractMatrix{Z}, a::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
     mulsized(M, a.val.coeff)
 end
 
-function monom(::Type{Q}, k::Integer) where {X, P<:UnivariatePolynomial,Q<:Quotient{X,P}}
+function monom(::Type{Q}, k::Integer) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
     Q(monom(P, k))
 end
 
@@ -320,7 +320,7 @@ Return a function `iso:Q -> R`, which describes an isomorphism between two galoi
 then necessarily `order(R) == p^(r*s)` for some positive integer `s`.
 """
 function isomorphism end
-function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q<:Quotient{X,P},Y,R<:Quotient{Y,P}}
+function _isomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P},R<:Quotient{P}}
 
     r = dimension(Q)
     s = dimension(R)
@@ -360,7 +360,7 @@ function _isomorphism(::Type{Q}, ::Type{R}) where {X,Z<:ZZmod,P<:UnivariatePolyn
     throw(ErrorException("no isomorphism found - not reachable"))
 end
 
-function _isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Y,R<:Quotient{Y,P}}
+function _isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},R<:Quotient{P}}
     1, 1
 end
 
@@ -372,7 +372,7 @@ function isomorphism(iso::Function, nr::Integer=0)
     _isomorphism(Q, R, N, M1, nr)
 end
 
-function isomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{:γ,Z},Q,Y,R<:Quotient{Y,P}}
+function isomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q,R<:Quotient{P}}
 
     N, M1 = _isomorphism(Q, R)
     _isomorphism(Q, R, N, M1, nr)
@@ -396,7 +396,7 @@ end
 Assuming `p(vx) == 0` for an irreducible polynomial `p` and a galois field element `vx`
 find all zeros of `p` inrreducibles the galois field, vx belongs to.
 """
-function allzeros(p::P, vx::Q) where {X,P<:UnivariatePolynomial{X,<:ZZmod},Y,Q<:Quotient{Y,P}}
+function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial{<:ZZmod},Q<:Quotient{P}}
     q = characteristic(Q)
     r = deg(p)
     return (vx^q^k for k = 0:r-1)

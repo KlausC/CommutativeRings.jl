@@ -1,11 +1,11 @@
 
 # class constructors
 # convenience type constructor:
-# enable `R[:X]` as short for `UnivariatePolynomial{:X,R}`
-getindex(R::Type{<:Ring}, s::Symbol) = UnivariatePolynomial{s,R}
+# enable `R[:x]` as short for `UnivariatePolynomial{R,:x}`
+getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
 
 ### Constructors
-basetype(::Type{<:UnivariatePolynomial{X,T}}) where {X,T} = T
+basetype(::Type{<:Polynomial{T}}) where T = T
 depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
 function lcunit(a::UnivariatePolynomial)
     lco = lc(a)
@@ -36,23 +36,22 @@ function issimpler(a::T, b::T) where T<:UnivariatePolynomial
     da < db || da == db && issimpler(lc(a), lc(b))
 end
 
-UnivariatePolynomial{X,S}(a::Ring) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
-UnivariatePolynomial{X,S}(a::Integer) where {X,S} = convert(UnivariatePolynomial{X,S}, a)
+UnivariatePolynomial{S,X}(a::Ring) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
+UnivariatePolynomial{S,X}(a::Integer) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
 
 # promotion and conversion
-_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{<:Polynomial}) where {X,R} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
-_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{UnivariatePolynomial{X,S}}) where {X,R,S} = UnivariatePolynomial{X,promote_type(R,S)}
-_promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{X,promote_type(R,S)}
-promote_rule(::Type{UnivariatePolynomial{X,R}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{X,promote_type(R,S)}
+_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,Y}}) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
+_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,X}}) where {X,R,S} = UnivariatePolynomial{promote_type(R,S),X}
+_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{promote_type(R,S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{promote_type(R,S),X}
 
 
-convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{X}) where {X,R} = P(convert.(R, a.coeff))
-convert(P::Type{UnivariatePolynomial{X,R}}, a::UnivariatePolynomial{Y}) where {X,Y,R} = P(convert.(R, a.coeff))
-convert(P::Type{UnivariatePolynomial{X,S}}, a::S) where {X,S} = P([a])
-convert(P::Type{UnivariatePolynomial{X,S}}, a::T) where {X,S,T} = P([convert(S, a)])
+convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(convert.(R, a.coeff))
+convert(P::Type{<:UnivariatePolynomial{S}}, a::S) where {S} = P([a])
+convert(P::Type{<:UnivariatePolynomial{S}}, a::T) where {S,T} = P([convert(S, a)])
 
 # convert coefficient vector to polynomial
-function UnivariatePolynomial{X,T}(v::Vector{S}) where {X,T<:Ring,S<:T}
+function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
     x = Symbol(X)
     n = length(v)
     while n > 0 && iszero(v[n])
@@ -61,19 +60,20 @@ function UnivariatePolynomial{X,T}(v::Vector{S}) where {X,T<:Ring,S<:T}
     if n < length(v)
         v = copyto!(similar(v, n), 1, v, 1, n)
     end
-    UnivariatePolynomial{x,S}(v, NOCHECK)
+    UnivariatePolynomial{S,x}(v, NOCHECK)
 end
 # convert coefficient vector to polynomial, element type of vector determines class 
-UnivariatePolynomial{X}(v::Vector{S}) where {X,S} = UnivariatePolynomial{X,S}(v)
+UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S,T} = UnivariatePolynomial{S,x}(v)
+UnivariatePolynomial(x::Symbol, v::S) where {S,T} = UnivariatePolynomial{S,x}([v])
 # convert polynomial with same symbol and type aliasing original
-UnivariatePolynomial{X,S}(p::UnivariatePolynomial{X,S}) where {X,S<:Ring} = p
+UnivariatePolynomial{S,X}(p::UnivariatePolynomial{S,X}) where {X,S<:Ring} = p
 # convert polynomial with different coefficient type
-function UnivariatePolynomial{X,S}(p::UnivariatePolynomial{Y}) where {X,Y,S}
+function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     if X == Y
-        UnivariatePolynomial{X,S}(S.(p.coeff), NOCHECK)
+        UnivariatePolynomial{S,X}(S.(p.coeff), NOCHECK)
     elseif S <: UnivariatePolynomial
         yp = S(p)
-        UnivariatePolynomial{X,S}([yp], NOCHECK)
+        UnivariatePolynomial{S,X}([yp], NOCHECK)
     else
         throw(DomainError((X,Y), "cannot convert different variable names"))
     end 
@@ -84,7 +84,7 @@ function monom(P::Type{<:UnivariatePolynomial}, xv::Vector{<:Integer})
     monom(P, xv...)
 end
 
-function monom(P::Type{<:UnivariatePolynomial{X,S}}, k::Integer=1) where {X,S}
+function monom(P::Type{<:UnivariatePolynomial{S}}, k::Integer=1) where S
     k = max(k, -1)
     v = zeros(S,k+1)
     v[k+1] = one(S)
@@ -98,12 +98,12 @@ Construct a new polynomial Ring-element.
 Allow all coefficient classes, which can be mapped to S, that means
 the canonical homomorphism is used.
 """
-function UnivariatePolynomial{X,S}(v::AbstractVector) where {X,S}
-    isempty(v) ? UnivariatePolynomial{X,S}(S[]) : UnivariatePolynomial{X,S}([S(x) for x = v])
+function UnivariatePolynomial{S,X}(v::AbstractVector) where {X,S}
+    isempty(v) ? UnivariatePolynomial{S,X}(S[]) : UnivariatePolynomial{S,X}([S(x) for x = v])
 end
 
 # canonical embedding homomorphism from base ring
-UnivariatePolynomial{X}(r::R) where {X,R<:Ring} = UnivariatePolynomial{X,R}([r])
+UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 
 # make new copy
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff))
@@ -128,9 +128,9 @@ function +(p::T, q::T) where T<:UnivariatePolynomial
     end
     T(v, NOCHECK)
 end
-+(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = p + T([S(q)])
-+(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, q)
-+(q::S, p::T) where {X,S<:Ring,T<:UnivariatePolynomial{X,S}} = +(p, q)
++(p::T, q::Integer) where {S,T<:UnivariatePolynomial{S}} = p + T([S(q)])
++(q::Integer, p::T) where {S,T<:UnivariatePolynomial{S}} = +(p, q)
++(q::S, p::T) where {S<:Ring,T<:UnivariatePolynomial{S}} = +(p, q)
 
 function -(p::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -142,10 +142,10 @@ function -(p::T) where T<:UnivariatePolynomial
     T(v, NOCHECK)
 end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
--(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
--(p::T, q::Integer) where {X,S,T<:UnivariatePolynomial{X,S}} = +(p, -q)
--(q::Integer, p::T) where {X,S,T<:UnivariatePolynomial{X,S}} = +(-p, q)
--(q::S, p::T) where {X,S<:Ring,T<:UnivariatePolynomial{X,S}} = +(-p, q)
+-(p::T, q::Ring) where T<:UnivariatePolynomial = +(p, -q)
+-(p::T, q::Integer) where T<:UnivariatePolynomial = +(p, -q)
+-(q::Integer, p::T) where T<:UnivariatePolynomial = +(-p, q)
+-(q::S, p::T) where {S<:Ring,T<:UnivariatePolynomial{S}} = +(-p, q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
     vp = p.coeff
@@ -185,18 +185,18 @@ function *(p::UnivariatePolynomial, q::Ring)
         T(p.coeff .* Ref(q), NOCHECK)
     end
 end
-*(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = *(p, S(q))
+*(p::UnivariatePolynomial{S}, q::Integer) where {S} = *(p, S(q))
 *(q::Integer, p::UnivariatePolynomial) = *(p, q)
 *(q::Ring, p::UnivariatePolynomial) = *(p, q)
 
-function /(p::T, q::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+function /(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     d, r = divrem(p, q)
     iszero(r) ? d : throw(DomainError((p, q), "cannot divide a / b"))
 end
-function /(p::T, q::Ring) where {X,S,T<:UnivariatePolynomial{X,S}}
+function /(p::T, q::Ring) where {S,T<:UnivariatePolynomial{S}}
     T(p.coeff ./ S(q), NOCHECK)
 end
-/(p::UnivariatePolynomial{X,S}, q::Integer) where {X,S} = /(p, S(q))
+/(p::UnivariatePolynomial{S}, q::Integer) where S = /(p, S(q))
 
 function ^(p::P, k::Integer) where P<:Polynomial
     k < 0 && throw(DomainError((p,k), "polynom power negative exponent"))
@@ -366,13 +366,13 @@ function divrem(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
 end
 
 """
-    q, r, f = pdivrem(a::T, b::T) where T<:UnivariatePolynomial{X,R}
+    q, r, f = pdivrem(a::T, b::T) where T<:UnivariatePolynomial{R}
 
 A variant of divrem, if leading term of divisor is not a unit.
 The polynomial `a` is multiplied by a minimal factor `f ∈ R` with
 `f * a = q * b + r`.  
 """
-function pdivrem(p::T, q::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+function pdivrem(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     cp = p.coeff; cq = q.coeff
     vd, vr, f = divrem(cp, cq, Val(true))
     tweak(vd, cp, p), tweak(vr, cp, p), f
@@ -384,7 +384,7 @@ end
 Return the content of the polynimial p, i.e. the `gcd` of its coefficients.
 """
 content(p::UnivariatePolynomial) = gcd(p.coeff)
-function content(q::UnivariatePolynomial{X,Q}) where {X,Q<:Union{QQ,Quotient}}
+function content(q::UnivariatePolynomial{Q}) where Q<:Union{QQ,Quotient}
     c = lcm(getfield.(q.coeff, :den))
     g = gcd(getfield.(q.coeff, :num) .* ( div.(c, getfield.(q.coeff, :den))))
     Q(g , c)
@@ -416,11 +416,11 @@ end
 isunit(p::UnivariatePolynomial) = length(p.coeff) == 1 && isunit(p.coeff[1])
 isone(p::UnivariatePolynomial) = length(p.coeff) == 1 && isone(p.coeff[1])
 iszero(p::UnivariatePolynomial) = length(p.coeff) == 0
-zero(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T(S[])
-one(::Type{T}) where {X,S,T<:UnivariatePolynomial{X,S}} = T([one(S)])
+zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
+one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
-==(p::Polynomial{X}, q::Polynomial{Y}) where {X, Y} = false
-function hash(p::UnivariatePolynomial{X}, h::UInt) where X
+==(p::Polynomial, q::Polynomial) = false
+function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
     n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
 end
@@ -429,8 +429,8 @@ ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 ismonic(p::Polynomial) = isone(lc(p))
 
 # induced homomorphism
-function (h::Hom{F,R,S})(p::UnivariatePolynomial{X,<:R}) where {X,F,R,S}
-    UnivariatePolynomial{X}(F.(p.coeff))
+function (h::Hom{F,R,S})(p::UnivariatePolynomial{<:R,X}) where {X,F,R,S}
+    UnivariatePolynomial{S,X}(F.(p.coeff))
 end
 
 # auxiliary functions
@@ -456,7 +456,7 @@ Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-r
 The next to last calculated remainder is a scalar multiple of the gcd. 
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 """
-function pgcd(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     
     iszero(b) && return a
     da = deg(a)
@@ -486,9 +486,9 @@ end
     g, u, v = pgcdx(a, b)
 
 Extended pseudo GCD algorithm.
-Return `g == pgcd(a, b)` and `u, v` with `p * u + q * v == g`.
+Return `g == pgcd(a, b)` and `u, v, f` with `a * u + b * v == g * f`.
 """
-function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{X,S}}
+function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     E = one(S)
     iszero(b) && return a, E, zero(S), a
     iszero(a) && return b, zero(S), E, b
@@ -565,10 +565,10 @@ Evaluate polynomial by replacing variable `:x` by `y`. `y` may be an object whic
 can be converted to `basetype(p)` or another polynomial.
 Convenient method ot evaluate is is `p(y)`.
 """
-function evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
+function evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     _evaluate(p, x)
 end
-function evaluate(p::U, x::V) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePolynomial{Y,T}}
+function evaluate(p::U, x::V) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePolynomial{T,Y}}
     if ismonic(x) && ismonom(x)
         spread(p, deg(x), Y, T)
      else
@@ -576,7 +576,7 @@ function evaluate(p::U, x::V) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePo
     end
 end
 
-function _evaluate(p::UnivariatePolynomial{X,S}, x::T) where {X,S,T}
+function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     c = p.coeff
     n = length(c)
     R = promote_type(S,T)
@@ -613,12 +613,12 @@ function derive(p::P) where P<:UnivariatePolynomial
 end
 
 # efficient implementation of `p(x^m)`. 
-function spread(p::P, m::Integer) where {X,T,P<:UnivariatePolynomial{X,T}}
+function spread(p::P, m::Integer) where {T,P<:UnivariatePolynomial{T}}
     P(_spread(p.coeff, m, T))
 end
-function spread(p::P, m::Integer, Y, S) where {X,T,P<:UnivariatePolynomial{X,T}}
+function spread(p::P, m::Integer, Y, S) where {T,P<:UnivariatePolynomial{T}}
     c = _spread(p.coeff, m, S)
-    UnivariatePolynomial{Y}(c)
+    UnivariatePolynomial(Y, c)
 end
 
 function _spread(c::Vector{T}, m::Integer, ::Type{S}) where {T,S}
@@ -650,10 +650,10 @@ end
 import Base: show
 
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
-issimple(::Quotient{X,<:UnivariatePolynomial{:γ}}) where X = true
+issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
 issimple(::Any) = false
 
-function showvar(io::IO, var::UnivariatePolynomial{X}, n::Integer) where X
+function showvar(io::IO, var::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
     if n == 2
         print(io, X)
     elseif n != 1

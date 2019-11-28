@@ -1,6 +1,7 @@
 using Test
 using CommutativeRings
 
+@testset "generic" begin include("generic.jl") end
 @testset "typevars" begin include("typevars.jl") end
 @testset "ZZ" begin include("zz.jl") end
 @testset "QQ" begin include("qq.jl") end
