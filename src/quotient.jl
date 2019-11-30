@@ -5,7 +5,7 @@ Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
 
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
-/(::Type{R}, m) where R<:Ring = new_class(Quotient{R,sintern(m)}, new_ideal(R, m))
+/(::Type{R}, m) where R<:Ring = new_class(Quotient{R,sintern(m)}, pseudo_ideal(R, m))
 
 # Constructors
 basetype(::Type{<:Quotient{T}}) where T = T
@@ -56,7 +56,7 @@ function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}
 end
 
 # note:
-# the real work is in the functions `new_ideal`, `rem`, `invert`, `isinvertible` which
+# the real work is in the functions `Ideal`, `rem`, `invert`, `isinvertible` which
 # have all been delegated to Ideal
 
 ## Help functions

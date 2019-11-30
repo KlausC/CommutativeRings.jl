@@ -194,7 +194,7 @@ Respresent in Ideal of Ring `R`. Only Ideals with a finite (Groebner) basis.
 """
 struct Ideal{R<:Ring}
     base::Vector{R}
-    Ideal{R}() where R = new{R}(R[])
+    Ideal{R}(a::Vector{R}) where R = new{R}(a)
 end
 
 """

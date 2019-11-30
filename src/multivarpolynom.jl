@@ -10,7 +10,7 @@ function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
 end
 
 import Base: copy, convert, promote_rule
-import Base: +, -, *, zero, one, ==
+import Base: +, -, *, zero, one, ==, isless
 
 (::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
 copy(a::MultivariatePolynomial) = a
@@ -62,6 +62,7 @@ end
 *(p::T, a::Integer) where T<:MultivariatePolynomial = T(p.ind, p.coeff .* a)
 *(a::Integer, p::T) where T<:MultivariatePolynomial = T(p.ind, a .* p.coeff)
 ==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == a.coeff
+isless(a::T, b::T) where T<:MultivariatePolynomial = a.ind[end] < b.ind[end]
 
 function +(a::T...) where T<:MultivariatePolynomial
     n = length(a)
@@ -195,6 +196,8 @@ end
 #= Tuple mappings. See for reference:
 https://stackoverflow.com/questions/26932409/compact-storage-coefficients-of-a-multivariate-polynomial
 https://en.wikipedia.org/wiki/Combinatorial_number_system
+
+This constructs the degrevlex total ordering of monomials.
 =#
 
 """
@@ -417,6 +420,14 @@ function minimize!(H::AbstractArray{P}) where P<:MultivariatePolynomial
         end
     end
     resize!(H, j)
+    for i = 1:j
+        f = H[i]
+        lcu = inv(lcunit(f))
+        if !isone(lcu)
+            f = f * lcu
+        end
+        H[i] = f
+    end
     H
 end
 
@@ -430,7 +441,7 @@ function reduce!(H::AbstractArray{P}) where P<:Polynomial
             H[i] = g
         end
     end
-    H
+    sort!(H, rev=true)
 end
 
 """

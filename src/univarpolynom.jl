@@ -7,7 +7,7 @@ getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
 ### Constructors
 basetype(::Type{<:Polynomial{T}}) where T = T
 depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
-function lcunit(a::UnivariatePolynomial)
+function lcunit(a::Polynomial)
     lco = lc(a)
     isunit(lco) ? lco : one(lco)
 end

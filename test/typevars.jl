@@ -11,7 +11,6 @@ end
 
 
 @testset "gettypevar" begin
-    @test deg(modulus(GF(3, 12))) == 12
-    @test deg(modulus(GF(3, 12))) == 12
+    @test deg(modulus(GF(2, 5))) == 5
 end
 
