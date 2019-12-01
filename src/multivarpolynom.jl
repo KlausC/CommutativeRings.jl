@@ -6,8 +6,19 @@ function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
     vs = collect((s, t...))
     N = length(vs)
     Id = sintern(vs)
-    new_class(MultivariatePolynomial{R,N,Id}, vs)
+    new_class(MultivariatePolynomial{R,N,Id,Int,Tuple{N}}, vs)
 end
+function getindex(R::Type{<:Ring}, s::AbstractVector{Symbol}, t::AbstractVector{Symbol}...)
+    blocks = collect((s, t...))
+    vs = vcat(blocks...)
+    N = length(vs)
+    Id = sintern(vs)
+    n = length(blocks)
+    T = n == 1 ? Int : NTuple{n,Int}
+    B = Tuple{[length(x) for x in blocks]...}
+    new_class(MultivariatePolynomial{R,N,Id,T,B}, vs)
+end
+
 
 import Base: copy, convert, promote_rule
 import Base: +, -, *, zero, one, ==, isless
@@ -17,24 +28,22 @@ copy(a::MultivariatePolynomial) = a
 basetype(::Type{<:MultivariatePolynomial{T}}) where T = T
 
 # promotion and conversion
-_promote_rule(::Type{MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
-_promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{MultivariatePolynomial{S,N,X}}) where {X,N,R,S} = MultivariatePolynomial{promote_type(R,S),N,X}
-_promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{S}) where {X,N,R,S<:Ring} = MultivariatePolynomial{promote_type(R,S),N,X}
-promote_rule(::Type{MultivariatePolynomial{R,N,X}}, ::Type{S}) where {X,N,R,S<:Union{Integer,Rational}} = MultivariatePolynomial{promote_type(R,S),N,X}
+_promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
+_promote_rule(::Type{MultivariatePolynomial{R,N,X,T,B}}, ::Type{MultivariatePolynomial{S,N,X,T,B}}) where {X,N,R,S,T,B} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
+_promote_rule(::Type{P}, ::Type{S}) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
+promote_rule(::Type{P}, ::Type{S}) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
 
-function convert(P::Type{MultivariatePolynomial{R,N,X}}, a::MultivariatePolynomial{S,N,X}) where {X,N,R,S}
+function convert(P::Type{MultivariatePolynomial{R,N,X,T,B}}, a::MultivariatePolynomial{S,N,X,T,B}) where {R,N,X,T,B,S}
     P(a.ind, convert.(R, a.coeff))
 end
 function convert(P::Type{<:MultivariatePolynomial{S}}, a::S) where S
-    iszero(a) ? zero(P) : P([1], [a])
+    iszero(a) ? zero(P) : P(one(P).ind, [a])
 end
 function convert(P::Type{<:MultivariatePolynomial{S}}, a::T) where {S,T}
-    iszero(a) ? zero(P) : P([1], [convert(S, a)])
+    iszero(a) ? zero(P) : P(one(P).ind, [convert(S, a)])
 end
 
-function deg(a::MultivariatePolynomial{S,N}) where {N,S}
-    isempty(a.ind) ? -1 : sum(index2tuple(a.ind[end], N))
-end
+deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(leading_index(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
@@ -42,11 +51,21 @@ function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) wh
     n = length(xv)
     n == 0 && return zero(P)
     length(xv) != N && throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
-    P([tuple2index(xv)], [1])
+    P([tuple2index(P, xv)], [1])
 end
 
 function leading_index(p::MultivariatePolynomial{S,N}) where {N,S}
-    isempty(p.ind) ? Int[] : index2tuple(p.ind[end], N)
+    isempty(p.ind) ? Int[] : numbered_index(p, length(p.ind))
+end
+
+function numbered_index(p::MultivariatePolynomial{S,N,X,<:Integer}, i::Integer) where {S,N,X}
+    index2tuple(p.ind[i], N)
+end
+
+function numbered_index(p::MultivariatePolynomial{S,N,X,<:Tuple,B}, i::Integer) where {S,N,X,B<:Tuple}
+    vp = tupcon(B)
+    m = length(vp)
+    vcat([index2tuple(p.ind[i][k], vp[k]) for k = 1:m]...)
 end
 
 # arithmetic
@@ -54,7 +73,7 @@ function zero(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     T(Int[], S[])
 end
 function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
-    convert(T, 1)
+    T([zeroindex(T)], S[1])
 end
 
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
@@ -72,27 +91,20 @@ function +(a::T...) where T<:MultivariatePolynomial
     d = similar(a[1].ind)
     j = 0
     p = ones(Int, n)
-    pm = [get(x.ind, 1, 0) for x in a]
+    pm = [getindex(x, 1) for x in a]
+    bound = maxindex(T)
     
     while true
-        m = typemax(Int)
-        imin = 0
-        for i = 1:n
-            ix = pm[i]
-            if ix > 0 && ix < m
-                m = ix
-                imin = i
-            end
-        end
-        imin == 0 && break
+        m, imin = findmin(pm)
+        m == bound && break
         cj = a[imin].coeff[p[imin]]
         p[imin] += 1
-        pm[imin] = get(a[imin].ind, p[imin], 0)
+        pm[imin] = getindex(a[imin], p[imin])
         for i = imin+1:n
             if pm[i] == m
                 cj += a[i].coeff[p[i]]
                 p[i] += 1
-                pm[i] = get(a[i].ind, p[i], 0)
+                pm[i] = getindex(a[i], p[i])
             end
         end
         if !iszero(cj)
@@ -120,27 +132,20 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     d = similar(a.ind)
     j = 0
     p = ones(Int, n)
-    pm = [indexsum(a.ind[1], x, N) for x in b.ind]
-    
+    pm = [numbered_sum(a, 1, b, j) for j in 1:n]
+    bound = maxindex(T)
+
     while true
-        m = typemax(Int)
-        imin = 0
-        for i = 1:n
-            ix = pm[i]
-            if ix > 0 && ix < m
-                m = ix
-                imin = i
-            end
-        end
-        imin == 0 && break
+        min, imin = findmin(pm)
+        min == bound && break
         cj = a.coeff[p[imin]] * b.coeff[imin]
         p[imin] += 1
-        pm[imin] = indexsum(get(a.ind, p[imin], 0), b.ind[imin], N)
+        pm[imin] = numbered_sum(a, p[imin], b, imin)
         for i = imin+1:n
-            if pm[i] == m
+            if pm[i] == min
                 cj += a.coeff[p[i]] * b.coeff[i]
                 p[i] += 1
-                pm[i] = indexsum(get(a.ind, p[i], 0), b.ind[i], N)
+                pm[i] = numbered_sum(a, p[i], b, i)
             end
         end
         if !iszero(cj)
@@ -149,7 +154,7 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
                 resize!(d, 2*j)
                 resize!(c, 2*j)
             end
-            d[j] = m
+            d[j] = min
             c[j] = cj
         end
     end
@@ -158,14 +163,13 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     T(d, c)
 end
 
-
 function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:MultivariatePolynomial{S,N}}
     length(a) != N && throw(ArgumentError("wrong number of arguments of polynomial with $N variables"))
     n = length(p.ind)
     R = promote_type(S, typeof.(a)...)
     deg(p) < 0 && return zero(R)
     deg(p) == 1 && return R(p.coeff[1])
-    vdeg = maximum(hcat(index2tuple.(p.ind, N)...), dims=2)
+    vdeg = maximum(hcat(numbered_index.(p, 1:n)...), dims=2)
     xpot = [Vector{R}(undef, vdeg[i]) for i = 1:N]
     # precalculate all required monoms.
     for i = 1:N
@@ -181,7 +185,7 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     end
     s = zero(R)
     for j = 1:n
-        ex = index2tuple(p.ind[j], N)
+        ex = numbered_index(p, j)
         t = p.coeff[j]
         for i = 1:N
             if ex[i] > 0
@@ -192,6 +196,28 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     end
     s
 end
+
+function tuple2index(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+    tuple2index(a)
+end
+
+function tuple2index(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
+
+    t = tupcon(B)
+    res = Vector{T}(undef, M)
+    j = 0
+    for i = 1:M
+        d = t[i]
+        res[i] = tuple2index(a[j+1:j+d])
+        j += d
+    end
+    tuple(res...)
+end
+
+# extract constants from Tuple{1,2,3...}
+tupcon(::Type{Tuple{A}}) where A = (A,)
+tupcon(::Type{Tuple{A,B}}) where {A,B} = (A, B)
+tupcon(A::Type{<:Tuple}) = tuple(A.parameters...)
 
 #= Tuple mappings. See for reference:
 https://stackoverflow.com/questions/26932409/compact-storage-coefficients-of-a-multivariate-polynomial
@@ -278,6 +304,38 @@ function indexsum(x::T, y::T, d::Int) where T<:Integer
     tuple2index(index2tuple(x, d) + index2tuple(y, d))
 end
 
+zeroindex(P::Type{<:MultivariatePolynomial}) = fillindex(one, P)
+maxindex(P::Type{<:MultivariatePolynomial}) = fillindex(typemax, P)
+
+function fillindex(f, ::Type{<:P}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+    f(T)
+end
+function fillindex(f, ::Type{<:P}) where {R,N,X,T,M,P<:MultivariatePolynomial{R,N,X,NTuple{M,T}}}
+    ft = f(T)
+    ntuple(x->ft, M)
+end
+
+function numbered_sum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+    a = pa.ind
+    b = pb.ind
+    (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
+    indexsum(a[i], b[j], N)
+end
+
+function numbered_sum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
+    a = pa.ind
+    b = pb.ind
+    (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
+    ai = a[i]
+    bi = b[j]
+    vp = tupcon(B)
+    ntuple(k->indexsum(ai[k], bi[k], vp[k]), length(ai))
+end
+
+function getindex(pa::P, i::Integer) where P<:MultivariatePolynomial
+    isassigned(pa.ind, i) ? pa.ind[i] : maxindex(P)
+end
+
 function divides(x::V, y::V) where V<:AbstractVector{<:Integer}
     all(x .<= y)
 end
@@ -285,7 +343,7 @@ end
 varnames(p::T) where T<:MultivariatePolynomial = gettypevar(T).varnames
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
-    ex = index2tuple(var.ind[n], N)
+    ex = numbered_index(var, n)
     vn = varnames(var)
     start = true
     for i = 1:N
@@ -298,7 +356,9 @@ function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,
     end
 end
 
-isconstterm(p::MultivariatePolynomial, n::Integer) = n <= 0 || p.ind[n] <= 1
+function isconstterm(p::P, n::Integer) where P<:MultivariatePolynomial
+    n <= 0 || p.ind[n] == zeroindex(P)
+end
 
 # division and Gröbner base calculation
 

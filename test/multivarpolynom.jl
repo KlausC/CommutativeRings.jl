@@ -90,3 +90,14 @@ end
     g = x^3 - x
     @test groebnerbase([f, g]) == [x^2 - y, x*y - x, y^2 - y]
 end
+
+@testset "blocked order" begin
+    P = ZZ{Int}[[:t], [:x,:y]]
+    t = monom(P, [1, 0, 0])
+    x = monom(P, [0, 1, 0])
+    y = monom(P, [0, 0, 1])
+    @test (t + 1)^2 == t^2 + 2*t + 1
+    @test (y + 1)^2 == y^2 + 2*y + 1
+    @test (x + t)^2 == x^2 + 2*x*t + t^2
+end
+

@@ -175,8 +175,8 @@ the variable names and properties.
 
 A convenience constructor `S[:x,:y...]` is the preferred way to construct this class.
 """
-struct MultivariatePolynomial{S<:Ring,N,Id} <: Polynomial{S,MultiPolyRingClass{Id,S,N}}
-    ind::Vector{Int}
+struct MultivariatePolynomial{S<:Ring,N,Id,T,B} <: Polynomial{S,MultiPolyRingClass{Id,S,N}}
+    ind::Vector{T}
     coeff::Vector{S}
 end
 
