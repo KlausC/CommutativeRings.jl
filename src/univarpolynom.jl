@@ -397,12 +397,10 @@ The primitive part of the polynomial p, that means the `gcd` of its coefficients
 """
 primpart(p::UnivariatePolynomial) = p / content(p)
 
-"""
-    deg(p::UnivariatePolynomial)
-
+#=
 Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
 nonzero coefficient. The degree of the zero polynomial is defined to be -1.
-"""
+=#
 deg(p::UnivariatePolynomial) = length(p.coeff) - 1
 
 function inv(p::T) where T<:Polynomial

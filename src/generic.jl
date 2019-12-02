@@ -93,13 +93,15 @@ characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
 characteristic(::Type{<:Ring}) = 0
 
 """
-    deg(r::Ring)
+    deg(r::Union{Ring,Number})
 
-Return the degree of ring element `r`. For zero elements, that is `-1`, otherwise `0`
-for non-polynomials, the ordinary degree for univariate polynomials and the
-maximum degree for multivariate polynomials.
+Return the degree of ring element or number `r`.
+
+For zero elements, that is `-1`, otherwise `0` for non-polynomials,
+the ordinary degree for univariate polynomials and the
+maximum sum of exponents for multivariate polynomials.
 """
-deg(x::Ring) = iszero(x) ? -1 : 0 # fallback
+deg(x::Union{Ring,Number}) = iszero(x) ? -1 : 0 # fallback
 
 function divrem(a::T, b::T) where T<:Ring
     if isunit(b)

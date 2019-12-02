@@ -2,6 +2,8 @@
 using CommutativeRings
 import CommutativeRings: index2tuple, tuple2index, cbin, gettypevar
 
+const Z = ZZ{Int}
+
 @testset "index calculations" begin
     
     @test_throws ArgumentError cbin(0, 0)
@@ -24,42 +26,40 @@ end
 
 @testset "constructors" begin
 
-    Z = ZZ{Int}
     @test Z[] == Vector{Z}(undef, 0)
     @test Z[:x] <: UnivariatePolynomial
     @test Z[:x, :y] <: MultivariatePolynomial
+    @test Z[[:x],[:y]] <: MultivariatePolynomial
     P = Z[:x,:y,:z]
     @test gettypevar(P).varnames == [:x, :y, :z]
 end
 
-@testset "addition" begin
+@testset "addition" for P in (Z[:x, :y], Z[[:x], [:y]])
     
-    Z = ZZ{Int}
-    P = Z[:x, :y]
-    @test zero(P) == P(Int[], Z[])
-    @test one(P) == P([1], Z[1])
     @test zero(P) + one(P) == one(P) 
     @test one(P) + one(P) == 2*one(P)
     @test -one(P) + one(P) == zero(P)
     @test -one(P) == (-1) * one(P)
     @test one(P) - one(P) == zero(P)
 
-    a = P([1,10], Z[3, 4])
-    b = P([10], Z[5])
-    @test a + b == P([1,10], Z[3, 9])
-    @test 5a - 4b == P([1], Z[5])
+    x, y = monom.(P, [[1,0], [0,1]])
+    a = 4*x^3 + 3
+    b = y + 5*x^3
+    @test 5a - 4b == -4y + 15
+    @test a + b == 5*x^3 + 5*y + 3
+    @test deg(zero(P)) == -1
+    @test deg(one(P)) == 0
+    @test deg(x + 1) == 1
+    @test deg(x*y + 1) == 2
 end
 
-@testset "multiplication" begin
-
-    Z = ZZ{BigInt}
-    P = Z[:x, :y]
+@testset "multiplication" for P in (Z[:x, :y], Z[[:x], [:y]])
 
     @test zero(P) * zero(P) == zero(P)
     @test zero(P) * one(P) == zero(P)
     @test one(P) * one(P) == one(P)
-    x = P([3], [1])
-    y = P([2], [1])
+    x = monom(P, [1, 0])
+    y = monom(P, [0, 1])
     @test (x + y)^2 == x^2 + 2x*y + y^2
     @test (x + y) * (x - y) == x^2 - y^2
     xy = x * 5 + 2y^2 + x*y
@@ -70,7 +70,7 @@ end
 end
 
 @testset "division" begin
-    P = ZZ{Int}[:x, :y]
+    P = ZZ{BigInt}[:x, :y]
     x = monom(P, [1, 0])
     y = monom(P, [0, 1])
     f = x^2 - y
@@ -83,7 +83,7 @@ end
 end
 
 @testset "Gröbner base" begin
-    P = ZZ{Int}[:x, :y]
+    P = Z[:x, :y]
     x = monom(P, [1, 0])
     y = monom(P, [0, 1])
     f = x^2 - y
@@ -92,12 +92,14 @@ end
 end
 
 @testset "blocked order" begin
-    P = ZZ{Int}[[:t], [:x,:y]]
+    P = Z[[:t], [:x,:y]]
     t = monom(P, [1, 0, 0])
     x = monom(P, [0, 1, 0])
     y = monom(P, [0, 0, 1])
     @test (t + 1)^2 == t^2 + 2*t + 1
     @test (y + 1)^2 == y^2 + 2*y + 1
     @test (x + t)^2 == x^2 + 2*x*t + t^2
+    @test (x+y)(1, 2, 3) == 5
+    @test (t*x^2*y^3 + 1)(1, 2, 3) == 1*4*27 + 1
 end
 

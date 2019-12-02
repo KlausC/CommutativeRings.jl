@@ -168,7 +168,7 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     n = length(p.ind)
     R = promote_type(S, typeof.(a)...)
     deg(p) < 0 && return zero(R)
-    deg(p) == 1 && return R(p.coeff[1])
+    deg(p) == 0 && return R(p.coeff[1])
     vdeg = maximum(hcat(numbered_index.(p, 1:n)...), dims=2)
     xpot = [Vector{R}(undef, vdeg[i]) for i = 1:N]
     # precalculate all required monoms.

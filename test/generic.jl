@@ -17,3 +17,10 @@ import CommutativeRings: tosuper, tosub
     @test tosub(-1234, sign=true) == "₋₁₂₃₄"  
 
 end
+
+@testset "degrees" begin
+    @test deg(0) == -1
+    @test deg(1) == 0
+    @test deg(ZZ(0)) == -1
+    @test deg(ZZ(10)) == 0
+end
