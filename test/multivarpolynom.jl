@@ -34,6 +34,13 @@ end
     @test gettypevar(P).varnames == [:x, :y, :z]
 end
 
+@testset "varnames and generators" for P in (Z[:x, :y, :z], Z[[:x], [:y,:z]])
+    x, y, z = monom.(P, [[1,0,0], [0,1,0], [0,0,1]])
+    @test [x, y, z] == generators(P)
+    @test varnames(P) == [:x, :y, :z]
+    @test varnames(P(0)) == [:x, :y, :z]
+end
+
 @testset "addition" for P in (Z[:x, :y], Z[[:x], [:y]])
     
     @test zero(P) + one(P) == one(P) 
@@ -60,6 +67,8 @@ end
     @test one(P) * one(P) == one(P)
     x = monom(P, [1, 0])
     y = monom(P, [0, 1])
+    @test 0*x == zero(P)
+    @test x*1 === x
     @test (x + y)^2 == x^2 + 2x*y + y^2
     @test (x + y) * (x - y) == x^2 - y^2
     xy = x * 5 + 2y^2 + x*y
@@ -67,6 +76,10 @@ end
     @test xy * zero(P) == zero(P)
     @test xy^2 == 25x^2 + x^2*y*10 + 20x*y^2 + x^2*y^2 + 4x*y^3 + 4y^4
     @test xy * x == 5x^2 + 2x*y^2 + x^2*y 
+
+    R = (ZZ/12)[:x,:y]
+    xr = monom(R, [1, 0])
+    @test (xr*3) * 4 == zero(R)
 end
 
 @testset "division" begin
@@ -103,3 +116,40 @@ end
     @test (t*x^2*y^3 + 1)(1, 2, 3) == 1*4*27 + 1
 end
 
+@testset "conversions" for P in (Z[:t, :x, :y], Z[[:t], [:x,:y]])
+    t = monom(P, [1, 0, 0])
+    x = monom(P, [0, 1, 0])
+    y = monom(P, [0, 0, 1])
+    @test generators(P) == [t, x, y]
+
+    Q = Z[:x]
+    xq = monom(Q)
+    @test P(0*xq) isa P
+    @test P(0*xq) == zero(P)
+    @test P(5*xq^0) == 5
+    @test P(xq) == monom(P, [0, 1, 0])
+
+    R = Z[:z]
+    zr = monom(R)
+    @test P(0*zr) isa P
+    @test P(0*zr) == zero(P)
+    @test P(5*zr^0) == 5
+    @test_throws ArgumentError P(zr)
+
+    Q = Z[:y, :x]
+    yq, xq = monom(Q, [1,0]), monom(Q, [0,1])
+    @test P(0*xq) isa P
+    @test P(0*yq) == zero(P)
+    @test P(5*xq^0) == 5
+    @test P(xq) == monom(P, [0, 1, 0])
+    @test P(xq + yq*xq) == x + y*x
+
+    Q = Z[:z, :y, :x]
+    zq, yq, xq = monom(Q, [1,0,0]), monom(Q, [0,1,0]), monom(Q, [0,0,1])
+    @test P(0*xq) isa P
+    @test P(0*yq) == zero(P)
+    @test P(5*xq^0) == 5
+    @test P(xq) == monom(P, [0, 1, 0])
+    @test P(xq + yq*xq) == x + y*x
+    @test_throws ArgumentError P(zq + xq + yq)
+end

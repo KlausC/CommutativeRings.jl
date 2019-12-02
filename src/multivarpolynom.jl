@@ -36,6 +36,52 @@ promote_rule(::Type{P}, ::Type{S}) where {R,N,X,T,B,S<:Union{Integer,Rational},P
 function convert(P::Type{MultivariatePolynomial{R,N,X,T,B}}, a::MultivariatePolynomial{S,N,X,T,B}) where {R,N,X,T,B,S}
     P(a.ind, convert.(R, a.coeff))
 end
+function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePolynomial{S}) where {R,N,X,T,S}
+
+    deg(a) <= 0 && return P(lc(a))
+    vp = varnames(P)
+    va = varnames(a)
+    pos = positionsin(va, vp)
+    n = length(a.ind)
+    pind = Vector{T}(undef, n)
+    for i = 1:n
+        xa = numbered_index(a, i)
+        checkpositions(pos, xa, va, vp)
+        xp = reindex2(xa, pos, N)
+        pind[i] = tuple2index(P, xp)
+    end
+    perm = sortperm(pind)
+    pind = pind[perm]
+    pc = a.coeff[perm]
+    P(pind, pc)
+end
+function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::UnivariatePolynomial{S}) where {R,N,X,T,S}
+
+    deg(a) <= 0 && return P(lc(a))
+    vp = varnames(P)
+    va = varnames(a)
+    issubset(va, vp) || throw(ArgumentError("Variable :$(va[1]) not contained in $vp"))
+    pos = positionsin(va, vp)
+    ac = a.coeff
+    n = length(ac)
+    pind = Vector{T}(undef, n)
+    perm = Vector{Int}(undef, n)
+    j = 0
+    for i = 1:n
+        aci = ac[i]
+        if !iszero(aci)
+            j += 1
+            xa = [i-1]
+            perm[j] = i
+            xp = reindex2(xa, pos, N)
+            pind[j] = tuple2index(P, xp)
+        end
+    end
+    resize!(perm, j)
+    resize!(pind, j)
+    P(pind, ac[perm])
+end
+
 function convert(P::Type{<:MultivariatePolynomial{S}}, a::S) where S
     iszero(a) ? zero(P) : P(one(P).ind, [a])
 end
@@ -52,6 +98,23 @@ function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) wh
     n == 0 && return zero(P)
     length(xv) != N && throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
     P([tuple2index(P, xv)], [1])
+end
+
+"""
+    generators(P)
+
+Return an array of all polynomial generators (variables) of a polynomial type `P`.
+"""
+generators(P::Type{<:UnivariatePolynomial}) = [monom(P, 1)]
+function generators(P::Type{<:MultivariatePolynomial{S,N}}) where {S,N}
+    v = zeros(Int, N)
+    res = Vector{P}(undef, N)
+    for i = 1:N
+        v[i] = 1
+        res[i] = monom(P, v)
+        v[i] = 0
+    end
+    res
 end
 
 function leading_index(p::MultivariatePolynomial{S,N}) where {N,S}
@@ -78,8 +141,21 @@ end
 
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
 -(a::T, b::T) where T<:MultivariatePolynomial = +(a, -b)
-*(p::T, a::Integer) where T<:MultivariatePolynomial = T(p.ind, p.coeff .* a)
-*(a::Integer, p::T) where T<:MultivariatePolynomial = T(p.ind, a .* p.coeff)
+function *(p::T, a::Integer) where T<:MultivariatePolynomial
+    iszero(a) && return zero(T)
+    isone(a) && return p
+    pc = p.coeff .* a
+    pind = copy(p.ind)
+    for i = length(pc):-1:1
+        if iszero(pc[i])
+            deleteat!(pind, i)
+            deleteat!(pc, i)
+        end
+    end
+    T(pind, pc)
+end
+
+*(a::Integer, p::T) where T<:MultivariatePolynomial = p * a
 ==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == a.coeff
 isless(a::T, b::T) where T<:MultivariatePolynomial = a.ind[end] < b.ind[end]
 
@@ -340,7 +416,14 @@ function divides(x::V, y::V) where V<:AbstractVector{<:Integer}
     all(x .<= y)
 end
 
-varnames(p::T) where T<:MultivariatePolynomial = gettypevar(T).varnames
+"""
+    varnames(P)
+
+Return array of variabel names of polynomial or polynomial type `P`.
+"""
+varnames(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = Symbol[X]
+varnames(::Type{T}) where T<:MultivariatePolynomial = gettypevar(T).varnames
+varnames(p::T) where T<:Polynomial = varnames(T)
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
     ex = numbered_index(var, n)
@@ -515,4 +598,47 @@ http://www.crypto.rub.de/imperia/md/content/may/12/ws1213/kryptanal12/13_buchber
 """
 function groebnerbase(H::AbstractArray{P}) where P<:Polynomial
     buchberger(H) |> minimize! |> reduce!
+end
+
+# utility functions
+"""
+    positionsin(va, vb)
+
+Return integer array of the same size as va. Element `i` is the index of first `va[i]`
+in `vb` or zero, if missing.
+"""
+function positionsin(va::T, vb::T) where T<:AbstractVector
+    n = length(va)
+    res = Vector{Int}(undef, n)
+    for i = 1:n
+        p = findfirst(isequal(va[i]), vb)
+        res[i] = ifelse(p === nothing, 0, p)
+    end
+    res
+end
+
+"""
+    reindex2(values, pos, n)
+
+Return an array of integers of size `n` such that `result[pos] = val`.
+Default values in `result` are zero.
+The indices with `pos[i] == 0` are silently ignored.
+"""
+function reindex2(xa::AbstractVector, pos::AbstractVector{<:Integer}, n::Integer)
+    res = zeros(Int, n)
+    for i = 1:length(pos)
+        posi = pos[i]
+        if posi != 0
+            res[posi] = xa[i]
+        end
+    end
+    res
+end
+
+function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
+    findfirst(iszero, pos) == nothing && return pos
+    i = findfirst(i->iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
+    if i != nothing
+        throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
+    end
 end

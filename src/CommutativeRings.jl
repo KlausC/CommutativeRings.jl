@@ -15,6 +15,7 @@ export ofindex, index
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export red, groebnerbase
+export generators, varnames
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm

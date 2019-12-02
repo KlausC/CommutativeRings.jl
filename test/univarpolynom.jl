@@ -61,6 +61,13 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
     @test hash(UnivariatePolynomial{ZZ{Int8},:x}([1])) == hash(P([1]))
 end
 
+@testset "varnames and generators" for P in (S[:x],)
+    x = monom(P)
+    @test [x] == generators(P)
+    @test varnames(P) == [:x]
+    @test varnames(P(0)) == [:x]
+end
+
 @testset "promotion of types" begin
     @test promote_type(P, PQ) == PQ
     @test promote_type(P, ZZ{Int}) == P
