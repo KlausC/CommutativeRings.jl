@@ -8,6 +8,7 @@ using CommutativeRings
 @testset "ZZmod" begin include("zzmod.jl") end
 @testset "univarpolynom" begin include("univarpolynom.jl") end
 @testset "multivarpolynom" begin include("multivarpolynom.jl") end
+@testset "ideal" begin include("ideal.jl") end
 @testset "fraction" begin include("fraction.jl") end
 @testset "quotient" begin include("quotient.jl") end
 @testset "factorization" begin include("factorization.jl") end
