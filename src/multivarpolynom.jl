@@ -21,7 +21,7 @@ end
 
 
 import Base: copy, convert, promote_rule
-import Base: +, -, *, zero, one, ==, isless
+import Base: +, -, *, zero, one, ==, hash, isless
 
 (::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
 copy(a::MultivariatePolynomial) = a
@@ -172,6 +172,10 @@ end
 
 *(a::Integer, p::T) where T<:MultivariatePolynomial = p * a
 ==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == a.coeff
+function hash(a::MultivariatePolynomial, h::UInt)
+    n = deg(a)
+    n < 0 ? hash(0, h) : n == 0 ? hash(lc(a), h) : hash(a.ind, hash(a.coeff, h))
+end
 isless(a::T, b::T) where T<:MultivariatePolynomial = a.ind[end] < b.ind[end]
 
 function +(a::T...) where T<:MultivariatePolynomial

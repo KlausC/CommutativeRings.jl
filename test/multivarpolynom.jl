@@ -93,6 +93,9 @@ end
 
 @testset "Gröbner base" for P in (Z[:x, :y], Z[[:x], [:y]])
     x, y = generators(P)
+    @test groebnerbase([x, x]) == [x]
+    @test hash(0*x) == hash(0)
+    @test hash(x^0) == hash(1)
     f = x^2 - y
     g = x^3 - x
     @test groebnerbase([f, g]) == [x^2 - y, x*y - x, y^2 - y]
