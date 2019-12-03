@@ -451,7 +451,7 @@ function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
     xif = 0
     lif = lig
     for i = length(f.ind):-1:1
-        li = index2tuple(f.ind[i], N)
+        li = numbered_index(f, i)
         if divides(lig, li)
             lif = li
             xif = i
