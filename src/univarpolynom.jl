@@ -208,7 +208,7 @@ function ^(p::P, k::Integer) where P<:Polynomial
     elseif n == 0
         P(lc(p)^k)
     elseif n > 0 && ismonom(p)
-        indv = leading_index(p)
+        indv = leading_expo(p)
         lco = lc(p)
         mon = monom(P, k * indv)
         if !isone(lco) && !isempty(indv)
@@ -220,7 +220,7 @@ function ^(p::P, k::Integer) where P<:Polynomial
     end
 end
 
-leading_index(p::UnivariatePolynomial) = [deg(p)]
+leading_expo(p::UnivariatePolynomial) = [deg(p)]
 
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r

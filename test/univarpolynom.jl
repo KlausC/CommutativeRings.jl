@@ -142,6 +142,9 @@ end
 
     @test iszero(lc(zero(P)))
     @test isone(lc(one(P)))
+    @test lc(p) == 1
+    @test leading_expo(one(P)) == [0]
+    @test leading_expo(p) == [2]
 
     PP = UnivariatePolynomial{P,:z}
     pp = PP([p, q, s])

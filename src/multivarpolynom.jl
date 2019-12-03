@@ -45,10 +45,10 @@ function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePoly
     n = length(a.ind)
     pind = Vector{T}(undef, n)
     for i = 1:n
-        xa = numbered_index(a, i)
+        xa = index2expo(a, i)
         checkpositions(pos, xa, va, vp)
         xp = reindex2(xa, pos, N)
-        pind[i] = tuple2index(P, xp)
+        pind[i] = expo2ordblock(P, xp)
     end
     perm = sortperm(pind)
     pind = pind[perm]
@@ -74,7 +74,7 @@ function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::UnivariatePolyno
             xa = [i-1]
             perm[j] = i
             xp = reindex2(xa, pos, N)
-            pind[j] = tuple2index(P, xp)
+            pind[j] = expo2ordblock(P, xp)
         end
     end
     resize!(perm, j)
@@ -89,21 +89,26 @@ function convert(P::Type{<:MultivariatePolynomial{S}}, a::T) where {S,T}
     iszero(a) ? zero(P) : P(one(P).ind, [convert(S, a)])
 end
 
-deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(leading_index(p))
+deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(leading_expo(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
+"""
+    monom(<:MultivariatePolynomial, expos::Vector{Int})
+
+Return monic monomial with given exponents. (`[1,0,...]` corresponds to first variable). 
+"""
 function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) where {N,S}
     n = length(xv)
     n == 0 && return zero(P)
     length(xv) != N && throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
-    P([tuple2index(P, xv)], [1])
+    P([expo2ordblock(P, xv)], [1])
 end
 
 """
     generators(P)
 
-Return an array of all polynomial generators (variables) of a polynomial type `P`.
+Return an array of all monomial generators (variables) of a polynomial type `P`.
 """
 generators(P::Type{<:UnivariatePolynomial}) = [monom(P, 1)]
 function generators(P::Type{<:MultivariatePolynomial{S,N}}) where {S,N}
@@ -117,18 +122,28 @@ function generators(P::Type{<:MultivariatePolynomial{S,N}}) where {S,N}
     res
 end
 
-function leading_index(p::MultivariatePolynomial{S,N}) where {N,S}
-    isempty(p.ind) ? Int[] : numbered_index(p, length(p.ind))
+"""
+    leading_expo(p::Polynomial)
+
+Return tuple of variable exponents of the leading monomial of `p`.
+"""
+function leading_expo(p::MultivariatePolynomial{S,N}) where {N,S}
+    isempty(p.ind) ? Int[] : index2expo(p, length(p.ind))
 end
 
-function numbered_index(p::MultivariatePolynomial{S,N,X,<:Integer}, i::Integer) where {S,N,X}
-    index2tuple(p.ind[i], N)
+"""
+    index2expo(p::Polynomial, i::Integer)
+
+Return the tuple of variable exponents stored at this index (of `p.ind`.
+"""
+function index2expo(p::MultivariatePolynomial{S,N,X,<:Integer}, i::Integer) where {S,N,X}
+    ord2expo(p.ind[i], N)
 end
 
-function numbered_index(p::MultivariatePolynomial{S,N,X,<:Tuple,B}, i::Integer) where {S,N,X,B<:Tuple}
+function index2expo(p::MultivariatePolynomial{S,N,X,<:Tuple,B}, i::Integer) where {S,N,X,B<:Tuple}
     vp = tupcon(B)
     m = length(vp)
-    vcat([index2tuple(p.ind[i][k], vp[k]) for k = 1:m]...)
+    vcat([ord2expo(p.ind[i][k], vp[k]) for k = 1:m]...)
 end
 
 # arithmetic
@@ -208,7 +223,7 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     d = similar(a.ind)
     j = 0
     p = ones(Int, n)
-    pm = [numbered_sum(a, 1, b, j) for j in 1:n]
+    pm = [exposum(a, 1, b, j) for j in 1:n]
     bound = maxindex(T)
 
     while true
@@ -216,12 +231,12 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
         min == bound && break
         cj = a.coeff[p[imin]] * b.coeff[imin]
         p[imin] += 1
-        pm[imin] = numbered_sum(a, p[imin], b, imin)
+        pm[imin] = exposum(a, p[imin], b, imin)
         for i = imin+1:n
             if pm[i] == min
                 cj += a.coeff[p[i]] * b.coeff[i]
                 p[i] += 1
-                pm[i] = numbered_sum(a, p[i], b, i)
+                pm[i] = exposum(a, p[i], b, i)
             end
         end
         if !iszero(cj)
@@ -245,7 +260,7 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     R = promote_type(S, typeof.(a)...)
     deg(p) < 0 && return zero(R)
     deg(p) == 0 && return R(p.coeff[1])
-    vdeg = maximum(hcat(numbered_index.(p, 1:n)...), dims=2)
+    vdeg = maximum(hcat(index2expo.(p, 1:n)...), dims=2)
     xpot = [Vector{R}(undef, vdeg[i]) for i = 1:N]
     # precalculate all required monoms.
     for i = 1:N
@@ -261,7 +276,7 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     end
     s = zero(R)
     for j = 1:n
-        ex = numbered_index(p, j)
+        ex = index2expo(p, j)
         t = p.coeff[j]
         for i = 1:N
             if ex[i] > 0
@@ -272,19 +287,26 @@ function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:Multivaria
     end
     s
 end
+"""
+    expo2ordblock(::Type{<:Polynomial}, a::Vector{Int})
 
-function tuple2index(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
-    tuple2index(a)
+Return `Integer` or tuple of `Integer` representing the monomial ordering.
+In the first case, or if the tuple has length one, that is the `:grevlex` order,
+otherwise a block order, based on `:grevlex`, including `:lex`, if each variable
+block consists of one variable.
+"""
+function expo2ordblock(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+    expo2ord(a)
 end
 
-function tuple2index(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
+function expo2ordblock(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
 
     t = tupcon(B)
     res = Vector{T}(undef, M)
     j = 0
     for i = 1:M
         d = t[i]
-        res[i] = tuple2index(a[j+1:j+d])
+        res[i] = expo2ord(a[j+1:j+d])
         j += d
     end
     tuple(res...)
@@ -303,11 +325,13 @@ This constructs the degrevlex total ordering of monomials.
 =#
 
 """
-    tuple2index(a)
+    expo2ord(a)
 
 bijective mapping from tuples of non-negative integers to positive integers.
+
+The induced order of tuples is `:grevlex`.
 """
-function tuple2index(a::AbstractVector{<:Integer})
+function expo2ord(a::AbstractVector{<:Integer})
     c = similar(a)
     d = length(a)
     d == 0 && return c + 1
@@ -321,12 +345,13 @@ function tuple2index(a::AbstractVector{<:Integer})
 end
 
 """
-    index2tuple(n, d)
+    ord2expo(n, d)
 
 bijective mapping from integers to `d`-tuples of integers.
 
+The induced order of tuples is `:grevlex`.
 """
-function index2tuple(n::T, d::Int) where T<:Integer
+function ord2expo(n::T, d::Int) where T<:Integer
     c = Vector{T}(undef, d)
     n < 1 && throw(ArgumentError("index must be positive but is $n"))
     n -= 1
@@ -377,7 +402,7 @@ end
 
 function indexsum(x::T, y::T, d::Int) where T<:Integer
     x > 0 && y > 0 || return 0
-    tuple2index(index2tuple(x, d) + index2tuple(y, d))
+    expo2ord(ord2expo(x, d) + ord2expo(y, d))
 end
 
 zeroindex(P::Type{<:MultivariatePolynomial}) = fillindex(one, P)
@@ -391,14 +416,20 @@ function fillindex(f, ::Type{<:P}) where {R,N,X,T,M,P<:MultivariatePolynomial{R,
     ntuple(x->ft, M)
 end
 
-function numbered_sum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+"""
+    exposum(a::Polynomial, i, b::Polynomial, j)
+
+Return the sum of varaibel exonents at `a.ind[i]` and `b.ind[j].
+Realizes multiplication of monomials.
+"""
+function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     a = pa.ind
     b = pb.ind
     (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
     indexsum(a[i], b[j], N)
 end
 
-function numbered_sum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
+function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
     a = pa.ind
     b = pb.ind
     (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
@@ -426,7 +457,7 @@ varnames(::Type{T}) where T<:MultivariatePolynomial = gettypevar(T).varnames
 varnames(p::T) where T<:Polynomial = varnames(T)
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
-    ex = numbered_index(var, n)
+    ex = index2expo(var, n)
     vn = varnames(var)
     start = true
     for i = 1:N
@@ -447,11 +478,11 @@ end
 
 function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
 
-    lig = leading_index(g)
+    lig = leading_expo(g)
     xif = 0
     lif = lig
     for i = length(f.ind):-1:1
-        li = numbered_index(f, i)
+        li = index2expo(f, i)
         if divides(lig, li)
             lif = li
             xif = i
@@ -502,8 +533,8 @@ end
 function buchberger_s(f::P, g::P) where P<:MultivariatePolynomial
     lcf = lc(f)
     lcg = lc(g)
-    lif = leading_index(f)
-    lig = leading_index(g)
+    lif = leading_expo(f)
+    lig = leading_expo(g)
 
     h = gcd(lcf, lcg)
     af = lcf / h
@@ -538,10 +569,10 @@ function minimize!(H::AbstractArray{P}) where P<:MultivariatePolynomial
     for i = 1:n
         f = H[i]
         if !iszero(f)
-            lif = leading_index(H[i])
+            lif = leading_expo(H[i])
             for g in H
                 if !iszero(g) && f != g
-                    if all(lif .>= leading_index(g))
+                    if all(lif .>= leading_expo(g))
                         cf = lc(f)
                         cg = lc(g)
                         if iszero(rem(cf, cg))

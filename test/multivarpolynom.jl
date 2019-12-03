@@ -1,6 +1,6 @@
 
 using CommutativeRings
-import CommutativeRings: index2tuple, tuple2index, cbin, gettypevar
+import CommutativeRings: ord2expo, expo2ord, cbin, gettypevar, varnames
 
 const Z = ZZ{Int}
 
@@ -12,16 +12,16 @@ const Z = ZZ{Int}
     @test cbin(10, 9) == (10, 10)
     @test cbin(100, 9) == (11, 55)
 
-    @test_throws ArgumentError index2tuple(0, 1) == [7654320]
-    @test index2tuple(7654321, 1) == [7654320]
-    @test tuple2index([1234]) == 1235
-    @test index2tuple(1, 3) == [0, 0, 0]
-    @test tuple2index([0,0,0,0]) == 1
-    @test index2tuple(binomial(20+4-1, 4)+1, 4) == [0,0,0,20]
-    @test tuple2index([0,0,10]) == binomial(10 + 3 - 1, 3)+1
+    @test_throws ArgumentError ord2expo(0, 1) == [7654320]
+    @test ord2expo(7654321, 1) == [7654320]
+    @test expo2ord([1234]) == 1235
+    @test ord2expo(1, 3) == [0, 0, 0]
+    @test expo2ord([0,0,0,0]) == 1
+    @test ord2expo(binomial(20+4-1, 4)+1, 4) == [0,0,0,20]
+    @test expo2ord([0,0,10]) == binomial(10 + 3 - 1, 3)+1
 
-    @test tuple2index.(index2tuple.(1:10000, 2)) == 1:10000
-    @test tuple2index.(index2tuple.(1:10000, 5)) == 1:10000
+    @test expo2ord.(ord2expo.(1:10000, 2)) == 1:10000
+    @test expo2ord.(ord2expo.(1:10000, 5)) == 1:10000
 end
 
 @testset "constructors" begin
@@ -30,8 +30,6 @@ end
     @test Z[:x] <: UnivariatePolynomial
     @test Z[:x, :y] <: MultivariatePolynomial
     @test Z[[:x],[:y]] <: MultivariatePolynomial
-    P = Z[:x,:y,:z]
-    @test gettypevar(P).varnames == [:x, :y, :z]
 end
 
 @testset "varnames and generators" for P in (Z[:x, :y, :z], Z[[:x], [:y,:z]])
@@ -49,7 +47,7 @@ end
     @test -one(P) == (-1) * one(P)
     @test one(P) - one(P) == zero(P)
 
-    x, y = monom.(P, [[1,0], [0,1]])
+    x, y = generators(P)
     a = 4*x^3 + 3
     b = y + 5*x^3
     @test 5a - 4b == -4y + 15
@@ -65,8 +63,7 @@ end
     @test zero(P) * zero(P) == zero(P)
     @test zero(P) * one(P) == zero(P)
     @test one(P) * one(P) == one(P)
-    x = monom(P, [1, 0])
-    y = monom(P, [0, 1])
+    x, y = generators(P)
     @test 0*x == zero(P)
     @test x*1 === x
     @test (x + y)^2 == x^2 + 2x*y + y^2
@@ -84,8 +81,7 @@ end
 
 @testset "division" begin
     P = ZZ{BigInt}[:x, :y]
-    x = monom(P, [1, 0])
-    y = monom(P, [0, 1])
+    x, y = generators(P)
     f = x^2 - y
     g = x^3 - x
     G = [f, g]
@@ -95,10 +91,8 @@ end
     @test sum(a .* G) + r == h
 end
 
-@testset "Gröbner base" begin
-    P = Z[:x, :y]
-    x = monom(P, [1, 0])
-    y = monom(P, [0, 1])
+@testset "Gröbner base" for P in (Z[:x, :y], Z[[:x], [:y]])
+    x, y = generators(P)
     f = x^2 - y
     g = x^3 - x
     @test groebnerbase([f, g]) == [x^2 - y, x*y - x, y^2 - y]
@@ -106,9 +100,7 @@ end
 
 @testset "blocked order" begin
     P = Z[[:t], [:x,:y]]
-    t = monom(P, [1, 0, 0])
-    x = monom(P, [0, 1, 0])
-    y = monom(P, [0, 0, 1])
+    t, x, y = generators(P)
     @test (t + 1)^2 == t^2 + 2*t + 1
     @test (y + 1)^2 == y^2 + 2*y + 1
     @test (x + t)^2 == x^2 + 2*x*t + t^2
@@ -117,9 +109,7 @@ end
 end
 
 @testset "conversions" for P in (Z[:t, :x, :y], Z[[:t], [:x,:y]])
-    t = monom(P, [1, 0, 0])
-    x = monom(P, [0, 1, 0])
-    y = monom(P, [0, 0, 1])
+    t, x, y = generators(P)
     @test generators(P) == [t, x, y]
 
     Q = Z[:x]
