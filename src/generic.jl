@@ -287,3 +287,25 @@ function _integer_to_script(a::Integer, chars::Vector{Char}, sign::Bool)
     String(take!(io))
 end
 
+function sort_unique!(A::AbstractVector; rev::Bool=false)
+    n = length(A)
+    n == 0 && return A
+    a = sort!(A, rev=rev)
+    j = 1
+    aj = a[1]
+    for i = 2:length(a)
+        ai = a[i]
+        if !isequal(aj, ai)
+            j += 1
+            aj = ai
+        end
+        if i != j
+            a[j] = aj
+        end
+    end
+    if j < n
+        resize!(a, j)
+    end
+    a
+end
+

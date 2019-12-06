@@ -10,6 +10,15 @@ function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
 end
 function getindex(R::Type{<:Ring}, s::AbstractVector{Symbol}, t::AbstractVector{Symbol}...)
     blocks = collect((s, t...))
+    construct(R, blocks)
+end
+
+function lextend(::Type{P}, s::Symbol, t::Symbol...) where {R,P<:MultivariatePolynomial{R}}
+    blocks = [collect((s, t...)), varblocks(P)...]
+    construct(R, blocks)
+end
+
+function construct(::Type{R}, blocks) where R<:Ring    
     vs = vcat(blocks...)
     N = length(vs)
     Id = sintern(vs)
@@ -19,9 +28,8 @@ function getindex(R::Type{<:Ring}, s::AbstractVector{Symbol}, t::AbstractVector{
     new_class(MultivariatePolynomial{R,N,Id,T,B}, vs)
 end
 
-
 import Base: copy, convert, promote_rule
-import Base: +, -, *, zero, one, ==, hash, isless
+import Base: +, -, *, zero, one, ==, hash, isless, iszero, isone
 
 (::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
 copy(a::MultivariatePolynomial) = a
@@ -154,6 +162,9 @@ function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     T([zeroindex(T)], S[1])
 end
 
+iszero(p::MultivariatePolynomial) = length(p.ind) == 0
+isone(p::MultivariatePolynomial) = iszero(leading_expo(p)) && isone(lc(p))
+
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
 -(a::T, b::T) where T<:MultivariatePolynomial = +(a, -b)
 function *(p::T, a::Integer) where T<:MultivariatePolynomial
@@ -176,7 +187,17 @@ function hash(a::MultivariatePolynomial, h::UInt)
     n = deg(a)
     n < 0 ? hash(0, h) : n == 0 ? hash(lc(a), h) : hash(a.ind, hash(a.coeff, h))
 end
-isless(a::T, b::T) where T<:MultivariatePolynomial = a.ind[end] < b.ind[end]
+function isless(a::T, b::T) where T<:MultivariatePolynomial
+    m = length(a.ind)
+    n = length(b.ind)
+    if m == 0
+        n != 0
+    elseif n == 0
+        false
+    else
+        a.ind[m] < b.ind[n]
+    end
+end
 
 function +(a::T...) where T<:MultivariatePolynomial
     n = length(a)
@@ -460,6 +481,20 @@ varnames(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = Symbol[X]
 varnames(::Type{T}) where T<:MultivariatePolynomial = gettypevar(T).varnames
 varnames(p::T) where T<:Polynomial = varnames(T)
 
+function varblocks(::Type{P}) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
+    vars = varnames(P)
+    t = tupcon(B)
+    M = length(t)
+    res = Vector{Vector{Symbol}}(undef, M)
+    j = 0
+    for i = 1:M
+        d = t[i]
+        res[i] = vars[j+1:j+d]
+        j += d
+    end
+    res
+end
+
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
     ex = index2expo(var, n)
     vn = varnames(var)
@@ -510,7 +545,7 @@ function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
     end
 end
 
-function red(f::P, G::AbstractArray{P}) where {T,P<:MultivariatePolynomial{T}}
+function red(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{T}}
     f0 = f
     fp = zero(P)
     a = zeros(P, length(G))
@@ -551,24 +586,64 @@ end
 using Base.Iterators
 
 # find initial Gröbner base using Buchberger's algorithm
-function buchberger(H::AbstractArray{P}) where P<:MultivariatePolynomial
-    G = unique(H)
+function buchberger1(H::AbstractVector{P}) where P<:MultivariatePolynomial
+    G = sort_unique!(copy(H), rev=true)
     K = empty(G)
     while K != G
         K = copy(G)
-        for (p, q) in product(K, K)
-            pq = buchberger_s(p, q)
-            s, a, d = red(pq, G)
-            if !iszero(s) && !in(s, G)
-                push!(G, s)
+        n = length(K)
+        for i = 1:n
+            p = K[i]
+            for j = i+1:n
+                q = K[j]
+                pq = buchberger_s(p, q)
+                s, a, d = red(pq, G)
+                if isone(d) && !iszero(s) && !in(s, G)
+                    push!(G, s)
+                end
             end
         end
     end
     G
 end
 
+function buchberger(f::AbstractVector{P}) where P<:MultivariatePolynomial
+    m = n = length(f)
+    g = copy(f)
+    C = [(i,j) for i=1:n for j = i+1:n]
+    while !isempty(C)
+        k = select_critical_pair(C, g)
+        i, j = C[k]
+        p, q = g[i], g[j]
+        deleteat!(C, k)
+        pq = buchberger_s(p, q)
+        s, a, d = red(pq, g)
+        if !iszero(s) && isone(d)
+            push!(g, s)
+            n += 1
+            append!(C, [(i,n) for i = 1:n-1])
+        end
+    end
+    g
+end
+
+function select_critical_pair(C::AbstractVector{Tuple{Int,Int}}, g::AbstractVector)
+    n = length(C)
+    kmin = 1
+    degp(k) = sum(max.((leading_expo(g[C[k][1]])), leading_expo(g[C[k][2]])))
+    dmin = degp(1)
+    for k = 2:n
+        dk = degp(k)
+        if dk < dmin
+            dmin = dk
+            kmin = k
+        end
+    end
+    kmin
+end
+
 # eliminiate generators with leading terms spanned by other leading terms
-function minimize!(H::AbstractArray{P}) where P<:MultivariatePolynomial
+function minimize!(H::AbstractVector{P}) where P<:MultivariatePolynomial
     n = length(H)
     for i = 1:n
         f = H[i]
@@ -610,16 +685,21 @@ function minimize!(H::AbstractArray{P}) where P<:MultivariatePolynomial
 end
 
 # reduced Gröbner base
-function reduce!(H::AbstractArray{P}) where P<:Polynomial
+function reduce!(H::AbstractVector{P}) where P<:Polynomial
     n = length(H)
     for i = 1:n
         f = H[i]
-        g, a, c = red(f, [g for g in H if g != f])
-        if g !== f
+        g, a, c = red(f, [g for g in H if g != f && !iszero(g)])
+        if g !== f && isone(c)
             H[i] = g
         end
     end
-    sort!(H, rev=true)
+    sort_unique!(H, rev=true)
+    j = findlast(iszero, H)
+    if j !== nothing
+        resize!(H, j-1)
+    end
+    H
 end
 
 """
@@ -631,7 +711,7 @@ see for example:
 https://en.wikipedia.org/wiki/Gr%C3%B6bner_basis
 http://www.crypto.rub.de/imperia/md/content/may/12/ws1213/kryptanal12/13_buchberger.pdf
 """
-function groebnerbase(H::AbstractArray{P}) where P<:Polynomial
+function groebnerbase(H::AbstractVector{P}) where P<:Polynomial
     buchberger(H) |> minimize! |> reduce!
 end
 
