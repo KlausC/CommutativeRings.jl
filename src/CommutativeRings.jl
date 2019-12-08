@@ -128,19 +128,19 @@ struct Frac{P<:Union{Polynomial,ZZ}} <: FractionField{P,FractionClass{P}}
 end
 
 """
-    Quotient{R,m} 
+    Quotient{R,I,m} 
 
-The quotient ring of `R` modulo `m`, also written as `R / m`.
+The quotient ring of `R` modulo `m` of type `I`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
-Typically `m` is replaced by a symbolic Id, and the actual `m` is given as argument(s)
-to the type constructor like  `new_class(Quotient{ZZ,Id}, m...)`.
-If the `Id`is omitted, an anonymous symbol is used.
+Typically `m` is replaced by a symbolic `X`, and the actual `m` is given as argument(s)
+to the type constructor like  `new_class(Quotient{ZZ,`X`}, m...)`.
+If the ``X``is omitted, an anonymous symbol is used.
 
 The preferred way of construction is via `Zm = Z/m`.
 """
-struct Quotient{R<:Ring,Id} <: QuotientRing{R,QuotientClass{Id,R}}
+struct Quotient{R<:Ring,I,X} <: QuotientRing{R,QuotientClass{X,I}}
     val::R
-    Quotient{R,Id}(v::R, ::NCT) where {Id,R<:Ring} = new{R,Id}(v)
+    Quotient{R,I,X}(v::R, ::NCT) where {I,X,R<:Ring} = new{R,I,X}(v)
 end
 
 """

@@ -1,33 +1,35 @@
 
 # class constructors
-Quotient(X,::Type{R}) where R<:Ring = new_class(R,Quotient{sintern(X)}, X)
 Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
 
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
-/(::Type{R}, m) where R<:Ring = new_class(Quotient{R,sintern(m)}, pseudo_ideal(R, m))
+function /(::Type{R}, m) where R<:Ring
+    ideal = pseudo_ideal(R, m)
+    new_class(Quotient{R,typeof(ideal),sintern(m)}, ideal)
+end
 
 # Constructors
 basetype(::Type{<:Quotient{T}}) where T = T
 depth(::Type{<:Quotient{T}}) where T = depth(T) + 1
 
-function Quotient{R,X}(a::R) where {X,R<:Ring}
-    m = modulus(Quotient{R,X})
+function Quotient{R,I,X}(a::R) where {I,X,R<:Ring}
+    m = modulus(Quotient{R,I,X})
     v = rem(a, m)
-    Quotient{R,X}(v, NOCHECK)
+    Quotient{R,I,X}(v, NOCHECK)
 end
 
 # convert argument to given R
-Quotient{R,X}(v::Quotient{R,X}) where {X,R<:Ring} = Quotient{R,X}(v.val)
-Quotient{R,X}(v) where {X,R<:Ring} = Quotient{R,X}(R(v))
+Quotient{R,I,X}(v::Quotient{R,I,X}) where {I,X,R<:Ring} = Quotient{R,I,X}(v.val)
+Quotient{R,I,X}(v) where {I,X,R<:Ring} = Quotient{R,I,X}(R(v))
 
 # promotion and conversion
 _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
-_promote_rule(::Type{Quotient{R,X}}, ::Type{S}) where {X,R,S<:Ring} = Quotient{promote_type(R,S),X}
-promote_rule(::Type{Quotient{R,X}}, ::Type{S}) where {X,R,S<:Integer} = Quotient{R,X}
+_promote_rule(::Type{Quotient{R,I,X}}, ::Type{S}) where {I,X,R,S<:Ring} = Quotient{promote_type(R,S),I,X}
+promote_rule(::Type{Quotient{R,I,X}}, ::Type{S}) where {I,X,R,S<:Integer} = Quotient{R,I,X}
 
-convert(::Type{Q}, a::Q) where {X,R,Q<:Quotient{R}} = a
-convert(::Type{Q}, a::S) where {R,S,Q<:Quotient{R}} = Q(convert(R, a))
+convert(::Type{Q}, a::Q) where {R,Q<:Quotient{R}} = a
+convert(::Type{Q}, a::S) where {S,R,Q<:Quotient{R}} = Q(convert(R, a))
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 
@@ -65,7 +67,7 @@ end
 modulus(t::Type{<:Quotient{R}}) where R = gettypevar(t).modulus
 
 # standard functions
-==(a::Quotient{S,X},b::Quotient{T,X}) where {X,S,T} = a.val == b.val
+==(a::Quotient{S,I,X},b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
 function Base.show(io::IO, a::Quotient)

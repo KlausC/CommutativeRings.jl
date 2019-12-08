@@ -379,23 +379,23 @@ function pdivrem(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
 end
 
 """
-    content(p::UnivariatePolynomial)
+    content(p::Polynomial)
 
-Return the content of the polynimial p, i.e. the `gcd` of its coefficients.
+Return the content of the polynomial p, i.e. the `gcd` of its coefficients.
 """
-content(p::UnivariatePolynomial) = gcd(p.coeff)
-function content(q::UnivariatePolynomial{Q}) where Q<:Union{QQ,Quotient}
+content(p::Polynomial) = gcd(p.coeff)
+function content(q::Polynomial{Q}) where Q<:Union{QQ,Quotient}
     c = lcm(getfield.(q.coeff, :den))
     g = gcd(getfield.(q.coeff, :num) .* ( div.(c, getfield.(q.coeff, :den))))
     Q(g , c)
 end
 
 """
-    primpart(p::UnivariatePolynomial)
+    primpart(p::Polynomial)
 
 The primitive part of the polynomial p, that means the `gcd` of its coefficients is `1`,
 """
-primpart(p::UnivariatePolynomial) = p / content(p)
+primpart(p::Polynomial) = p / content(p)
 
 #=
 Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a

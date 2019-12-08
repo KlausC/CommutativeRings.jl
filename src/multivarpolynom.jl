@@ -513,9 +513,16 @@ function isconstterm(p::P, n::Integer) where P<:MultivariatePolynomial
     n <= 0 || p.ind[n] == zeroindex(P)
 end
 
+divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
+
+function divrem(f::P, g::Union{AbstractVector{P},P}) where P<:MultivariatePolynomial
+    a, s, d = pdivrem(f, g)
+    isone(d) ? (a, s) : (zero(P), f)
+end
+
 # division and Gröbner base calculation
 
-function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
+function pdivrem(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
 
     lig = leading_expo(g)
     xif = 0
@@ -528,24 +535,25 @@ function red(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
             break
         end
     end
-    xif == 0 && return f, zero(P), one(T)
+    xif == 0 && return zero(P), f, one(T)
     c = f.coeff[xif]
     d = lc(g)
     q = monom(P, lif .- lig)
     if isone(d)
         k = q * c
-        f - g * k, k, one(T) 
+        k, f - g * k, one(T) 
     elseif isunit(d)
         k = q * (c / d)
-        f - g * k, k, one(T)
+        k, f - g * k, one(T)
     else
-        h = gcd(c, d)
-        k = q * (c / h )
-        f * h - g * k, k, h
+        x = gcd(c, d)
+        h = d / x
+        k = q * (c / x)
+        k, f * h - g * k, h
     end
 end
 
-function red(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{T}}
+function pdivrem(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{T}}
     f0 = f
     fp = zero(P)
     a = zeros(P, length(G))
@@ -554,7 +562,7 @@ function red(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{T}}
         fp = f
         for (i, g) in enumerate(G)
             ffp = f
-            f, k, d = red(f, g)
+            k, f, d = pdivrem(f, g)
             if f !== ffp
                 if !isone(d)
                     a .*= d
@@ -566,7 +574,7 @@ function red(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{T}}
             end
         end
     end
-    f, a, dd
+    a, f, dd
 end
 
 function buchberger_s(f::P, g::P) where P<:MultivariatePolynomial
@@ -597,7 +605,7 @@ function buchberger1(H::AbstractVector{P}) where P<:MultivariatePolynomial
             for j = i+1:n
                 q = K[j]
                 pq = buchberger_s(p, q)
-                s, a, d = red(pq, G)
+                a, s, d = pdivrem(pq, G)
                 if isone(d) && !iszero(s) && !in(s, G)
                     push!(G, s)
                 end
@@ -617,7 +625,7 @@ function buchberger(f::AbstractVector{P}) where P<:MultivariatePolynomial
         p, q = g[i], g[j]
         deleteat!(C, k)
         pq = buchberger_s(p, q)
-        s, a, d = red(pq, g)
+        a, s, d = pdivrem(pq, g)
         if !iszero(s) && isone(d)
             push!(g, s)
             n += 1
@@ -689,7 +697,7 @@ function reduce!(H::AbstractVector{P}) where P<:Polynomial
     n = length(H)
     for i = 1:n
         f = H[i]
-        g, a, c = red(f, [g for g in H if g != f && !iszero(g)])
+        a, g, c = pdivrem(f, [g for g in H if g != f && !iszero(g)])
         if g !== f && isone(c)
             H[i] = g
         end

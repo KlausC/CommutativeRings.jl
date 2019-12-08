@@ -3,6 +3,7 @@
 
 pseudo_ideal(::Type{R},m::RingInt) where R = R(m)
 pseudo_ideal(::Type{R},mm::AbstractVector) where R = Ideal(Vector{R}(mm))
+pseudo_ideal(::Type{R},m::Ideal{R}) where R = m
 Ideal(m::R) where R<:Ring = Ideal{R}([m])
 Ideal(m::T) where T<:Integer = Ideal(ZZ{T}(m))
 Ideal(mm::RingInt...) = Ideal(collect(Base.promote_typeof(mm...), mm))
@@ -11,10 +12,10 @@ Ideal(mm::AbstractVector{R}) where R<:Polynomial = Ideal{R}(groebnerbase(mm))
 
 # Arithmetic
 
-import Base: in, issubset, ==, intersect, sum, +, *, ^, iszero, zero, one
+import Base: in, issubset, ==, intersect, sum, +, *, ^, iszero, zero, one, rem
 
 function in(a::R, id::Ideal{R}) where R<:MultivariatePolynomial
-    r, a, d = red(a, id.base)
+    a, r, d = pdivrem(a, id.base)
     isone(d) && iszero(r)
 end
 
@@ -58,9 +59,12 @@ function ^(id::Ideal{R}, p::Integer) where R<:MultivariatePolynomial
     elseif iseven(p)
         (id^(p÷2))^2
     else
-        id^((p-1)÷2) * id^((p+1)÷2)
+        (id^((p-1)÷2))^2 * id
     end
 end
+
+# remainder when dividing by an ideal
+rem(a::R, id::Ideal{R}) where R<:Ring = divrem(a, id)[2]
 
 function intersect(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     t = Symbol("intersect_extension")
