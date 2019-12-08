@@ -86,7 +86,7 @@ end
     g = x^3 - x
     G = [f, g]
     h = f * (x^2+y^2) + g * (x + y) + 1
-    r, a, d = red(h, G)
+    a, r, d = pdivrem(h, G)
     @test d == 1
     @test sum(a .* G) + r == h
 end
