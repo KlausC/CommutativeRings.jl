@@ -577,7 +577,7 @@ function pdivrem(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{
     a, f, dd
 end
 
-function buchberger_s(f::P, g::P) where P<:MultivariatePolynomial
+function s_poly(f::P, g::P) where P<:MultivariatePolynomial
     lcf = lc(f)
     lcg = lc(g)
     lif = leading_expo(f)
@@ -604,7 +604,7 @@ function buchberger1(H::AbstractVector{P}) where P<:MultivariatePolynomial
             p = K[i]
             for j = i+1:n
                 q = K[j]
-                pq = buchberger_s(p, q)
+                pq = s_poly(p, q)
                 a, s, d = pdivrem(pq, G)
                 if isone(d) && !iszero(s) && !in(s, G)
                     push!(G, s)
@@ -616,20 +616,36 @@ function buchberger1(H::AbstractVector{P}) where P<:MultivariatePolynomial
 end
 
 function buchberger(f::AbstractVector{P}) where P<:MultivariatePolynomial
-    m = n = length(f)
-    g = copy(f)
+    n = length(f)
     C = [(i,j) for i=1:n for j = i+1:n]
+    buchberger(f, C)
+end
+
+# assume f and h are already gröbner base
+function buchberger(f::VP, h::VP) where {P<:MultivariatePolynomial,VP<:AbstractVector{P}}
+    n = length(f)
+    m = length(h)
+    g = vcat(f, h)
+    C = [(i,n+j) for i = 1:n for j = 1:m]
+    buchberger(g, C)
+end
+
+function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:MultivariatePolynomial
+    n = length(f)
+    g = copy(f)
     while !isempty(C)
         k = select_critical_pair(C, g)
         i, j = C[k]
         p, q = g[i], g[j]
         deleteat!(C, k)
-        pq = buchberger_s(p, q)
+        criterion(g, C, i, j) && continue
+        pq = s_poly(p, q)
         a, s, d = pdivrem(pq, g)
         if !iszero(s) && isone(d)
             push!(g, s)
+            cleanup!(C, g)
             n += 1
-            append!(C, [(i,n) for i = 1:n-1])
+            append!(C, [(i,n) for i = 1:n-1 if !criterion(g, C, i, n)])
         end
     end
     g
@@ -638,6 +654,7 @@ end
 function select_critical_pair(C::AbstractVector{Tuple{Int,Int}}, g::AbstractVector)
     n = length(C)
     kmin = 1
+    return kmin
     degp(k) = sum(max.((leading_expo(g[C[k][1]])), leading_expo(g[C[k][2]])))
     dmin = degp(1)
     for k = 2:n
@@ -648,6 +665,37 @@ function select_critical_pair(C::AbstractVector{Tuple{Int,Int}}, g::AbstractVect
         end
     end
     kmin
+end
+
+function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k::Int)
+    f = G[i]
+    g = G[k]
+    fx = leading_expo(f)
+    gx = leading_expo(g)
+    sum(fx .* gx) == 0 && return true # product criterion - no powers in common
+    for j = 1:length(G)
+        (j == i || j == k) && continue
+        hx = leading_expo(G[j])
+        if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k,j), C)    
+            return true # chain criterion - already removed
+        end
+    end
+    return false
+end
+
+function cleanup!(C::AbstractVector{Tuple{Int,Int}}, g)
+    for k = 1:length(C)
+        i, j = C[k]
+        if i > 0 && j > 0 && criterion(g, C, i, j)
+            C[k] = (0, 0)
+        end
+    end
+    for k = length(C):-1:1
+        i, j = C[k]
+        if i <= 0
+            deleteat!(C, k)
+        end
+    end
 end
 
 # eliminiate generators with leading terms spanned by other leading terms
