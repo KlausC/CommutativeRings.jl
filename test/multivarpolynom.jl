@@ -146,3 +146,9 @@ end
     @test P(xq + yq*xq) == x + y*x
     @test_throws ArgumentError P(zq + xq + yq)
 end
+
+@testset "extension and elimination" begin
+    P = Z[:x, :y]
+    x, y = generators(P)
+end
+

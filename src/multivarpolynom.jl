@@ -354,7 +354,7 @@ This constructs the degrevlex total ordering of monomials.
 
 bijective mapping from tuples of non-negative integers to positive integers.
 
-The induced order of tuples is `:grevlex`.
+The induced order of tuples is `degrevlex`.
 """
 function expo2ord(a::AbstractVector{<:Integer})
     c = similar(a)
@@ -374,7 +374,7 @@ end
 
 bijective mapping from integers to `d`-tuples of integers.
 
-The induced order of tuples is `:grevlex`.
+The induced order of tuples is `degrevlex`.
 """
 function ord2expo(n::T, d::Int) where T<:Integer
     c = Vector{T}(undef, d)
@@ -395,7 +395,9 @@ function ord2expo(n::T, d::Int) where T<:Integer
 end
 
 """
-Caculate the greatest integer `c` such that `binomial(c, d) <= n`
+    cbin(n, d)
+
+Calculate the greatest integer `c` such that `binomial(c, d) <= n`
 """
 function cbin(n::T, d::Int) where T<:Integer
     d <= 0 && throw(ArgumentError("tuple size > 0 required, but is $d"))
@@ -425,6 +427,23 @@ function cbin(n::T, d::Int) where T<:Integer
     return c, b
 end
 
+# the isless function for the `degrevlex` ordering of monomial exponents
+function degrevlex(a::V, b::V) where V<:AbstractVector{<:Integer}
+    length(a) != length(b) && throw(ArgumentError("lengths of vectors must match"))
+    dega = sum(a)
+    degb = sum(b)
+    dega != degb && return dega < degb
+    for j = length(a):-1:1
+        aj = a[j]
+        bj = b[j]
+        if aj != bj
+            return bj > aj # mind the reversal!
+        end
+    end
+    false
+end
+
+# multiplication of monomials
 function indexsum(x::T, y::T, d::Int) where T<:Integer
     x > 0 && y > 0 || return 0
     expo2ord(ord2expo(x, d) + ord2expo(y, d))
@@ -444,8 +463,9 @@ end
 """
     exposum(a::Polynomial, i, b::Polynomial, j)
 
-Return the sum of varaibel exonents at `a.ind[i]` and `b.ind[j].
+Return the sum of variable exonents at `a.ind[i]` and `b.ind[j].
 Realizes multiplication of monomials.
+If one of the coefficients is indefined, return `maxindex` symbolizing zero.
 """
 function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     a = pa.ind
@@ -594,27 +614,6 @@ end
 using Base.Iterators
 
 # find initial Gröbner base using Buchberger's algorithm
-function buchberger1(H::AbstractVector{P}) where P<:MultivariatePolynomial
-    G = sort_unique!(copy(H), rev=true)
-    K = empty(G)
-    while K != G
-        K = copy(G)
-        n = length(K)
-        for i = 1:n
-            p = K[i]
-            for j = i+1:n
-                q = K[j]
-                pq = s_poly(p, q)
-                a, s, d = pdivrem(pq, G)
-                if isone(d) && !iszero(s) && !in(s, G)
-                    push!(G, s)
-                end
-            end
-        end
-    end
-    G
-end
-
 function buchberger(f::AbstractVector{P}) where P<:MultivariatePolynomial
     n = length(f)
     C = [(i,j) for i=1:n for j = i+1:n]
