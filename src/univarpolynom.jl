@@ -710,7 +710,7 @@ function show(io::IO, p::Polynomial{T}) where T
                 else
                     showelem(io, el, start)
                 end
-                print(io, '⋅')
+                print(io, '*')
             end
         end
         showvar(io, p, n)

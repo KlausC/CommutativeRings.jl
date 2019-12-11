@@ -44,6 +44,13 @@ end
     @test LC(p) == 3
     @test LM(p) == x^3*y
     @test LT(p) == 3*x^3*y
+
+    @test basetype(p) == Z
+    @test copy(p) == p
+    q = copy(p)
+    q.coeff[1] = 100
+    @test p.coeff[1] == 5
+    @test q.coeff[1] == 100
 end
 
 @testset "addition" for P in (Z[:x, :y], Z[[:x], [:y]])

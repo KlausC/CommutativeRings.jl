@@ -32,8 +32,8 @@ import Base: copy, convert, promote_rule
 import Base: +, -, *, zero, one, ==, hash, isless, iszero, isone
 
 (::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
-copy(a::MultivariatePolynomial) = a
-basetype(::Type{<:MultivariatePolynomial{T}}) where T = T
+# make new copy
+copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
 # promotion and conversion
 _promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
@@ -530,7 +530,7 @@ function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,
     for i = 1:N
         x = ex[i]
         x <= 0 && continue
-        !start && print(io, '⋅')
+        !start && print(io, '*')
         print(io, vn[i])
         x > 1 && print(io, '^', x)
         start = false
