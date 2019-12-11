@@ -4,7 +4,7 @@
 pseudo_ideal(::Type{R},m::RingInt) where R = R(m)
 pseudo_ideal(::Type{R},mm::AbstractVector) where R = Ideal(Vector{R}(mm))
 pseudo_ideal(::Type{R},m::Ideal{R}) where R = m
-Ideal(m::R) where R<:Ring = Ideal{R}([m])
+Ideal(m::R) where R<:Ring = Ideal([m])
 Ideal(m::T) where T<:Integer = Ideal(ZZ{T}(m))
 Ideal(mm::RingInt...) = Ideal(collect(Base.promote_typeof(mm...), mm))
 Ideal(mm::AbstractVector{<:Integer}) = Ideal(gcd(mm))
@@ -30,7 +30,8 @@ end
 ==(id::Ideal{R}, ::Type{R}) where R<:Ring = isone(id)
 ==(id::Ideal, a) = false
 ==(::Type{R}, id::Ideal{R}) where R<:Ring = isone(id)
-==(a, id::Ideal) = false
+==(::Any, ::Ideal) = false
+==(::Ideal, ::Ideal) = false
 
 function +(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     Ideal(vcat(id1.base, id2.base))

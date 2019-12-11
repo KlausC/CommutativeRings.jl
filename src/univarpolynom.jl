@@ -416,9 +416,9 @@ function inv(p::T) where T<:Polynomial
     end
 end
 
-isunit(p::UnivariatePolynomial) = length(p.coeff) == 1 && isunit(p.coeff[1])
-isone(p::UnivariatePolynomial) = length(p.coeff) == 1 && isone(p.coeff[1])
-iszero(p::UnivariatePolynomial) = length(p.coeff) == 0
+isunit(p::Polynomial) = deg(p) == 0 && isunit(LC(p))
+isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
+iszero(p::Polynomial) = deg(p) < 0
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 ==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 

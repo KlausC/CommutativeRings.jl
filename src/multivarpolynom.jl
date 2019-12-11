@@ -169,9 +169,6 @@ function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     T([zeroindex(T)], S[1])
 end
 
-iszero(p::MultivariatePolynomial) = length(p.ind) == 0
-isone(p::MultivariatePolynomial) = iszero(multideg(p)) && isone(LC(p))
-
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
 -(a::T, b::T) where T<:MultivariatePolynomial = +(a, -b)
 function *(p::T, a::Integer) where T<:MultivariatePolynomial
@@ -654,8 +651,8 @@ function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:Mu
         pq = SPOL(p, q)
         a, s, d = pdivrem(pq, g)
         if !iszero(s) && isone(d)
-            push!(g, s)
             cleanup!(C, g)
+            push!(g, s)
             n += 1
             append!(C, [(i,n) for i = 1:n-1 if !criterion(g, C, i, n)])
         end
