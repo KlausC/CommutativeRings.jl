@@ -6,7 +6,7 @@ export GaloisField
 
 export Hom, Ideal
 
-export isunit, deg, content, primpart, lc, lcunit, leading_expo, modulus
+export isunit, deg, content, primpart, LC, LM, LT, lcunit, multideg, modulus
 export isdiv, pdivrem, pgcd, pgcdx, basetype, depth, monom, ismonom, ismonic, issimpler
 export iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise
@@ -14,7 +14,7 @@ export characteristic, order
 export ofindex, index
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
-export red, groebnerbase
+export groebnerbase, SPOL, lextend
 export generators, varnames
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign

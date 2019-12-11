@@ -128,11 +128,11 @@ iscoprime(a::T, b::T) where T<:Ring = isunit(a) || isunit(b)
 
 divrem(a::T, b::T) where T<:QuotientRing = (a / b, zero(a))
 """
-    lc(r::Ring)
+    LC(r::Ring)
 
 Return the leading coefficient of `r`. For non-polynomials return `r` itself.
 """
-lc(x::Ring) = x
+LC(x::Ring) = x
 
 """
     lcunit(r::Ring)

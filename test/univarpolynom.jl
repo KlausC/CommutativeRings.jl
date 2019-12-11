@@ -66,6 +66,13 @@ end
     @test [x] == generators(P)
     @test varnames(P) == [:x]
     @test varnames(P(0)) == [:x]
+
+    p = P(S[1,2,3])
+    @test deg(p) == 2
+    @test multideg(p) == [2]
+    @test LC(p) == S(3)
+    @test LM(p) == x^2
+    @test LT(p) == 3*x^2
 end
 
 @testset "promotion of types" begin
@@ -140,11 +147,11 @@ end
     @test primpart(qp) == Q(p)
     @test content(qp) == 1//12
 
-    @test iszero(lc(zero(P)))
-    @test isone(lc(one(P)))
-    @test lc(p) == 1
-    @test leading_expo(one(P)) == [0]
-    @test leading_expo(p) == [2]
+    @test iszero(LC(zero(P)))
+    @test isone(LC(one(P)))
+    @test LC(p) == 1
+    @test multideg(one(P)) == [0]
+    @test multideg(p) == [2]
 
     PP = UnivariatePolynomial{P,:z}
     pp = PP([p, q, s])
@@ -165,7 +172,7 @@ end
     x = P([0, 1])
     @test content(2p) == S(2)
     @test primpart(12p) == p
-    @test lc(p) == S(3)
+    @test LC(p) == S(3)
     a, b, f = pdivrem(p, q)
     @test f * p == a * q + b
     a, b, f = pdivrem(p, P([2]))

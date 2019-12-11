@@ -8,7 +8,7 @@ getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
 basetype(::Type{<:Polynomial{T}}) where T = T
 depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
 function lcunit(a::Polynomial)
-    lco = lc(a)
+    lco = LC(a)
     isunit(lco) ? lco : one(lco)
 end
 
@@ -33,7 +33,7 @@ end
 
 function issimpler(a::T, b::T) where T<:UnivariatePolynomial
     da, db = deg(a), deg(b)
-    da < db || da == db && issimpler(lc(a), lc(b))
+    da < db || da == db && issimpler(LC(a), LC(b))
 end
 
 UnivariatePolynomial{S,X}(a::Ring) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
@@ -206,10 +206,10 @@ function ^(p::P, k::Integer) where P<:Polynomial
     elseif k == 1 || n < 0
         p
     elseif n == 0
-        P(lc(p)^k)
+        P(LC(p)^k)
     elseif n > 0 && ismonom(p)
-        indv = leading_expo(p)
-        lco = lc(p)
+        indv = multideg(p)
+        lco = LC(p)
         mon = monom(P, k * indv)
         if !isone(lco) && !isempty(indv)
             mon.coeff[end] = lco^k
@@ -220,7 +220,12 @@ function ^(p::P, k::Integer) where P<:Polynomial
     end
 end
 
-leading_expo(p::UnivariatePolynomial) = [deg(p)]
+"""
+    multideg(p::Polynomial)
+
+Return vector of variable exponents of the leading monomial of `p`.
+"""
+multideg(p::UnivariatePolynomial) = [deg(p)]
 
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r
@@ -294,7 +299,7 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
     m = deg(p)
     n = deg(q)
     m < n && return p
-    uc = lc(q)
+    uc = LC(q)
     isunit(uc) || return divrem(p, q)[2]
     n > 0 || return zero(typeof(q))
     uc = inv(uc)
@@ -424,7 +429,7 @@ function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
 end
 
 ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
-ismonic(p::Polynomial) = isone(lc(p))
+ismonic(p::Polynomial) = isone(LC(p))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::UnivariatePolynomial{<:R,X}) where {X,F,R,S}
@@ -434,18 +439,37 @@ end
 # auxiliary functions
 
 """
-    lc(p::Polynomial)
+    LC(p::Polynomial)
 
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero. Return zero for zero polynomial.
 """
-function lc(p::Polynomial)
+function LC(p::Polynomial)
     c = p.coeff
     n = length(c)
     n == 0 ? zero(basetype(p)) : c[n]
 end
 
-# pseudo-division to calculate gcd of polynomial using subresultant pseudo-remainders.
+function LM(p::P) where {S,P<:UnivariatePolynomial{S}}
+    n = length(p.coeff)
+    n == 0 && return zero(P)
+    coeff = zeros(S, n)
+    coeff[n] = one(S)
+    P(coeff)
+end
+
+"""
+    LT(p::Polynomial)
+
+Return leading term of polynomial `p`. Coefficient is taken from `p`.
+"""
+function LT(p::P) where {S,P<:UnivariatePolynomial{S}}
+    n = length(p.coeff)
+    n == 0 && return zero(P)
+    coeff = zeros(S, n)
+    coeff[n] = p.coeff[n]
+    P(coeff)
+end
 
 """
     pgcd(a, b)
@@ -465,7 +489,7 @@ function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     ψ = -E
     β = iseven(d) ? E : -E
     while true
-        γ = lc(b)
+        γ = LC(b)
         a = a * γ^(d+1)
         c = rem(a, b) / β
         a, b = b, c
@@ -503,7 +527,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     ZZ = zero(T)
     s1, s2, t1, t2 = EE, ZZ, ZZ, EE
     while true
-        γ = lc(b)
+        γ = LC(b)
         γd = γ^(d+1)
         a = a * γd
         q, c = divrem(a, b)
@@ -587,7 +611,7 @@ function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     end
     a
 end
-(p::Polynomial)(a, b...) = evaluate(p, a, b...)
+(p::UnivariatePolynomial)(a, b...) = evaluate(p, a, b...)
 
 """
     derive(p::UnivariatePolynomial)
@@ -595,7 +619,7 @@ end
 Return formal derivative of polynomial `p`.
 
 For `k in 1:deg(p)` we have `derive(p).coeff[k] = k * p.coeff[k+1]`.
-If `deg(p) * lc(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
+If `deg(p) * LC(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
 """
 function derive(p::P) where P<:UnivariatePolynomial
     n = deg(p)

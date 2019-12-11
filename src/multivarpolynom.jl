@@ -46,7 +46,7 @@ function convert(P::Type{MultivariatePolynomial{R,N,X,T,B}}, a::MultivariatePoly
 end
 function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePolynomial{S}) where {R,N,X,T,S}
 
-    deg(a) <= 0 && return P(lc(a))
+    deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
     va = varnames(a)
     pos = positionsin(va, vp)
@@ -65,7 +65,7 @@ function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePoly
 end
 function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::UnivariatePolynomial{S}) where {R,N,X,T,S}
 
-    deg(a) <= 0 && return P(lc(a))
+    deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
     va = varnames(a)
     issubset(va, vp) || throw(ArgumentError("Variable :$(va[1]) not contained in $vp"))
@@ -97,7 +97,7 @@ function convert(P::Type{<:MultivariatePolynomial{S}}, a::T) where {S,T}
     iszero(a) ? zero(P) : P(one(P).ind, [convert(S, a)])
 end
 
-deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(leading_expo(p))
+deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(multideg(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
@@ -130,13 +130,20 @@ function generators(P::Type{<:MultivariatePolynomial{S,N}}) where {S,N}
     res
 end
 
-"""
-    leading_expo(p::Polynomial)
-
-Return tuple of variable exponents of the leading monomial of `p`.
-"""
-function leading_expo(p::MultivariatePolynomial{S,N}) where {N,S}
+function multideg(p::MultivariatePolynomial{S,N}) where {S,N}
     isempty(p.ind) ? Int[] : index2expo(p, length(p.ind))
+end
+
+function LM(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
+    n = length(p.ind)
+    n == 0 && return zero(P)
+    P([p.ind[n]], S[1])
+end
+
+function LT(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
+    n = length(p.ind)
+    n == 0 && return zero(P)
+    P([p.ind[n]], [p.coeff[n]])
 end
 
 """
@@ -163,7 +170,7 @@ function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
 end
 
 iszero(p::MultivariatePolynomial) = length(p.ind) == 0
-isone(p::MultivariatePolynomial) = iszero(leading_expo(p)) && isone(lc(p))
+isone(p::MultivariatePolynomial) = iszero(multideg(p)) && isone(LC(p))
 
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
 -(a::T, b::T) where T<:MultivariatePolynomial = +(a, -b)
@@ -185,7 +192,7 @@ end
 ==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == a.coeff
 function hash(a::MultivariatePolynomial, h::UInt)
     n = deg(a)
-    n < 0 ? hash(0, h) : n == 0 ? hash(lc(a), h) : hash(a.ind, hash(a.coeff, h))
+    n < 0 ? hash(0, h) : n == 0 ? hash(LC(a), h) : hash(a.ind, hash(a.coeff, h))
 end
 function isless(a::T, b::T) where T<:MultivariatePolynomial
     m = length(a.ind)
@@ -279,6 +286,7 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     T(d, c)
 end
 
+(p::MultivariatePolynomial)(a, b...) = evaluate(p, a, b...)
 function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:MultivariatePolynomial{S,N}}
     length(a) != N && throw(ArgumentError("wrong number of arguments of polynomial with $N variables"))
     n = length(p.ind)
@@ -544,7 +552,7 @@ end
 
 function pdivrem(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
 
-    lig = leading_expo(g)
+    lig = multideg(g)
     xif = 0
     lif = lig
     for i = length(f.ind):-1:1
@@ -557,7 +565,7 @@ function pdivrem(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
     end
     xif == 0 && return zero(P), f, one(T)
     c = f.coeff[xif]
-    d = lc(g)
+    d = LC(g)
     q = monom(P, lif .- lig)
     if isone(d)
         k = q * c
@@ -597,11 +605,16 @@ function pdivrem(f::P, G::AbstractVector{P}) where {T,P<:MultivariatePolynomial{
     a, f, dd
 end
 
-function s_poly(f::P, g::P) where P<:MultivariatePolynomial
-    lcf = lc(f)
-    lcg = lc(g)
-    lif = leading_expo(f)
-    lig = leading_expo(g)
+"""
+    SPOL(f, g)
+
+Calculate the S-polynomial (`SPOL`) of the polynomials `f`, `g`.
+"""
+function SPOL(f::P, g::P) where P<:MultivariatePolynomial
+    lcf = LC(f)
+    lcg = LC(g)
+    lif = multideg(f)
+    lig = multideg(g)
 
     h = gcd(lcf, lcg)
     af = lcf / h
@@ -638,7 +651,7 @@ function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:Mu
         p, q = g[i], g[j]
         deleteat!(C, k)
         criterion(g, C, i, j) && continue
-        pq = s_poly(p, q)
+        pq = SPOL(p, q)
         a, s, d = pdivrem(pq, g)
         if !iszero(s) && isone(d)
             push!(g, s)
@@ -654,7 +667,7 @@ function select_critical_pair(C::AbstractVector{Tuple{Int,Int}}, g::AbstractVect
     n = length(C)
     kmin = 1
     return kmin
-    degp(k) = sum(max.((leading_expo(g[C[k][1]])), leading_expo(g[C[k][2]])))
+    degp(k) = sum(max.((multideg(g[C[k][1]])), multideg(g[C[k][2]])))
     dmin = degp(1)
     for k = 2:n
         dk = degp(k)
@@ -669,12 +682,12 @@ end
 function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k::Int)
     f = G[i]
     g = G[k]
-    fx = leading_expo(f)
-    gx = leading_expo(g)
+    fx = multideg(f)
+    gx = multideg(g)
     sum(fx .* gx) == 0 && return true # product criterion - no powers in common
     for j = 1:length(G)
         (j == i || j == k) && continue
-        hx = leading_expo(G[j])
+        hx = multideg(G[j])
         if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k,j), C)    
             return true # chain criterion - already removed
         end
@@ -703,12 +716,12 @@ function minimize!(H::AbstractVector{P}) where P<:MultivariatePolynomial
     for i = 1:n
         f = H[i]
         if !iszero(f)
-            lif = leading_expo(H[i])
+            lif = multideg(H[i])
             for g in H
                 if !iszero(g) && f != g
-                    if all(lif .>= leading_expo(g))
-                        cf = lc(f)
-                        cg = lc(g)
+                    if all(lif .>= multideg(g))
+                        cf = LC(f)
+                        cg = LC(g)
                         if iszero(rem(cf, cg))
                             H[i] = zero(P)
                         end

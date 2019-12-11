@@ -1,6 +1,6 @@
 
 using CommutativeRings
-import CommutativeRings: ord2expo, expo2ord, cbin, gettypevar, varnames
+import CommutativeRings: ord2expo, expo2ord, cbin, varnames
 
 const Z = ZZ{Int}
 
@@ -37,6 +37,13 @@ end
     @test [x, y, z] == generators(P)
     @test varnames(P) == [:x, :y, :z]
     @test varnames(P(0)) == [:x, :y, :z]
+
+    p = 3x^3*y + 4x^2*y^2 + 5x*y*z^2
+    @test deg(p) == 4
+    @test multideg(p) == [3,1,0]
+    @test LC(p) == 3
+    @test LM(p) == x^3*y
+    @test LT(p) == 3*x^3*y
 end
 
 @testset "addition" for P in (Z[:x, :y], Z[[:x], [:y]])
@@ -150,5 +157,12 @@ end
 @testset "extension and elimination" begin
     P = Z[:x, :y]
     x, y = generators(P)
+    Q = lextend(P, :t)
+    ida = Ideal(x^2-y^2, y^3-2x*y-y^2+2x, x*y^2-3x*y+2x)
+    idb = Ideal(x*y)
+    t, = generators(Q)
+
+    idc = Ideal([Q.(ida.base) .* (1 - t); Q.(idb.base) .* t])
+
 end
 

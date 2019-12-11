@@ -71,7 +71,7 @@ function intersect(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     Rt = lextend(R, t)
     t, = generators(Rt)
     id3 = Ideal([Rt.(id1.base) .* t; Rt.(id2.base) .* (1 - t)])
-    C = [x for x in id3.base if leading_expo(x)[1] == 0]
+    C = [x for x in id3.base if multideg(x)[1] == 0]
     Ideal(R.(C))
 end
 
