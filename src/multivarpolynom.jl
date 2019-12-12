@@ -623,14 +623,25 @@ end
 
 using Base.Iterators
 
-# find initial Gröbner base using Buchberger's algorithm
-function buchberger(f::AbstractVector{P}) where P<:MultivariatePolynomial
+# find all in one
+function buchbergerall(f::AbstractVector{P}) where P<:MultivariatePolynomial
     n = length(f)
     C = [(i,j) for i=1:n for j = i+1:n]
     buchberger(f, C)
 end
 
-# assume f and h are already gröbner base
+# incrementally adding vectors
+function buchberger(A::AbstractVector{P}) where P<:MultivariatePolynomial
+    n = length(A)
+    n == 0 && return P[]
+    a = A[1:1]
+    for i = 2:n
+        a = buchberger(a, A[i:i])
+    end
+    a
+end
+
+# assume f is already gröbner base
 function buchberger(f::VP, h::VP) where {P<:MultivariatePolynomial,VP<:AbstractVector{P}}
     n = length(f)
     m = length(h)
@@ -639,6 +650,7 @@ function buchberger(f::VP, h::VP) where {P<:MultivariatePolynomial,VP<:AbstractV
     buchberger(g, C)
 end
 
+# Buchberger's algorithm - C contains the remaining critical pairs (i,j)
 function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:MultivariatePolynomial
     n = length(f)
     g = copy(f)
@@ -693,13 +705,14 @@ function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k
 end
 
 function cleanup!(C::AbstractVector{Tuple{Int,Int}}, g)
-    for k = 1:length(C)
+    n = length(C)
+    for k = 1:n
         i, j = C[k]
         if i > 0 && j > 0 && criterion(g, C, i, j)
             C[k] = (0, 0)
         end
     end
-    for k = length(C):-1:1
+    for k = n:-1:1
         i, j = C[k]
         if i <= 0
             deleteat!(C, k)
