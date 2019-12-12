@@ -11,10 +11,26 @@ copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = convert(QQ{T}, a)
 QQ(a::QQ{T}) where T = a
 
-QQ{T}(num::Integer, den::Integer) where T = QQ{T}(Base.divgcd(T(num), T(den))..., NOCHECK)
+function QQ{T}(num::Integer, den::Integer) where T<:Integer
+    iszero(num) && iszero(den) && throw(ArgumentError("invalid rational: zero($T)//zero($T)"))
+    num == den && return one(QQ{T})
+    R = promote_type(T, typeof(signed(num)), typeof(signed(den)))
+    num1, den1 = Base.divgcd(num, den)
+    num2, den2 = T(num1), T(den1)
+    if signbit(den2)
+        den2 = -den2
+        signbit(den2) && throw(ArgumentError("invalid rational: denominator $den"))
+        num2 = -num2
+    end
+    QQ{T}(num2, den2, NOCHECK)
+end
+function QQ(a::S, b::T) where {S<:Integer,T<:Integer}
+    R = promote_type(typeof(signed(a)),typeof(signed(b)))
+    QQ{R}(R(a), R(b))
+end
 QQ(num::T, den::T) where T = QQ{T}(num, den)
-QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den, NOCHECK)
-QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den, NOCHECK)
+QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den)
+QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den)
 Rational(a::QQ{T}) where T = Rational(a.num, a.den)
 QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
 QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
@@ -56,8 +72,8 @@ isless(a::T, b::T) where T<:QQ = isless(Rational(a), Rational(b))
 isunit(a::QQ) = !iszero(a.num)
 isone(a::QQ) = a.num == a.den
 iszero(a::QQ) = iszero(a.num)
-zero(::Type{QQ{T}}) where T = QQ(zero(T), one(T))
-one(::Type{QQ{T}}) where T = QQ(one(T), one(T))
+zero(::Type{QQ{T}}) where T = QQ{T}(zero(T), one(T), NOCHECK)
+one(::Type{QQ{T}}) where T = QQ{T}(one(T), one(T), NOCHECK)
 hash(a::QQ, h::UInt) = hash(Rational(a), h)
 
 function show(io::IO, a::QQ)

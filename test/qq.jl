@@ -37,6 +37,19 @@
     @test QQ(Int8(2)) == QQ{BigInt}(2//1)
     @test QQ{Int8}(2) == QQ(2)
     @test QQ(1//2) == 1//2
+
+    @test_throws ArgumentError QQ(0, 0)
+    @test_throws ArgumentError QQ(1, typemin(Int))
+    @test QQ(2, typemin(Int)) == QQ(-1, typemin(Int)÷(-2))
+    @test QQ(1, typemin(Int16)) == QQ(-1, -Int(typemin(Int16)))
+    @test_throws InexactError QQ(1, typemax(UInt))
+    @test_throws InexactError QQ(-1, typemax(UInt))
+    #= would be nice to have
+    @test_broken QQ(-3, typemax(UInt)) == QQ(-1, Int(typemax(UInt)÷3))
+    @test_broken QQ(3, typemax(UInt)) == QQ(1, Int(typemax(UInt)÷3))
+    @test_broken QQ(typemax(UInt), -3) == QQ(-1, Int(typemax(UInt)÷3))
+    @test_broken QQ(typemax(UInt), 3) == QQ(1, Int(typemax(UInt)÷3))
+    =#
 end
 
 @testset "arithmetic" begin

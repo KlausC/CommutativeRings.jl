@@ -151,7 +151,7 @@ end
 function ofindex(a::Integer, T::Type{<:FractionField{S}}) where S
     a == 0 && return zero(T)
     s, t = index(a - 1, len(T), len(T))
-    T(ofindex(t+1, S), ofindex(s + 1, unsigned(S)))
+    T(ofindex(t+1, S), S(ofindex(s + 1, unsigned(S))))
 end
 function ofindex(a::Integer, T::Type{<:UnivariatePolynomial{S}}, d::Integer) where S
     nn = ones(Int, d) * len(S)
