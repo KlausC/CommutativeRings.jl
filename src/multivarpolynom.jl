@@ -102,6 +102,39 @@ isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
 """
+    derive(p::MultivariatePolynomial, (d1,...dN))
+
+Derive polynomial with N variables with respect to variables `1` ... `N` with the
+respective degrees `d1` ... `dN`.
+"""
+function derive(p::P, d::NTuple{N,<:Integer}) where {S,N,P<:MultivariatePolynomial{S,N}}
+    all(d .>= 0) || throw(ArgumentError("negative derivation degrees not allowed"))
+    ind = similar(p.ind)
+    coeff = similar(p.coeff)
+    j = 0
+    for i = 1:length(p.ind)
+        a = index2expo(p, i)
+        b = a .- d
+        if all(b .>= 0)
+            c = p.coeff[i]
+            for k = 1:N
+                for f = a[k]-d[k]+1:a[k]
+                    c *= f
+                end
+            end
+            if !iszero(c)
+                j += 1
+                coeff[j] = c
+                ind[j] = expo2ordblock(P, b)
+            end
+        end
+    end
+    resize!(coeff, j)
+    resize!(ind, j)
+    P(ind, coeff)
+end
+
+"""
     monom(<:MultivariatePolynomial, expos::Vector{Int})
 
 Return monic monomial with given exponents. (`[1,0,...]` corresponds to first variable). 

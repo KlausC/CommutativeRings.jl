@@ -173,3 +173,13 @@ end
 
 end
 
+@testset "derivatives" begin
+    P = Z[:x, :y]
+    x, y = generators(P)
+    @test derive(x, (1, 0)) == x^0
+    @test derive(x, (0, 1)) == 0
+    @test derive(x*y^10, (1, 1)) == 10*y^9
+    @test derive((x+2y)^4, (0, 0)) == (x+2y)^4
+    @test_throws ArgumentError derive(x*y, (-1, 0))
+end
+
