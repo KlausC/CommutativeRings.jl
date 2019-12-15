@@ -68,12 +68,15 @@ end
 rem(a::R, id::Ideal{R}) where R<:Ring = divrem(a, id)[2]
 
 function intersect(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
+    Ideal(_intersect(id1.base, id2.base))
+end
+
+function _intersect(v1::V, v2::V) where {R<:MultivariatePolynomial,V<:AbstractVector{R}}
     t = Symbol("intersect_extension")
     Rt = lextend(R, t)
     t, = generators(Rt)
-    id3 = Ideal([Rt.(id1.base) .* t; Rt.(id2.base) .* (1 - t)])
-    C = [x for x in id3.base if multideg(x)[1] == 0]
-    Ideal(R.(C))
+    id3 = Ideal([Rt.(v1) .* t; Rt.(v2) .* (1 - t)])
+    R.([x for x in id3.base if multideg(x)[1] == 0])
 end
 
 iszero(id::Ideal) = length(id.base) == 0

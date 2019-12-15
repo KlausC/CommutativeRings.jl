@@ -538,6 +538,7 @@ Return array of variabel names of polynomial or polynomial type `P`.
 varnames(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = Symbol[X]
 varnames(::Type{T}) where T<:MultivariatePolynomial = gettypevar(T).varnames
 varnames(p::T) where T<:Polynomial = varnames(T)
+varnames(::Type{T}, n::Integer) where T<:MultivariatePolynomial = varblocks(T)[n]
 
 function varblocks(::Type{P}) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
     vars = varnames(P)
@@ -699,7 +700,7 @@ function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:Mu
             cleanup!(C, g)
             push!(g, s)
             n += 1
-            append!(C, [(i,n) for i = 1:n-1 if !criterion(g, C, i, n)])
+            append!(C, [(i,n) for i = 1:n-1])
         end
     end
     g

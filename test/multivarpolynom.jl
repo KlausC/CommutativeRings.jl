@@ -32,7 +32,7 @@ end
     @test Z[[:x],[:y]] <: MultivariatePolynomial
 end
 
-@testset "varnames and generators" for P in (Z[:x, :y, :z], Z[[:x], [:y,:z]])
+@testset "varnames and generators $P " for P in (Z[:x, :y, :z], Z[[:x], [:y,:z]])
     x, y, z = monom.(P, [[1,0,0], [0,1,0], [0,0,1]])
     @test [x, y, z] == generators(P)
     @test varnames(P) == [:x, :y, :z]
@@ -162,15 +162,18 @@ end
 end
 
 @testset "extension and elimination" begin
+    Z = ZZ/7583
     P = Z[:x, :y]
     x, y = generators(P)
+    A = [x^2-y^2, y^3-2x*y-y^2+2x, x*y^2-3x*y+2x]
+    B = [x*y]
     Q = lextend(P, :t)
-    ida = Ideal(x^2-y^2, y^3-2x*y-y^2+2x, x*y^2-3x*y+2x)
-    idb = Ideal(x*y)
+    ida = Ideal(A)
+    idb = Ideal(B)
     t, = generators(Q)
-
-    idc = Ideal([Q.(ida.base) .* (1 - t); Q.(idb.base) .* t])
-
+    idcQ = Ideal([Q.(A) .* t; Q.(B) .* (1-t)])
+    idc = Ideal{P}(P.([x for x in idcQ.base if multideg(x)[1] == 0]))
+    @test idc == intersect(ida, idb)
 end
 
 @testset "derivatives" begin
