@@ -574,9 +574,13 @@ end
 
 divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
 
-function divrem(f::P, g::Union{AbstractVector{P},P}) where P<:MultivariatePolynomial
-    a, s, d = pdivrem(f, g)
-    isone(d) ? (a, s) : (zero(P), f)
+function divrem(f::P, g::P) where P<:MultivariatePolynomial
+    a, s, d = pdivrem(f, [g])
+    isone(d) ? (a[1], s) : (zero(P), f)
+end
+function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
+    a, s, d = pdivrem(f, gg)
+    isone(d) ? (a, s) : (zeros(P, length(g)), f)
 end
 
 # division and Gröbner base calculation
@@ -697,10 +701,10 @@ function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:Mu
         pq = SPOL(p, q)
         a, s, d = pdivrem(pq, g)
         if !iszero(s) && isone(d)
-            cleanup!(C, g)
             push!(g, s)
             n += 1
             append!(C, [(i,n) for i = 1:n-1])
+            cleanup!(C, g)
         end
     end
     g

@@ -15,11 +15,12 @@ export ofindex, index
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
-export generators, varnames
+export generators, varnames, factors
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
+import Primes
 
 using LinearAlgebra
 using Base.Checked
@@ -229,6 +230,6 @@ include("factorization.jl")
 include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
-
+include("gcd.jl")
 
 end # module

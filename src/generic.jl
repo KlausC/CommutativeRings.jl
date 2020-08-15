@@ -62,24 +62,6 @@ function order(x::Ring)
     end
 end
 
-function factors(n::Integer)
-    sort(factors(factor(n).pe))
-end
-
-function factors(pe::Vector{Pair{T,Int}}) where T<:Integer
-    m = length(pe)
-    r = ones(T, 1)
-    for ii = 1:m
-        pm = pe[ii]
-        x, k = pm.first, pm.second
-        j = length(r)
-        for i = 1:k
-            append!(r, view(r,1:j) .* x .^ i)
-        end
-    end
-    r
-end
-
 """
     characteristic(Z::Type{<:Ring})
 

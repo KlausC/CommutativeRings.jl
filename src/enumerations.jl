@@ -162,3 +162,35 @@ function ofindex(a::Integer, G::Type{<:GaloisField})
     G(mod(a, order(G)))
 end
 
+struct Factors{T<:Integer}
+   f::Primes.Factorization{T}
+end
+Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x+1 for x in values(fi.f))
+
+Base.iterate(fi::Factors) = (1, zeros(Int,length(fi.f.pe)))
+function Base.iterate(fi::Factors, s::Array{Int})
+    f = fi.f.pe
+    n = length(f)
+    n == 0 && return nothing
+    for i = 1:n
+        si = s[i]
+        if si < last(f[i])
+            s[i] = si + 1
+            break
+        else
+            i == n && return nothing
+            s[i] = 0
+        end
+    end
+    p = prod(first(f[i])^s[i] for i = 1:n)
+    p, s
+end
+"""
+    factors(n)
+    factors(Primes.factor(n))
+
+Return an iterator generating all factors of integer `n`.
+"""
+factors(f::Primes.Factorization) = Factors(f)
+factors(n::Integer) = factors(factor(n))
+

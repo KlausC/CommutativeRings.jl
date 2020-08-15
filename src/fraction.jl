@@ -18,7 +18,7 @@ Frac(a::T) where T<:Ring  = convert(Frac{T}, a)
 Frac(a::T) where T<:Integer = convert(Frac{ZZ{T}}, a)
 Frac{T}(a::Integer,b::Integer) where T = Frac(T(a), T(b))
 Frac{T}(a::Rational) where T = convert(Frac{T}, a)
-function Frac(a::T, b::T) where T
+function Frac(a::T, b::T) where T<:Polynomial
     cab = content(a) // content(b)
     a = primpart(a)
     b = primpart(b)
@@ -27,6 +27,15 @@ function Frac(a::T, b::T) where T
     b /= g
     a *= cab.num
     b *= cab.den
+    s = lcunit(b)
+    b /= s
+    a /= s
+    Frac{T}(a, b, NOCHECK)
+end
+function Frac(a::T, b::T) where T<:Ring
+    g = pgcd(a, b)
+    a /= g
+    b /= g
     s = lcunit(b)
     b /= s
     a /= s
@@ -95,6 +104,9 @@ iszero(a::Frac) = iszero(a.num)
 zero(::Type{Frac{T}}) where T = Frac(zero(T), one(T))
 one(::Type{Frac{T}}) where T = Frac(one(T), one(T))
 hash(a::Frac, h::UInt) = hash(a.den, hash(a.num, h))
+
+evaluate(p::Frac, a) = Frac(evaluate(p.num, a), evaluate(p.den, a))
+(p::Frac)(a, b...) = evaluate(p, a, b...)
 
 function show(io::IO, a::Frac)
     if isone(a.den)

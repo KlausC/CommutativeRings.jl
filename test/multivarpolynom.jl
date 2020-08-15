@@ -103,6 +103,10 @@ end
     a, r, d = pdivrem(h, G)
     @test d == 1
     @test sum(a .* G) + r == h
+
+    @test rem(x + y, one(P)) == 0
+    s, r = divrem(x + y, one(P))
+    @test iszero(r) && s == x + y
 end
 
 @testset "Gröbner base" for P in (Z[:x, :y], Z[[:x], [:y]])
