@@ -12,7 +12,7 @@ for the `GFImpl` class.
 function GF(p::Integer, r::Integer; nr::Integer=0)
     Q = GFImpl(p, r, nr=nr)
     r == 1 && return Q
-    T = mintype_for(Unsigned, p, r)
+    T = mintype_for(p, r, true)
     ord = order(Q)
     Id = Int(ord)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
@@ -181,7 +181,7 @@ function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:Î
     p = characteristic(Q)
     r = dimension(Q)
     c = zeros(Z, r)
-    b = a % (p^r)
+    b = a % order(Q)
     for i = 1:r
         iszero(b) && break
         b, c[i] = divrem(b, p)

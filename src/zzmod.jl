@@ -2,7 +2,7 @@
 # class constructors
 /(::Type{T}, m::Integer) where T<:Integer = new_class(ZZmod{sintern(m),T}, T(m))
 /(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / T(m)
-/(::Type{ZZ}, m::Integer) = mintype_for(Unsigned, m, 1) / m
+/(::Type{ZZ}, m::Integer) = mintype_for(m, 1, false) / m
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
@@ -147,11 +147,13 @@ function Base.show(io::IO, a::ZZmod)
     end
 end
 
-function mintype_for(::Type{Unsigned}, v::Integer, ex::Integer)
+function mintype_for(v::Integer, ex::Integer, off::Bool)
     v > typemax(UInt128) && return BigInt
-    len = Integer(floor(log2(v) * ex))
+    l2v = log2(v) * ex
+    len = Integer(off ? ceil(l2v) : floor(l2v) + 1)
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
-        len < sizeof(T) * 8 && return T
+        n = sizeof(T) * 8
+        len <= n && return len < n ? signed(T) : T
     end
     BigInt
 end

@@ -3,10 +3,16 @@ using CommutativeRings
 using Test
 using Polynomials
 
+if !isdefined(Polynomials, :Poly)
+    Poly = Polynomials.Polynomial
+end
+
+ismonic = CommutativeRings.ismonic
+
 import Base: ==
 function ==(a::UnivariatePolynomial, b::Poly)
     va = getproperty.(a.coeff, :val)
-    vb = b.a
+    vb = coeffs(b)
     n = length(vb)
     while n > 0 && vb[n] == 0
         n -= 1

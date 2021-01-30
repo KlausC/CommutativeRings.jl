@@ -16,4 +16,4 @@ using CommutativeRings
 @testset "numbertheory" begin include("numbertheoretical.jl") end
 @testset "enumerations" begin include("enumerations.jl") end
 @testset "linearalgebra" begin include("linearalgebra.jl") end
-@testset "gcd" begin include("gcd.jl") end
+#@testset "gcd" begin include("gcd.jl") end
