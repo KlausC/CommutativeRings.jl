@@ -65,6 +65,5 @@ end
     @test lcm(z3, z1) == z3
     @test rem(ZZ(12), ZZ(5)) == ZZ(2)
 
-    io = IOBuffer()
-    @test show(io, z3) == nothing
+    @test sprint(show, z3) == "$(Int(2n1))"
 end

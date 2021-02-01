@@ -23,7 +23,7 @@ function iterate(mo::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Q
     n = deg(modulus(Q))
     for i = 1:m
         ci = next(c[i])
-        if ci != nothing
+        if ci !== nothing
             c[i] = ci
             z = Q(c)
             return (z, z)
@@ -43,7 +43,7 @@ end
 
 function next(c)
     cs = iterate(typeof(c), c)
-    cs == nothing ? nothing : cs[1]
+    cs === nothing ? nothing : cs[1]
 end
 
 function iterate(::Type{G}) where G<:GaloisField
@@ -72,7 +72,7 @@ function Base.iterate(mo::Monic{Z,X}, s) where {X,Z<:Ring}
     n = deg(s)
     for i = 1:n
         ci = next(c[i])
-        if ci != nothing
+        if ci !== nothing
             c[i] = ci
             z = Z[X](c)
             return (z, z)
@@ -116,7 +116,7 @@ function index(i::T, n1::T, n2::T) where T<:Integer
     end
 end
 
-function index(i::T, nn::Vector{T}) where T<:Integer
+function indexv(i::T, nn::Vector{T}) where T<:Integer
     m = length(nn)
     m == 0 && return T[]
     n1 = nn[1]
@@ -126,7 +126,7 @@ function index(i::T, nn::Vector{T}) where T<:Integer
     n1 = prod(nn[1:m2])
     n2 = prod(nn[m2+1:m])
     s, t = index(i, n1, n2)
-    vcat(index(s, nn[1:m2]), index(t, nn[m2+1:m]))
+    vcat(indexv(s, nn[1:m2]), indexv(t, nn[m2+1:m]))
 end
 
 len(::Type, d...) = 0
@@ -135,9 +135,9 @@ function len(T::Type{<:FractionField{S}}, d...) where S
     n = len(S, d...)
     n == 0 ? 0 : (n-1)^2 + 1
 end
-len(T::Type{UnivariatePolynomial{S}}, d::Integer) where S = len(S)^d
+len(T::Type{UnivariatePolynomial{S}}, d::Integer) where S = intpower(len(S), d)
 len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T)-1))
-len(T::Type{<:GaloisField}) where S<:UnivariatePolynomial = order(T)
+len(T::Type{<:GaloisField}) = order(T)
 
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
 ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a+1) >> 1
@@ -153,10 +153,8 @@ function ofindex(a::Integer, T::Type{<:FractionField{S}}) where S
     s, t = index(a - 1, len(T), len(T))
     T(ofindex(t+1, S), S(ofindex(s + 1, unsigned(S))))
 end
-function ofindex(a::Integer, T::Type{<:UnivariatePolynomial{S}}, d::Integer) where S
-    nn = ones(Int, d) * len(S)
-    cc = ([ofindex.(index(a, nn), S); 1])
-    T(cc)
+function ofindex(a::Integer, P::Type{<:UnivariatePolynomial{S}}, d::Integer) where S
+    P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
 end
 function ofindex(a::Integer, G::Type{<:GaloisField})
     G(mod(a, order(G)))

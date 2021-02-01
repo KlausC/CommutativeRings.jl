@@ -34,10 +34,6 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
     @test Q(x) * 5 == Q(5x)
 
     @test hash(q) != 0
-
-    io = IOBuffer()
-    show(io, q)
-    @test String(take!(io)) isa String
-
+    @test sprint(show, q) isa String
 end
 end

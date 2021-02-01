@@ -9,7 +9,7 @@ export factor
 
 Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `factor`.
 """
-function isirreducible(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
+function isirreducible(p::UnivariatePolynomial{<:QuotientRing})
     deg(p) <= 1 && return true
     iszero(p.coeff[1]) && return false
     pp = gcd(p, derive(p))

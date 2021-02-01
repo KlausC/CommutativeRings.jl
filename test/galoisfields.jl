@@ -24,22 +24,25 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
-    io = IOBuffer()
-    show(io, GFImpl(5,3)([1,2,3]))
-    s = String(take!(io))
-    @test s == "{3:2:1%5}"
+    @test sprint(show, GFImpl(5,3)([1,2,3])) == "{3:2:1%5}"
 end
 
-@testset "Galois Fields $p^$r" for (p, r) in ((2,10), (7,2))
-    
+@testset "Galois Fields" begin
+    @test_throws ArgumentError GF(1)
+    @test_throws ArgumentError GF(12)
+    @test GF(32) == GF(2, 5)
+    @test GF(625) == GF(5, 4)
+end
+
+@testset "Galois Fields $p^$r" for (p, r) in ((2,8), (7,2))
     @test GF(p) == GF(p,1)
     @test GF(p, r) <: GaloisField{p^r}
     G = GF(p, r)
     @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:γ}}
     Q = basetype(G)
     @test modulus(G) == modulus(Q)
-    @test order(G) == order(Q)
-    @test characteristic(G) == characteristic(Q)
+    @test order(G) == order(Q) == p ^ r
+    @test characteristic(G) == characteristic(Q) == p
     @test dimension(G) == r
 
     g1, g2 = rand(rng, G, 2)
@@ -51,6 +54,7 @@ end
     @test q1 == Q(g1)
     @test g1 == G(q1)
     @test g1 == q1
+
     @test g1 * g2 == q1 * q2
     @test g1^17 == q1^17
     @test g1^-17 == q1^-17

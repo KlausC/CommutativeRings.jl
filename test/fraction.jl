@@ -40,10 +40,7 @@
     @test F(1) + P(1) == 2
     @test P(1) + F(1) == 2
 
-    io = IOBuffer()
-    show(io, F(p))
-    @test String(take!(io)) == "-2*x + 1"
-    show(io, pq)
-    @test String(take!(io)) == "(2*x - 1)/(x - 1)"
+    @test sprint(show, F(p)) == "-2*x + 1"
+    @test sprint(show, pq) == "(2*x - 1)/(x - 1)"
 
 end

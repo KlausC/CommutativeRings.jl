@@ -39,7 +39,7 @@ abs(a::Ring) = isunit(a) ? 1 : 0
 
 Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`. 
 """
-order(::Type{Z}) where Z<:ZZmod = (modulus(Z))
+order(::Type{Z}) where Z<:ZZmod = uptype(modulus(Z))
 function order(::Type{T}) where {Z,T<:Quotient{<:UnivariatePolynomial{Z}}}
     intpower(order(Z), deg(modulus(T)))
 end
@@ -50,10 +50,14 @@ order(::Type{<:Ring}) = 0
 
 Calculate `a ^ b` in appropriate result type.
 """
-function intpower(a::Integer, b::Integer)
-    T = promote_type(mintype_for(a, b, false), Int)
-    T(a) ^ b
-end
+intpower(a::Integer, b::Integer) = uptype(a, mintype_for(a, b, false)) ^ b
+
+"""
+    uptype(a, [T::Type])
+
+promote `a` to get at least type `promote_type(typeof(a), T)`.
+"""
+uptype(a::T, S::Type=Int) where T = promote_type(S, T)(a)
 
 """
     order(z::Ring)
@@ -82,7 +86,9 @@ order of multiplicative subgroup of `R`.
 mult_order(R::Type) = 0
 mult_order(R::Type{<:ZZmod}) = totient(modulus(R))
 mult_order(R::Type{<:GaloisField}) = order(R) - 1
-mult_order(R::Type{<:Quotient{T,T}} where T<:UnivariatePolynomial) = order(R) - 1
+function mult_order(R::Type{<:Quotient{T,T}} where T<:UnivariatePolynomial)
+    isirreducible(modulus(R)) ? order(R) - 1 : 0
+end
 
 """
     characteristic(Z::Type{<:Ring})
@@ -313,3 +319,30 @@ function sort_unique!(A::AbstractVector; rev::Bool=false)
     a
 end
 
+"""
+    testrules(io, g)
+
+Test associativity and distributivity for all element combinations from `g`.
+Print messages to `io` if errors found.
+`g` can be a collection of `Ring` elements or a subtype of `Ring` (which is iterable).
+"""
+function testrules(io, gg)
+    for a in gg
+        if isunit(a)
+            if !isone(inv(a) * a) || !isone(a * inv(a)) 
+                println(io, "inv($a)")
+            end
+        end
+    end
+    for (a,b,c) in Iterators.product(gg, gg, gg)
+        if (a * b) * c != a * ( b * c)
+            println(io, "assoc * $a $b $c")
+        end
+        if (a + b) + c != a + ( b + c)
+            println(io, "assoc + $a $b $c")
+        end
+        if a * ( b + c) != a * b + a * c
+            println(io, "distrib $a $b $c")
+        end
+    end
+end

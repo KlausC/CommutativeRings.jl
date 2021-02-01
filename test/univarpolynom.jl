@@ -163,11 +163,10 @@ end
     pp = PP([p, q, s])
 
     # call show
-    io = IOBuffer()
-    @test show(io, p) == nothing
-    @test show(io, zero(P)) == nothing
-    @test show(io, one(P)) == nothing
-    @test show(io, x^3 + x) == nothing
+    @test sprint(show, p) !== nothing
+    @test sprint(show, zero(P)) !== nothing
+    @test sprint(show, one(P)) !== nothing
+    @test sprint(show, x^3 + x) !== nothing
 end
 
 @testset "pseudo gcd" begin

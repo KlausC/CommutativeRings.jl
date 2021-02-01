@@ -24,7 +24,12 @@ function GF(p::Integer, r::Integer; nr::Integer=0)
     logtable = invperm(exptable .+ 1) .- 1
     new_class(GaloisField{Id,T,Q}, tonumber(gen, p), logtable, exptable)
 end
-GF(p::Integer) = GFImpl(p)
+function GF(n::Integer; nr=0)
+    f = factor(n)
+    length(f) == 1 || throw(ArgumentError("$n is not p^r with p prime and r >= 1"))
+    p, r = f.pe[1]
+    GF(p, r, nr=nr)
+end
 
 """
     GaloisField{Id,T,Q}(num::Integer)
@@ -71,20 +76,19 @@ function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))
 end
 
-basetype(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
+basetype(::Type{<:GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
+characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
+order(G::Type{<:GaloisField}) = order(basetype(G))
+dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
+modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 
-for op in (:characteristic, :order, :dimension, :modulus)
-    @eval begin
-        $op(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = $op(Q)
-    end
-end
-
+# multiplication using lookup tables
 function *(a::G, b::G) where G<:GaloisField
     ord = order(G)
     a.val == 0 && return a
     b.val == 0 && return b
-    G(mod(a.val + b.val - 2, ord - 1) + 1, NOCHECK) 
+    G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK) 
 end
 
 +(a::G, b::G) where G<:GaloisField = addop(+, a, b)
@@ -166,7 +170,7 @@ function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
 end
 
 function Base.show(io::IO, g::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    print(io, G.name, '{', characteristic(G), ',', dimension(G), '}')
+    print(io, G.name.name, '{', characteristic(G), ',', dimension(G), '}')
 end
 
 function tonumber(a::Quotient, p::Integer)
@@ -208,8 +212,9 @@ Elements of the field can be created like
 ```
 """
 function GFImpl(p::Integer, m::Integer=1; nr::Integer=0)
-    Z = ZZ / p
+    isprime(p) || throw(ArgumentError("base $p must be prime"))
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
+    Z = ZZ / p
     if m == 1
         Z
     else

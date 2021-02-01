@@ -26,10 +26,8 @@
     @test one(QQ{Int8}) == 1
     @test hash(QQ(13, 14)) == hash(13//14)
 
-    buf = IOBuffer()
-    show(buf, QQ(12, 13))
-    @test String(take!(buf)) == "12/13"
-    @test show(IOBuffer(), QQ(12, 1)) == nothing
+    @test sprint(show, QQ(12, 13)) == "12/13"
+    @test sprint(show, QQ(12, 1)) === "12"
 
     @test QQ{Int}(3, 6) == 1//2
     @test QQ(3, 6) == 1//2

@@ -110,9 +110,9 @@ end
     @test deg(z3) == 0
     @test div(z3, z3) == one(z3)
     @test rem(z3, z3) == zero(z3)
-    io = IOBuffer()
-    @test show(io, z1) == nothing
-    @test show(io, -z1) == nothing
+  
+    @test sprint(show, z1) == "$(Int(n1))°"
+    @test sprint(show, -z1) in ("$(big(m-n1))°", "-$(Int(n1))°")
 end
 @testset "constructors and type assertion" begin
     ZZp1 = ZZmod{17,Int8}
