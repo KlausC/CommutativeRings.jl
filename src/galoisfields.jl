@@ -40,32 +40,27 @@ The numbers `0:p-1` correspond to the base field, and `p` to the polynomial `x` 
 the representation of `Q`.
 """
 function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
-    s = num < 0 ? -1 : 1
-    exp = abs(num)
-    tv = gettypevar(GaloisField{Id,T,Q})
-    g = GaloisField{Id,T,Q}(tv.logtable[exp+1], NOCHECK)
-    s < 0 ? -g : g
+    tv = gettypevar(GaloisField{Id,T,Q}).logtable[abs(num)+1]
+    g = GaloisField{Id,T,Q}(tv, NOCHECK)
+    num < 0 ? -g : g
 end
-
 function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
-
 function GaloisField{Id,T,Q}(a::GaloisField{Id2,T,Q2}) where {Id,T,Q,Id2,Q2}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
+(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G(tonumber(q, characteristic(Q)))
+(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G(q.val)
 
-convert(::Type{G}, a::Integer) where G<:GaloisField = G(a)
-GaloisField{Id,T,Q}(q::Q) where {Id,T,Q} = convert(GaloisField{Id,T,Q}, q)
-
-function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    G(tonumber(q, characteristic(Q)))
-end
+convert(G::Type{<:GaloisField}, a) = G(a)
+convert(::Type{G}, a::G) where G<:GaloisField = a
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
 
 promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G
+_promote_rule(G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}}, ::Type{Q}) where {Id,T,Q} = G
 
 function convert(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:γ}},G<:GaloisField{Id,T,Q}}
     et = gettypevar(G).exptable
@@ -74,6 +69,8 @@ end
 
 (::Type{Q})(g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:γ}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
 
+import Base.Broadcast: broadcastable
+broadcastable(x::Type{<:GaloisField}) = collect(x)
 
 function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))
@@ -174,7 +171,7 @@ end
 
 function Base.show(io::IO, g::Type{<:GaloisField})
     sc(f, g) = try f(g) catch; "?" end
-    print(io, g.name.name, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
+    print(io, :GaloisField, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
 end
 
 function tonumber(a::Quotient, p::Integer)
@@ -219,12 +216,19 @@ function GFImpl(p::Integer, m::Integer=1; nr::Integer=0)
     isprime(p) || throw(ArgumentError("base $p must be prime"))
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
     Z = ZZ / p
-    if m == 1
-        Z
-    else
-        gen = irreducible(Z[:γ], m, nr)
-        typeof(gen) / gen
+    m == 1 && return Z
+    mm = intpower(p, m) - 1
+    list = factors(mm)
+    P = Z[:γ]
+    x = monom(P)
+    nx = max(nr, 0)
+    for gen = irreducibles(P, m)
+        if order(x, gen, list) == mm
+            nx == 0 && return P / gen
+            nx -= 1
+        end
     end
+    throw(ArgumentError("no irreducible polynomial of degree $m found with generator p(γ) = γ (nr = $nr)"))
 end
 
 function dimension(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}
@@ -402,10 +406,11 @@ end
 """
     allzeros(p, vx)
 
-Assuming `p(vx) == 0` for an irreducible polynomial `p` and a galois field element `vx`
-find all zeros of `p` inrreducibles the galois field, vx belongs to.
+Assume `p` is an irreducible polynomial over `ZZ/pr`.
+If `p(vx) == 0` a galois field element `vx`,
+find all zeros of `p` in the galois field, vx belongs to.
 """
-function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial{<:ZZmod},Q<:Quotient{P}}
+function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial,Q}
     q = characteristic(Q)
     r = deg(p)
     return (vx^q^k for k = 0:r-1)
@@ -420,3 +425,14 @@ function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial{<:ZZmod},Q<:Quotie
     =#
 end
 
+"""
+    order(p, q, xlist)
+
+Return first `n` in `xlist` where `rem(p^n, q) == 1`; otherwise 0.
+"""
+function order(p, q, xlist)
+    for x in xlist
+        rem(p^x, q) == 1 && return x
+    end
+    0
+end

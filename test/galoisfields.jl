@@ -46,7 +46,9 @@ end
     @test dimension(G) == r
 
     g1, g2 = rand(rng, G, 2)
-    while iszero(g1); g1 = rand(rng, G); end
+    while iszero(g1)
+        g1 = rand(rng, G)
+    end
     @test convert(G, convert(Q, g1)) == g1
     q1, q2 = Quotient.((g1, g2))
     @test G(1) == Q(1)
@@ -80,6 +82,8 @@ end
 
     @test sprint(show, g1) == sprint(show, q1)
 
+    @test G(one(ZZ/p)) === one(G)
+    @test length(modulus(G).(G)) == length(G)
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
