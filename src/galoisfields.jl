@@ -47,11 +47,15 @@ function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
     s < 0 ? -g : g
 end
 
-function GaloisField{Id,T,Q}(a::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
 
-convert(G::Type{<:GaloisField}, a::Integer) = G(a)
+function GaloisField{Id,T,Q}(a::GaloisField{Id2,T,Q2}) where {Id,T,Q,Id2,Q2}
+    GaloisField{Id,T,Q}(a.val, NOCHECK)
+end
+
+convert(::Type{G}, a::Integer) where G<:GaloisField = G(a)
 GaloisField{Id,T,Q}(q::Q) where {Id,T,Q} = convert(GaloisField{Id,T,Q}, q)
 
 function convert(::Type{G}, q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
@@ -60,11 +64,10 @@ end
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
 
-promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{<:Integer}) where {Id,T,Q} = G
-_promote_rule(G::Type{GaloisField{Id,T,Q}}, S::Type{Q}) where {Id,T,Q} = G
+promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
+_promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G
 
 function convert(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:γ}},G<:GaloisField{Id,T,Q}}
-
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
 end
@@ -76,7 +79,7 @@ function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))
 end
 
-basetype(::Type{<:GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
+basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
 order(G::Type{<:GaloisField}) = order(basetype(G))
@@ -169,8 +172,9 @@ function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     Base.show(io, toquotient(exptable[g.val+1], Q))
 end
 
-function Base.show(io::IO, g::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    print(io, G.name.name, '{', characteristic(G), ',', dimension(G), '}')
+function Base.show(io::IO, g::Type{<:GaloisField})
+    sc(f, g) = try f(g) catch; "?" end
+    print(io, g.name.name, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
 end
 
 function tonumber(a::Quotient, p::Integer)
