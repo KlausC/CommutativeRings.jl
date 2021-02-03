@@ -1,13 +1,10 @@
 # CommutativeRings.jl
 
-##### W.I.P
-##### Copyright © 2019- by Klaus Crusius. This work is released under The MIT License.
-----
-[![Build Status](https://travis-ci.org/KlausC/CommutativeRings.jl.svg?branch=master)](https://travis-ci.org/KlausC/CommutativeRings.jl)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![codecov](https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/KlausC/CommutativeRings.jl)
+[![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
-----
+## W.I.P
 
-# `CommutativeRings`
+### Copyright © 2019- by Klaus Crusius. This work is released under The MIT License.
 
 ## Introduction
 
@@ -43,11 +40,10 @@ Correspondence between algebraic and Julia categories:
 | basic binary operations **a + b**   | binary operator| `a + b`
 | homomorphism **h** : **R** -> **S** | method         | `h(::R)::S = ...`
 | canonical **h** : **R** -> **S**    | constructor    | `S(::R) = ...`
- 
 
 ## Usage example
 
-```
+``` julia
 julia> using CommutativeRings
 
  # starting with some calculation in the quotient field Z/31
@@ -120,8 +116,7 @@ not dividable a/b.
 
 ## Installation of this WIP version
 
-
-```
+``` julia
     $ cd ~/.julia/dev
 
     $ git clone https://github.com/KlausC/CommutativeRings.jl.git CommutativeRings
@@ -157,26 +152,30 @@ not dividable a/b.
 
 ## Implementation details
 
-###Classes
+### Classes
 
-| Name            | supertype      | description   | remarks |
-|-----------------|----------------|---------------|---------|
+| Name            | supertype      | description / constructor | remarks |
+|-----------------|----------------|---------------------------|---------|
 | `Ring`          | `Any`          | abstract - supertype of all ring classes|
 | `FractionField` | `Ring`         | abstract - ring of fractions over a ring |
 | `QuotientRing`  | `Ring`         | abstract - quotient (or factor-) ring of a ring|
 | `Polynomial`    | `Ring`         | abstract - polynomials over a ring |
 | `ZZ{type}`      | `Ring`         | integer numbers | `type` is an integer Julia type
-| `ZZmod{m,type}` | `QuotientRing` | quotient class modulo `m` | `m` is a small integer or a symbol to accomodate `BigInt
-| `QQ{type}`      | `FractionField`| rational numbers | essential identical to `Rational{type}`
-| `QQ{R}`         | `FractionField`| fractions over a `R`
+| `ZZmod{M,type}` | `QuotientRing` | `ZZ / m` quotient class modulo `m` | `m` is an integer Julia value of type `M`
+| `QQ{type}`      | `FractionField`| rational numbers over integer | like `Rational{type}` - supports integer Julia and integer Rings
+| `Frac{R}`       | `FractionField`| fractions over a `R` typically polynomials | 
 | `Quotient{m,R}` | `QuotientRing` | also `R/m`, ring modulo `m`| `m` is an element or an ideal of `R`
-| `UnivariatePolynomial{X,R}` | `Polynomial`| also `R[X]`, ring of polynomials over `R`|`X` is a symbol like `:x`
+| `UnivariatePolynomial{X,R}`  |`Polynomial`| also `R[:x]`, ring of polynomials over `R`|`X` is a symbol like `:x`
+| `MultivariatePolynomial{X,R}`|`Polynomial`| also `R[:x,:y,...]` | `X` is a list of distinct variable names
+| `GaloisField`   | `QuotientRing` | `GF(p^r)` - efficient implementation of Galois fields | more details see below
+|||
 
-* #### class construction
+#### class construction
 
-Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be use directly.
+Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be used directly.
 For that purpose, there is a special function `new_class`:
-```
+
+``` julia
     m = big"....."
     Zm = new_class(ZZmod{:p,BigInt}, m)
 
@@ -192,15 +191,17 @@ Here the symbols `:x, :y` define the name of the indetermineds of a uni-
 or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
 `R`, which represents the corresponding principal ideal.
 
-```
+``` julia
     S = ZZ{Int}
     P = S[:x]
     x = monom(P, 1) # same as P([0,1])
     Q = P/(x^2 + 1)
 ```
+
 The `/` notion is also implemented for `Julia`integer types,
 so this works:
-```
+
+``` julia
     Z31 = Int8 / 31    # equivalent to ZZmod{31,Int8}
     Zbig = BigInt / (big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
 ```
@@ -211,7 +212,7 @@ Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` 
 `Ideal(a)`. For convenience, principal ideals support also `a * R == Ideal(a)` and
 `p*R == Ideal(R(p))`, where p is an integer.
 
-```
+``` julia
     Z = ZZ{Int8}
     Z1 = Z/31
     Z2 = Z/Z(31)
@@ -228,7 +229,6 @@ If there is one generating element of an ideal, `aR`, the internally a unit mult
 
 In the case of multiple generating elements, `a, b...`, an attempt is made to standardize and reduce the stored base. For example if `R` is an integral domain, the `gcd(a, b...)` is stored.
 
-
 * ### Constructors for elements
 
 The class names of all concrete types serve also as constructor names.
@@ -239,7 +239,6 @@ embedded into `R`.
 For polynomial rings `P{:x}`, the method call `monom(P, i)` constructs the monic
 monimials `x^i` for non-negative integers `i`. That is extended to multivariate
 cases `monom(P, i, j, ...)`.
-
 
 * ### Mathematical operations
 
@@ -256,7 +255,7 @@ cases `monom(P, i, j, ...)`.
 | gcd       ||classical Euclid's algorithm
 | gcdx      ||extended Euclid's algorithm
 | pdivrem   ||pseudo division for polynomials over rings `d, r = divrem(p, q) => q * d + r = f * p` where`f` is in the base ring
-| pgcd      ||pseudo gcd `g, f = pgcd(p, q) => 
+| pgcd      ||pseudo gcd `g, f = pgcd(p, q)`
 | pgcdx     ||pseudo gcdx `g, u, v, f = pgcdx(p, q) => p * u + q * v = g * f` where f is in base ring
 | iszero    ||test if element is zero-element of its ring
 | isone     ||test if element is one-element of its ring
@@ -266,24 +265,79 @@ cases `monom(P, i, j, ...)`.
 | ismonomial|| short for `isone(lc(x))`
 | ismonic   || polynomials of the form `c * x^k` for `c` in th base ring, k >= 0 integer
 
-  * ###Associated classes
+### Associated classes
 
 Each algebraic structure corresponds to a parameterized `Julia` type or struct. For example, to represent Z/m, there is
-```
+
+``` julia
     abstract type Ring{<:RingClass} end
 
     struct ZZmod{m,T<:Integer} <: Ring{ZZmodRingClass}; val::T; end
 ```
+
 The subtypes of `RingClass` are currently only containers for constant type variables. It may be necessary to hold values, which are specific for the algebraic structure, and cannot be stored in as type paramters. That is for example the case, when the modulus `m` in the example above is a `BigInt`.
 In other cases, the classes are unused. The user needs not deal with those types.
 Access to the type variable is used within the implementation by method `owner(::Type{<:Ring}}` which provides the `RingClass` object, when the complete type is known.
 Preferred operation mode is to take the type parameters directly.
 
+### Galois Fields
 
+All finite field have order `p^r` where `p` is a prime number and `r >= 1` an integer.
+It can be represented as a quotient ring of univariate polynomials over `ZZ/p` by an irreducible monic polynomial `g` of degree `r`.
+In short, if `g` is known, we have `(ZZ/p)[:x] / g` as a working implementation of a Galois field.
+For `r == 1` this can be identified with `ZZ/p` (using `g(x) = x`).
 
-## Acknowledgements:
+`g` can be any monic polynomial of degree `r`. When constructing the class `GF(p^r) = GaloisField{p,r}` a brute force search for such polynomials is
+performed using an efficient method to detect irreducibility. For `r > 1` the monom `x ∈ (ZZ/p)[:x] / g` with `0` and `1` generates the field by
+applying addition and multiplication operations. Calculated in `GF`, we have always `g(x) = 0`.
+We restrict the selection of `g` in order to `x` let generate the multiplicative subgroup of `GF` by multiplication. That is possible for all `p, r`.
+
+Time efficiency of algebraic operations is improved by avoiding the expensive multiplicative calculations in the quotient ring and the use of
+logarithmic tables in the size of `p^r`. Each element is represented by an integer in `0:p^r-1`, which corresponds to a polynomial of degree `< r`
+in a canonical manner (for example the number `2p^3 + p + 1` maps uniquley to `2x^3 + x + 1`).
+
+#### Using Galois Fields
+
+We construct a Galois field conveniently by `GF(p^r)`.
+
+``` julia
+julia> p, r = 5, 6;
+
+julia> G = GF(5^6)
+GaloisField{5,6}
+
+julia> g = modulus(G)
+γ^6 + γ + 2°
+
+julia> order(G)
+15625
+
+julia> x = G(p)
+{0:0:0:0:1:0%5}
+
+julia> order(x)
+15624
+
+julia> G.(0:p)
+6-element Array{GaloisField{5,6},1}:
+ {0:0:0:0:0:0%5}
+ {0:0:0:0:0:1%5}
+ {0:0:0:0:0:2%5}
+ {0:0:0:0:0:3%5}
+ {0:0:0:0:0:4%5}
+ {0:0:0:0:1:0%5}
+
+```
+
+## Acknowledgements
+
 This package was inspired by the `C++` library `CoCoALib`, which can be found
 here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
 
+[gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
+[gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
 
-
+[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=master
+[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=master
+[codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl
