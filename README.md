@@ -2,15 +2,17 @@
 
 [![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
-## W.I.P
-
-### Copyright © 2019- by Klaus Crusius. This work is released under The MIT License.
+#### W.I.P
 
 ## Introduction
 
 This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
-fractional `ℚ`, polynomials `ℤ[x]`. It is important, that rings may be freely combined, for example `ℤ/p[x]` (polynomials over the quotient ring for a prime number `p`), or `Frac(ℤ[x])`, the rational functions with integer coefficients.
+fractional `ℚ`, polynomials `ℤ[x]`. Also multivariate polynomials `ℤ[x,y,...]` and Galois fields `GF(p^r)` are supported.
+
+It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the quotient ring for a prime number `p`),
+`Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
+The quotient rings include ideals, which are of major importance with multivariate polynomials.
 
 The mentioned examples are elemetary examples for ring structures. The can be
 liberately combined to fractional fields, quotient rings, and polynomials of previously defined structures.
@@ -294,7 +296,7 @@ In other cases, the classes are unused. The user needs not deal with those types
 Access to the type variable is used within the implementation by method `owner(::Type{<:Ring}}` which provides the `RingClass` object, when the complete type is known.
 Preferred operation mode is to take the type parameters directly.
 
-### Galois Fields
+## Galois Fields
 
 All finite field have order `p^r` where `p` is a prime number and `r >= 1` an integer.
 It can be represented as a quotient ring of univariate polynomials over `ZZ/p` by an irreducible monic polynomial `g` of degree `r`.
@@ -310,7 +312,7 @@ Time efficiency of algebraic operations is improved by avoiding the expensive mu
 logarithmic tables in the size of `p^r`. Each element is represented by an integer in `0:p^r-1`, which corresponds to a polynomial of degree `< r`
 in a canonical manner (for example the number `2p^3 + p + 1` maps uniquley to `2x^3 + x + 1`).
 
-#### Using Galois Fields
+### Using Galois Fields
 
 We construct a Galois field conveniently by `GF(p^r)`.
 
@@ -359,10 +361,49 @@ julia> g.(x.^p.^(0:r-1)) |> unique
  {0:0:0:0:0:0%5}
 ```
 
+## Multivariate Polynomials
+
+Some example usage:
+
+``` julia
+
+julia> Z = ZZ / 7
+ZZmod{7,Int8}
+
+julia> P = Z[:x,:y]
+MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}}
+
+julia> x, y = generators(P);
+
+julia> (x + y)^2
+x^2 + 2°*x*y + y^2
+
+julia> (x + y)^7
+x^7 + y^7
+
+julia> z = (x + y^2) * (x^2 + y)
+x^2*y^2 + x^3 + y^3 + x*y
+
+julia> z^2 / (x^2 + y)^2
+y^4 + 2°*x*y^2 + x^2
+
+julia> I = [x+2; (x+1)*y];
+2-element Array{MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ x + 2°
+ x*y + y
+
+julia> groebnerbase(I)
+2-element Array{MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ x + 2°
+ y
+```
+
 ## Acknowledgements
 
 This package was inspired by the `C++` library `CoCoALib`, which can be found
 here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
+
+### Copyright © 2019- by Klaus Crusius. This work is released under The MIT License
 
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI

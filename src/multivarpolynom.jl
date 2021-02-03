@@ -533,7 +533,7 @@ end
 """
     varnames(P)
 
-Return array of variabel names of polynomial or polynomial type `P`.
+Return array of variable names of polynomial or polynomial type `P`.
 """
 varnames(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = Symbol[X]
 varnames(::Type{T}) where T<:MultivariatePolynomial = gettypevar(T).varnames
@@ -869,7 +869,7 @@ end
 function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
     findfirst(iszero, pos) == nothing && return pos
     i = findfirst(i->iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
-    if i != nothing
+    if i !== nothing
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
     end
 end
