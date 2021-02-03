@@ -396,6 +396,34 @@ julia> groebnerbase(I)
 2-element Array{MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
  x + 2°
  y
+
+ julia> P = (ZZ/97)[:x, :y]
+MultivariatePolynomial{ZZmod{97,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}}
+
+julia> x, y = generators(P);
+
+julia> I = [x^2*y + x*y; x*y^2 + 1]
+2-element Array{MultivariatePolynomial{ZZmod{97,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ x^2*y + x*y
+ x*y^2 + 1°
+
+julia> groebnerbase(I)
+2-element Array{MultivariatePolynomial{ZZmod{97,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ y^2 + 96°
+ x + 1°
+
+# example from [Gröbner Base](https://en.wikipedia.org/wiki/Gr%C3%B6bner_basis)
+julia> I = [x^2 - y; x^3 - x]
+2-element Array{MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ x^2 - y
+ x^3 - x
+
+julia> groebnerbase(I)
+3-element Array{MultivariatePolynomial{ZZmod{7,Int8},2,Symbol("8693009651133194268"),Int64,Tuple{2}},1}:
+ x^2 - y
+ x*y - x
+ y^2 - y
+
 ```
 
 ## Acknowledgements
