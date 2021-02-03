@@ -12,7 +12,7 @@ jobs:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     env:
-      JULIA_NUM_THREADS: ${{ matrix.julia-threads }}
+      JULIA_NUM_THREADS: 2
     strategy:
       fail-fast: false
       matrix:
@@ -27,9 +27,6 @@ jobs:
           - x64
           - x86
         # 32-bit Julia binaries are not available on macOS
-        julia-threads:
-          - "1"
-          - "2"
         exclude:
           - arch: x86
     steps:
