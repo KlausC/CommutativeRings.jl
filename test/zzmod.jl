@@ -126,6 +126,8 @@ end
     @test modulus(Int8/17) == 17
     @test modulus(BigInt/31) == 31
     @test (Int8/17)(1) == ZZp1(1)
+
+    @test value((UInt8/17)(18)) === UInt8(1)
 end
 
 @testset "auxiliary functions" begin

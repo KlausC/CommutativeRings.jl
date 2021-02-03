@@ -257,13 +257,27 @@ cases `monom(P, i, j, ...)`.
 | pdivrem   ||pseudo division for polynomials over rings `d, r = divrem(p, q) => q * d + r = f * p` where`f` is in the base ring
 | pgcd      ||pseudo gcd `g, f = pgcd(p, q)`
 | pgcdx     ||pseudo gcdx `g, u, v, f = pgcdx(p, q) => p * u + q * v = g * f` where f is in base ring
-| iszero    ||test if element is zero-element of its ring
-| isone     ||test if element is one-element of its ring
-| isunit    ||test if element is invertible in its ring
+| iszero    || test if element is zero-element of its ring
+| zero      || zero element of ring
+| isone     || test if element is one-element of its ring
+| one       || one element of ring
+| isunit    || test if element is invertible in its ring
 | deg       || degree of polynomial, `-1` for zero. For non-polynomials always `0`.
-| lc        ||leading coefficient of polynomial, otherwise identity
+| lc        || leading coefficient of polynomial, otherwise identity
 | ismonomial|| short for `isone(lc(x))`
-| ismonic   || polynomials of the form `c * x^k` for `c` in th base ring, k >= 0 integer
+| ismonic   || polynomials of the form `c * x^k` for `c` in the base ring, k >= 0 integer
+| monom     || return monomial polygon with given degree
+| isirreducible || polynomial cannot be split into non-trivial factors
+| irreducibles  || generate all irreducible polynomials of given degree
+| modulus   || for quotient rings and Galois fields the defining polynomial
+| characteristic || of ring: smallest positive integer `c` with `c * one(G) == 0`, otherwise `0`
+| dimension || of Galois fields or vector spaces
+| order  || of ring: number of all elements of ring; `0` if infinite
+| order  || of element `x`: smallest positive integer `c` with `x^c == 1`, otherwise `0`
+| basetype || of ring: type of representative. If no a nested type, the type itself
+| depth  || of ring: nesting depth
+| value  || representant of element. For `R/I` the stored value from `R`. For Galois fields the polynomial.
+||||
 
 ### Associated classes
 
@@ -301,24 +315,24 @@ in a canonical manner (for example the number `2p^3 + p + 1` maps uniquley to `2
 We construct a Galois field conveniently by `GF(p^r)`.
 
 ``` julia
-julia> p, r = 5, 6;
+julia> p, r = 5, 6; # `p` is prime number, `r` not too big
 
-julia> G = GF(5^6)
+julia> G = GF(5^6) # GF(5, 6) is also possible
 GaloisField{5,6}
 
-julia> g = modulus(G)
+julia> g = modulus(G) # the selected irreducible polynomial
 γ^6 + γ + 2°
 
-julia> order(G)
+julia> order(G) # `p^r`
 15625
 
-julia> x = G(p)
+julia> x = G(p) # an easy way to obtain the standard monom
 {0:0:0:0:1:0%5}
 
-julia> order(x)
+julia> order(x) # `x` generates the multiplicative subgroup
 15624
 
-julia> G.(0:p)
+julia> G.(0:p) # element number `p` is `x`
 6-element Array{GaloisField{5,6},1}:
  {0:0:0:0:0:0%5}
  {0:0:0:0:0:1%5}
@@ -327,6 +341,22 @@ julia> G.(0:p)
  {0:0:0:0:0:4%5}
  {0:0:0:0:1:0%5}
 
+julia> g(x) # the monom `x` is a root of `g`
+{0:0:0:0:0:0%5}
+
+# These are all zeros of g - see also `allzeros`
+julia> x.^p.^(0:r-1)
+6-element Array{GaloisField{5,6},1}:
+ {0:0:0:0:1:0%5}
+ {1:0:0:0:0:0%5}
+ {1:3:4:2:1:0%5}
+ {1:2:4:3:1:0%5}
+ {1:1:1:1:1:0%5}
+ {1:4:1:4:1:0%5}
+
+julia> g.(x.^p.^(0:r-1)) |> unique
+1-element Array{GaloisField{5,6},1}:
+ {0:0:0:0:0:0%5}
 ```
 
 ## Acknowledgements

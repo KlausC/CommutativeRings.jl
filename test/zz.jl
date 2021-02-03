@@ -66,4 +66,6 @@ end
     @test rem(ZZ(12), ZZ(5)) == ZZ(2)
 
     @test sprint(show, z3) == "$(Int(2n1))"
+
+    @test value(z2) === n2
 end

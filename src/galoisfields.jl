@@ -128,9 +128,10 @@ function _addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logt
     logtable[ns+1]
 end
 
-iszero(a::G) where G<:GaloisField = iszero(a.val)
+iszero(a::GaloisField) = iszero(a.val)
 isunit(a::GaloisField) = !iszero(a)
 issimple(a::GaloisField) = true
+value(g::GaloisField) = value(toquotient(g))
 
 import Base: ^
 
@@ -160,14 +161,10 @@ end
 
 function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     ord = order(G)
-    G(rand(0:ord-1))
+    G(rand(r, 0:ord-1))
 end
 
-function Base.show(io::IO, g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    tvar = gettypevar(G)
-    exptable = tvar.exptable
-    Base.show(io, toquotient(exptable[g.val+1], Q))
-end
+Base.show(io::IO, g::GaloisField) = Base.show(io, toquotient(g))
 
 function Base.show(io::IO, g::Type{<:GaloisField})
     sc(f, g) = try f(g) catch; "?" end
@@ -180,6 +177,12 @@ function tonumber(a::Quotient, p::Integer)
         s = s * p + c.val
     end
     s
+end
+
+function toquotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
+    tvar = gettypevar(G)
+    exptable = tvar.exptable
+    toquotient(exptable[g.val+1], Q)
 end
 
 function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:γ},Q<:Quotient{P}}

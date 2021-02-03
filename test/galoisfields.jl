@@ -84,6 +84,8 @@ end
 
     @test G(one(ZZ/p)) === one(G)
     @test length(modulus(G).(G)) == length(G)
+
+    @test value(g1) == value(q1)
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin

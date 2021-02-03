@@ -33,6 +33,7 @@ one(x::Ring) = one(typeof(x))
 inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-unit."))
 # enable generic matrix factorization
 abs(a::Ring) = isunit(a) ? 1 : 0
+value(a::Ring) = a
 
 """
     order(Z::Type{<:Ring})

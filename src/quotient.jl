@@ -50,6 +50,7 @@ iszero(x::Quotient) = iszero(x.val)
 isone(x::Quotient) = isone(x.val)
 zero(::Type{Q}) where {S,Q<:Quotient{S}} = Q(zero(S), NOCHECK)
 one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
+value(a::QuotientRing) = a.val
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
 function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}

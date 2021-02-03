@@ -31,7 +31,7 @@ end
 """
     irreducibles(P, n)
 
-Returns array of all irreducible monic polynomials in `P` with degree `n`.
+Returns iterator of all irreducible monic polynomials in `P` with degree `n`.
 """
 function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
     Base.Iterators.Filter(isirreducible, Monic(P, n))

@@ -35,5 +35,7 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
 
     @test hash(q) != 0
     @test sprint(show, q) isa String
+
+    @test value(q + 3 * ideal) == p
 end
 end

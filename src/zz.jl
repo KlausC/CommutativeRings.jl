@@ -8,6 +8,7 @@ depth(::Type{<:ZZ}) = 1
 _lcunit(a::ZZ) = sign(a.val)
 issimpler(a::T, b::T) where T<:ZZ = abs(a.val) < abs(b.val)
 iscoprime(a::T, b::T) where T<:ZZ = gcd(a.val, b.val) == 1
+value(a::ZZ) = a.val
 
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ{T}(a::ZZ{T}) where T = a
