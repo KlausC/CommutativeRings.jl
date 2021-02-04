@@ -29,3 +29,7 @@ end
     io = IOBuffer()
     @test sprint(CommutativeRings.testrules, R) == ""
 end
+
+@testset "basetypes($G)" for G in (Int, ZZ{Int}, ZZ/2, (ZZ/3)[:x], GF(2,2))
+    @test length(basetypes(G)) == depth(G) + 1
+end

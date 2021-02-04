@@ -6,7 +6,7 @@
 
 # construction
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
-depth(::Type{<:ZZmod}) = 1
+depth(::Type{<:ZZmod}) = depth(ZZ) + 1
 _lcunit(a::ZZmod) = one(a)
 issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
 
