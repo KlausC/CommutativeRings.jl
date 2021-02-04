@@ -22,11 +22,7 @@ function gettypevar(t::Type{<:Ring{T}}) where T
         gettypevar_impl(t)
     catch ex
         if ex isa MethodError
-            try
-                Base.invokelatest(gettypevar_impl, t)::T
-            catch
-                rethrow(ex)
-            end
+            Base.invokelatest(gettypevar_impl, t)::T
         else
             rethrow()
         end
