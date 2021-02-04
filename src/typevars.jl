@@ -49,14 +49,16 @@ function new_class(t::Type{<:Ring{T}}, args...) where T
     t
 end
 
+const IdentSymbols = Union{Symbol,Base.BitInteger,BigInt}
 """
     sintern(a)
 
 Return a symbol, which uniquly identifies the argument.
 """
-sintern(a::Symbol) = a
-sintern(m::Base.BitInteger) = m
+sintern(m::IdentSymbols) = m
 sintern(m::BigInt) = Symbol(m)
-sintern(a::Symbol...) = Symbol(a...)
+sintern(a::IdentSymbols...) = Symbol(tuple(a...))
+sintern(a::AbstractVector{<:IdentSymbols}) = Symbol(a)
+sintern(a::Tuple{Vararg{<:IdentSymbols}}) = Symbol(a)
 sintern(a) = Symbol(hash(a))
 

@@ -182,7 +182,7 @@ end
 """
     index2expo(p::Polynomial, i::Integer)
 
-Return the tuple of variable exponents stored at this index (of `p.ind`.
+Return the tuple of variable exponents stored at this index (of `p.ind`).
 """
 function index2expo(p::MultivariatePolynomial{S,N,X,<:Integer}, i::Integer) where {S,N,X}
     ord2expo(p.ind[i], N)
@@ -501,9 +501,9 @@ end
 """
     exposum(a::Polynomial, i, b::Polynomial, j)
 
-Return the sum of variable exonents at `a.ind[i]` and `b.ind[j].
+Return the sum of variable exponents at `a.ind[i]` and `b.ind[j].
 Realizes multiplication of monomials.
-If one of the coefficients is indefined, return `maxindex` symbolizing zero.
+If one of the coefficients is undefined, return `maxindex` symbolizing zero.
 """
 function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     a = pa.ind
