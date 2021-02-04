@@ -341,6 +341,9 @@ function testrules(io, gg)
                 println(io, "inv($a)")
             end
         end
+        if a * a * a != a ^ 3
+            println(io, "$(a) ^ 3")
+        end
     end
     for (a,b,c) in Iterators.product(gg, gg, gg)
         if (a * b) * c != a * ( b * c)

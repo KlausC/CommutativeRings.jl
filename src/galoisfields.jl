@@ -19,10 +19,12 @@ function GF(p::Integer, r::Integer; nr::Integer=0)
     c = fill(gen, ord)
     c[1] = c[2] = 1
     cumprod!(c, c)
+    c[1] = 0
     exptable = [T(tonumber(x, p)) for x in c]
-    exptable[1] = 0
     logtable = invperm(exptable .+ 1) .- 1
-    new_class(GaloisField{Id,T,Q}, tonumber(gen, p), logtable, exptable)
+    e = p == 2 ? 0 : (ord - 1) ÷ 2
+    zechtable = logtable[[T(tonumber(x + 1, p)) for x in c] .+ 1]
+    new_class(GaloisField{Id,T,Q}, tonumber(gen, p), e, logtable, exptable, zechtable)
 end
 function GF(n::Integer; nr=0)
     f = factor(n)
@@ -95,15 +97,43 @@ modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 
 # multiplication using lookup tables
 function *(a::G, b::G) where G<:GaloisField
-    ord = order(G)
     a.val == 0 && return a
     b.val == 0 && return b
+    ord = order(G)
+    # beware of overflows
     G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK) 
 end
+function /(a::G, b::G) where G<:GaloisField
+    a.val == 0 && return a
+    a.val == b.val && return one(G)
+    b.val == 0 && division_error()
+    ord = order(G)
+    # beware of overflows
+    G(mod(a.val - 1 + ord - b.val, ord - 1) + 1, NOCHECK) 
+end
+function inv(a::G) where G<:GaloisField
+    ord = order(G)
+    iszero(a) && division_error()
+    nlog = mod(ord - a.val, ord - 1) + 1
+    G(nlog, NOCHECK)
+end
+
+import Base: ^
+
+function ^(a::G, x::Integer) where G<:GaloisField
+    ord = order(G)
+    if iszero(a)
+        return x > 0 ? a : division_error()
+    end
+    nlog = mod(widemul(a.val - 1, x), ord-1) + 1
+    G(nlog, NOCHECK)
+end
+
+division_error() = throw(ArgumentError("cannot invert zero"))
 
 +(a::G, b::G) where G<:GaloisField = addop(+, a, b)
 -(a::G, b::G) where G<:GaloisField = addop(-, a, b)
--(a::G) where G<:GaloisField = a * (-1) 
+-(a::G) where G<:GaloisField = zero(G) - a 
 *(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
 *(b::Integer, a::G) where G<:GaloisField =  a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
@@ -114,28 +144,33 @@ function addop(op::Function, a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
     tv = gettypevar(G)
     exptable = tv.exptable
     logtable = tv.logtable
-    nl = _addop(op, a.val, b.val, p, exptable, logtable)
+    zechtable = tv.zechtable
+    e = tv.lognegone
+    nl = _addop(op, a.val, b.val, ord, e, exptable, logtable, zechtable)
     G(nl, NOCHECK)
 end
 
-function _addop(op::Function, a::Integer, b::Integer, p::Integer, exptable, logtable)
-    na = exptable[a+1]
-    nb = exptable[b+1]
-    if p == 2
-        ns = xor(na, nb)
-    else
-        ns = oftype(na, 0)
-        pp = oftype(p, 1)
-        while !iszero(na) || !iszero(nb)
-            na, xa = fldmod(na, p)
-            nb, xb = fldmod(nb, p)
-            xc = op(xa, xb)
-            xc = mod(xc, p)
-            ns += xc * pp
-            pp *= p
-        end
+function _addop(::typeof(+), a::T, b::T, ord::Integer, e::T, exptable, logtable, zechtable) where T
+    a == 0 && return b
+    b == 0 && return a
+    if a < b
+        a, b = b, a
     end
-    logtable[ns+1]
+    k = a - b
+    k == e && return T(0)
+    mod1(zechtable[k+2] - 1 + b, ord - 1)
+end
+
+function _addop(::typeof(-), a::T, b::T, ord::Integer, e::T, exptable, logtable, zechtable) where T
+    a == b && return T(0)
+    a == 0 && return b > e ? b - e : b + e
+    b == 0 && return a
+    b = b > e ? b - e : b + e
+    if a < b
+        a, b = b, a
+    end
+    k = a - b
+    mod1(zechtable[k+2] - 1 + b, ord - 1)
 end
 
 iszero(a::GaloisField) = iszero(a.val)
@@ -143,31 +178,8 @@ isunit(a::GaloisField) = !iszero(a)
 issimple(a::GaloisField) = true
 value(g::GaloisField) = value(toquotient(g))
 
-import Base: ^
-
-function ^(a::G, x::Integer) where G<:GaloisField
-    ord = order(G)
-    if iszero(a)
-        return x > 0 ? a : throw(ArgumentError("cannot invert zero"))
-    end
-    nlog = mod(widemul(a.val - 1, x), ord-1) + 1
-    G(nlog, NOCHECK)
-end
-
-function inv(a::G) where G<:GaloisField
-    ord = order(G)
-    iszero(a) && throw(ArgumentError("cannot invert zero"))
-    nlog = mod(ord-a.val, ord - 1) + 1
-    G(nlog, NOCHECK)
-end
-
 zero(::Type{G}) where G<:GaloisField = G[0]
 one(::Type{G}) where G<:GaloisField = G[1]
-
-function /(a::G, b::G) where G<:GaloisField
-    iszero(b) && throw(ArgumentError("cannot invert zero"))
-    a * inv(b)
-end
 
 function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     ord = order(G)

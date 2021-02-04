@@ -46,8 +46,10 @@ end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     generator::T
+    lognegone::T
     logtable::Vector{T}
     exptable::Vector{T}
+    zechtable::Vector{T}
 end
 
 const NCT = Val{:nocheck}
