@@ -45,14 +45,17 @@ end
     @test characteristic(G) == characteristic(Q) == p
     @test dimension(G) == r
 
+    @test G[p^r-1] isa G
+    @test G[0:p^r-1] isa Vector{G}
+
     g1, g2 = rand(rng, G, 2)
     while iszero(g1)
         g1 = rand(rng, G)
     end
     @test convert(G, convert(Q, g1)) == g1
     q1, q2 = Quotient.((g1, g2))
-    @test G(1) == Q(1)
-    @test G(p) != Q(p)
+    @test G[1] == Q(1)
+    @test G[p] != Q(p)
     @test q1 == Q(g1)
     @test g1 == G(q1)
     @test g1 == q1
@@ -65,20 +68,20 @@ end
     @test -g1 == -q1
     @test inv(g1) == inv(q1)
 
-    @test iszero(G(0))
-    @test isone(G(1))
-    @test isunit(G(2))
+    @test iszero(G[0])
+    @test isone(G[1])
+    @test isunit(G[2])
     @test zero(G) == 0
     @test one(G) == 1
-    @test G(10) / G(10) == 1
+    @test G[10] / G[10] == 1
     @test one(G) * g1 == g1
     @test zero(G) * g1 == 0
     @test g1 * 1 == g1
     @test 1 * g2 == g2
     @test 2g1 == g1 + g1
     @test g2 ^ 2 == g2 * g2
-    @test_throws ArgumentError inv(G(0))
-    @test_throws ArgumentError G(0) ^ -2
+    @test_throws ArgumentError inv(G[0])
+    @test_throws ArgumentError G[0] ^ -2
 
     @test sprint(show, g1) == sprint(show, q1)
 

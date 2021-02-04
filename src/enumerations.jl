@@ -47,22 +47,22 @@ function next(c)
 end
 
 function iterate(::Type{G}) where G<:GaloisField
-    G(0), 0
+    G[0], 0
 end
 
 function iterate(::Type{G}, s::Integer) where G<:GaloisField
     s += 1
     s >= order(G) && return nothing
-    G(s), s
+    G[s], s
 end
 
 function next(g::G) where G<:GaloisField
     s = gettypevar(G).exptable[g.val+1] + 1
-    s >= order(G) ? nothing : G(s)
+    s >= order(G) ? nothing : G[s]
 end
 
 Base.length(mo::Monic{Z,X}) where {X,Z<:Ring} = length(Z)^mo.n
-Base.eltype(mo::Monic{Z,X}) where {X,Z<:Ring} = Z[X]
+Base.eltype(::Monic{Z,X}) where {X,Z<:Ring} = Z[X]
 function Base.iterate(mo::Monic{Z,X}) where {X,Z<:Ring}
     p0 = monom(Z[X], mo.n)
     p0, p0
@@ -157,7 +157,7 @@ function ofindex(a::Integer, P::Type{<:UnivariatePolynomial{S}}, d::Integer) whe
     P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
 end
 function ofindex(a::Integer, G::Type{<:GaloisField})
-    G(mod(a, order(G)))
+    G[mod(a, order(G))]
 end
 
 struct Factors{T<:Integer}

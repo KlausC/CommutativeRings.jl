@@ -32,28 +32,38 @@ function GF(n::Integer; nr=0)
 end
 
 """
-    GaloisField{Id,T,Q}(num::Integer)
+    GaloisField{Id,T,Q}[num::Integer]
 
 Ring element constructor. `num` is *not* the canonical isomorphism, but enumerates
 all elements of `GF(p, r)` in `0:p^r-1`.
-The numbers `0:p-1` correspond to the base field, and `p` to the polynomial `x` in
+The numbers `G[0:p-1]` correspond to the base field, and `G[p]` to the polynomial `x` in
 the representation of `Q`.
 """
-function GaloisField{Id,T,Q}(num::Integer) where {Id,T,Q}
-    tv = gettypevar(GaloisField{Id,T,Q}).logtable[abs(num)+1]
-    g = GaloisField{Id,T,Q}(tv, NOCHECK)
-    num < 0 ? -g : g
+function Base.getindex(::Type{GaloisField{Id,T,Q}}, num::Integer) where {Id,T,Q}
+    tv = gettypevar(GaloisField{Id,T,Q}).logtable[num + 1]
+    GaloisField{Id,T,Q}(tv, NOCHECK)
 end
+function Base.getindex(::Type{GaloisField{Id,T,Q}}, num::UnitRange{<:Integer}) where {Id,T,Q}
+    tv = gettypevar(GaloisField{Id,T,Q}).logtable[num .+ 1]
+    GaloisField{Id,T,Q}.(tv, NOCHECK)
+end
+
+#=
+function (G::Type{GaloisField{Id,T,Q}})(num::Integer) where {Id,T,Q}
+    G[num]
+end
+=#
 function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
 function GaloisField{Id,T,Q}(a::GaloisField{Id2,T,Q2}) where {Id,T,Q,Id2,Q2}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
-(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G(tonumber(q, characteristic(Q)))
-(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G(q.val)
+(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G[tonumber(q, characteristic(Q))]
+(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G[q.val]
 
 convert(G::Type{<:GaloisField}, a) = G(a)
+convert(G::Type{<:GaloisField}, a::Integer) = G[a] ### TODO remove when G(::Integer) is re-introduced
 convert(::Type{G}, a::G) where G<:GaloisField = a
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
@@ -94,7 +104,7 @@ end
 +(a::G, b::G) where G<:GaloisField = addop(+, a, b)
 -(a::G, b::G) where G<:GaloisField = addop(-, a, b)
 -(a::G) where G<:GaloisField = a * (-1) 
-*(a::G, b::Integer) where G<:GaloisField = G(mod(b, characteristic(G))) * a
+*(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
 *(b::Integer, a::G) where G<:GaloisField =  a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
 
@@ -151,8 +161,8 @@ function inv(a::G) where G<:GaloisField
     G(nlog, NOCHECK)
 end
 
-zero(::Type{G}) where G<:GaloisField = G(0)
-one(::Type{G}) where G<:GaloisField = G(1)
+zero(::Type{G}) where G<:GaloisField = G[0]
+one(::Type{G}) where G<:GaloisField = G[1]
 
 function /(a::G, b::G) where G<:GaloisField
     iszero(b) && throw(ArgumentError("cannot invert zero"))
@@ -161,7 +171,7 @@ end
 
 function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     ord = order(G)
-    G(rand(r, 0:ord-1))
+    G[rand(r, 0:ord-1)]
 end
 
 Base.show(io::IO, g::GaloisField) = Base.show(io, toquotient(g))
