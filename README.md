@@ -14,7 +14,7 @@ It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (po
 `Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
 The quotient rings include ideals, which are of major importance with multivariate polynomials.
 
-The mentioned examples are elemetary examples for ring structures. The can be
+The mentioned examples are elementary examples for ring structures. The can be
 liberately combined to fractional fields, quotient rings, and polynomials of previously defined structures.
 
 So it is possible to work with rational functions, which are fractions of polynomials, where the polynomial coefficients are in ℤ/p, for example.
@@ -23,7 +23,7 @@ The the current standard library we have modules `Rational` and `Polynomial` bes
 The original motivation for writing this piece of sofware, when I tried to handle polynomials over a quotient ring. There was no obvious way of embedding my ring elements
 into the `Julia` language and for example exploit polynomial calculations from the `Polynomial` package for that. There seems to be a correspondence between `Julia` types and structures and the algebraic stuctures I want to work with. So the idea was born to define
 abstract and concrete types in `Julia`, the objects of those types representing the ring
-elements to operate on. As types are first class objects in `Julia`it was also possible to
+elements to operate on. As types are first class objects in `Julia` it was also possible to
 define combinations in a language affine way. Also `ring homomorphisms`, i.e. strucure-respecting mappings between rings (of differnt kind) find a natural representation as one-argument-functions or methods with corresponding domains. The typical canonical homomorphisms, can be conveniently implemented as constructors.
 
 The exploitation of the julia structures is in contrast to the alternative package [AbstractAlgebra](https://github.com/Nemocas/AbstractAlgebra.jl), which defines separate types for ring elements and the ring classes themselves, the elements keeping an explicit link to the owner structure.
@@ -134,21 +134,43 @@ not dividable a/b.
 
      # press backspace
 
-    julia> using CommutativeRings
-    [ Info: Recompiling stale cache file ~/.julia/compiled/v1.3/CommutativeRings/mLTUZ.ji for CommutativeRings [a6d4fa9c-9e0b-4795-89f3-f481b7b5e384]
+julia> using CommutativeRings
+[ Info: Precompiling CommutativeRings [a6d4fa9c-9e0b-4795-89f3-f481b7b5e384]
 
-    (CommutativeRings) pkg> test
-       Testing CommutativeRings
-     Resolving package versions...
-    Test Summary: | Pass  Total
-    ZZ            |   92     92
-    Test Summary: | Pass  Total
-    ZZmod         |  248    248
-    Test Summary: | Pass  Total
-    univarpolynom |  187    187
-    Test Summary: | Pass  Total
-    quotient      |    4      4
-       Testing CommutativeRings tests passed 
+(CommutativeRings) pkg> test
+    Testing CommutativeRings
+
+Test Summary: | Pass  Total
+generic       |   23     23
+Test Summary: | Pass  Total
+typevars      |    8      8
+Test Summary: | Pass  Total
+ZZ            |  113    113
+Test Summary: | Pass  Total
+QQ            |   42     42
+Test Summary: | Pass  Total
+ZZmod         |  271    271
+Test Summary: | Pass  Total
+univarpolynom |  256    256
+Test Summary:   | Pass  Total
+multivarpolynom |  151    151
+Test Summary: | Pass  Total
+ideal         |   21     21
+Test Summary: | Pass  Total
+fraction      |   32     32
+Test Summary: | Pass  Total
+quotient      |   24     24
+Test Summary: | Pass  Total
+factorization |   20     20
+Test Summary: | Pass  Total
+galoisfields  |   99     99
+Test Summary: | Pass  Total
+numbertheory  |   24     24
+Test Summary: | Pass  Total
+enumerations  |   31     31
+Test Summary: | Pass  Total
+linearalgebra |   23     23
+    Testing CommutativeRings tests passed  
 
 ```
 
@@ -431,7 +453,7 @@ julia> groebnerbase(I)
 This package was inspired by the `C++` library `CoCoALib`, which can be found
 here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
 
-### Copyright © 2019- by Klaus Crusius. This work is released under The MIT License
+### Copyright © 2019-2021 by Klaus Crusius. This work is released under The MIT License
 
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
