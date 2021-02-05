@@ -12,12 +12,13 @@ export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise
 export characteristic, order
 export ofindex, index
+export log_zech, generator
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
 export generators, varnames, factors
 
-import Base: +, -, *, /, inv, ^, \, //, getindex, sign
+import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
 import Primes

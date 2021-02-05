@@ -118,15 +118,49 @@ function inv(a::G) where G<:GaloisField
     G(nlog, NOCHECK)
 end
 
-import Base: ^
+import Base: ^, log
 
 function ^(a::G, x::Integer) where G<:GaloisField
     ord = order(G)
     if iszero(a)
         return x > 0 ? a : division_error()
     end
-    nlog = mod(widemul(a.val - 1, x), ord-1) + 1
+    T = typeof(a.val)
+    v = (log(a))
+    #xx = T(mod(x, ord - 1))
+    nlog = T(mod(widemul(v, x), ord-1) + 1)
     G(nlog, NOCHECK)
+end
+
+"""
+    log(g::GaloisField)
+
+Return the integer `k in 0:order(G)-2` with `g == α ^ k`, where `α` is the generator of `G`
+or `-1` if `g == 0`. For example `log(one(G) == 0`.
+"""
+log(a::G) where G<:GaloisField = a.val - 1
+
+"""
+    log_zech(k::Integer, G::Type{<:GaloisField})
+
+If `α` is the generator of `G`, for `k >= 0` return the `log(α^k + 1)`, for `k < 0` return `0`.
+In other words: `α ^ log_zech(k, G) == α ^ k + 1` for `k >= 0`.
+"""
+function log_zech(k, G::Type{<:GaloisField})
+    k < 0 && return 0
+    ord = order(G)
+    zt = gettypevar(G).zechtable
+    zt[mod(k, ord - 1) + 2] - 1
+end
+
+"""
+    generator(::Type{<:GaloisField})
+
+Return the generator element of this implementation of Galois field.
+"""
+function generator(G::Type{<:GaloisField})
+    tv = gettypevar(G)
+    G[tv.generator]
 end
 
 division_error() = throw(ArgumentError("cannot invert zero"))

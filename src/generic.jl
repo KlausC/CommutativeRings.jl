@@ -337,7 +337,7 @@ Print messages to `io` if errors found.
 function testrules(io, gg)
     for a in gg
         if isunit(a)
-            if !isone(inv(a) * a) || !isone(a * inv(a)) 
+            if !isone(inv(a) * a) || !isone(a * inv(a))
                 println(io, "inv($a)")
             end
         end
