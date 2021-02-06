@@ -36,14 +36,15 @@ end
 
 @testset "Galois Fields $p^$r" for (p, r) in ((2,8), (7,2))
     @test GF(p) == GF(p,1)
-    @test GF(p, r) <: GaloisField{p^r}
+    @test GF(p, r) <: GaloisField
     G = GF(p, r)
     @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:α}}
     Q = basetype(G)
     @test modulus(G) == modulus(Q)
     @test order(G) == order(Q) == p ^ r
     @test characteristic(G) == characteristic(Q) == p
-    @test dimension(G) == r
+    @test dimension(G) == dimension(Q) == r
+    @test deg(modulus(G)) == r
 
     @test G[p^r-1] isa G
     @test G[0:p^r-1] isa Vector{G}
@@ -80,6 +81,10 @@ end
     @test 1 * g2 == g2
     @test 2g1 == g1 + g1
     @test g2 ^ 2 == g2 * g2
+    @test g1 + g1 == 2g1
+    @test g1 + (-g2) == g1 - g2
+    @test g1 * inv(g2) == g1 / g2
+    @test (g1 - g1) - g2 == -g2
     @test_throws ArgumentError inv(G[0])
     @test_throws ArgumentError G[0] ^ -2
 

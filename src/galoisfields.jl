@@ -16,7 +16,7 @@ function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)
     Q = GFImpl(p, r, nr=nr, mod=mod)
     ord = order(Q)
     r = dimension(Q)
-    Id = Int(ord)
+    Id = (p, r)
     r == 1 && mod === nothing && return Q
     T = mintype_for(p, r, true)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
@@ -94,23 +94,24 @@ end
 
 basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
-characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
-order(G::Type{<:GaloisField}) = order(basetype(G))
-dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
+characteristic(::Type{<:GaloisField{Id}}) where Id = Id[1]
+dimension(::Type{<:GaloisField{Id}}) where Id = Id[2]
+@generated order(::Type{<:GaloisField{Id}}) where Id = begin x = Id[1]^Id[2]; :($x) end
+lognegone(G::Type{<:GaloisField{Id}}) where Id = Id[1] == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 
 # multiplication using lookup tables
 function *(a::G, b::G) where G<:GaloisField
-    a.val == 0 && return a
-    b.val == 0 && return b
+    iszero(a.val) && return a
+    iszero(b.val) && return b
     ord = order(G)
     # beware of overflows
     G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK) 
 end
 function /(a::G, b::G) where G<:GaloisField
-    a.val == 0 && return a
+    iszero(a.val) && return a
     a.val == b.val && return one(G)
-    b.val == 0 && division_error()
+    iszero(b.val) && division_error()
     ord = order(G)
     # beware of overflows
     G(mod(a.val - 1 + ord - b.val, ord - 1) + 1, NOCHECK) 
@@ -169,46 +170,53 @@ end
 
 division_error() = throw(ArgumentError("cannot invert zero"))
 
-+(a::G, b::G) where G<:GaloisField = addop(+, a, b)
--(a::G, b::G) where G<:GaloisField = addop(-, a, b)
--(a::G) where G<:GaloisField = zero(G) - a 
 *(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
 *(b::Integer, a::G) where G<:GaloisField =  a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
 
-function addop(op::Function, a::G, b::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}}
-    ord = order(Q)
-    p = characteristic(Q)
-    tv = gettypevar(G)
-    exptable = tv.exptable
-    logtable = tv.logtable
-    zechtable = tv.zechtable
-    e = tv.lognegone
-    nl = _addop(op, a.val, b.val, ord, e, exptable, logtable, zechtable)
-    G(nl, NOCHECK)
+function typedep(::Type{G}) where G<:GaloisField
+    ord = order(G)
+    zechtable = gettypevar(G).zechtable
+    e = lognegone(G)
+    ord, e, zechtable
 end
 
-function _addop(::typeof(+), a::T, b::T, ord::Integer, e::T, exptable, logtable, zechtable) where T
-    a == 0 && return b
-    b == 0 && return a
+function +(a::G, b::G) where G <:GaloisField
+    iszero(a) && return b
+    iszero(b) && return a
+    a = a.val
+    b = b.val
     if a < b
         a, b = b, a
     end
+    ord, e, zechtable = typedep(G)
     k = a - b
-    k == e && return T(0)
-    mod1(zechtable[k+2] - 1 + b, ord - 1)
+    k == e && return zero(G)
+    @inbounds G(mod1(zechtable[k+2] - 1 + b, ord - 1), NOCHECK)
 end
 
-function _addop(::typeof(-), a::T, b::T, ord::Integer, e::T, exptable, logtable, zechtable) where T
-    a == b && return T(0)
-    a == 0 && return b > e ? b - e : b + e
-    b == 0 && return a
+function -(a::G, b::G) where G <:GaloisField
+    iszero(b) && return a
+    iszero(a) && return -b
+    a = a.val
+    b = b.val
+    a == b && return zero(G)
+    ord, e, zechtable = typedep(G)
     b = b > e ? b - e : b + e
     if a < b
         a, b = b, a
     end
     k = a - b
-    mod1(zechtable[k+2] - 1 + b, ord - 1)
+    G(mod1(zechtable[k+2] - 1 + b, ord - 1), NOCHECK)
+end
+
+function -(a::G) where G<:GaloisField
+    characteristic(G) == 2 && return a
+    iszero(a) && return a
+    e = gettypevar(G).lognegone
+    a = a.val
+    a = a > e ? a - e : a + e
+    G(a, NOCHECK)
 end
 
 iszero(a::GaloisField) = iszero(a.val)
