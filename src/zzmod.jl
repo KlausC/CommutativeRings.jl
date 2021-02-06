@@ -86,6 +86,7 @@ one(::Type{<:ZZmod{m,S}}) where {m,S} = ZZmod{m,S}(one(S))
 one(::Type{ZZmod{m}}) where {m} = ZZmod{m}(one(m))
 ==(a::ZZmod{m1},b::ZZmod{m2}) where {m1,m2} = modulus(a) == modulus(b) && a.val == b.val
 hash(a::ZZmod, h::UInt) = hash(a.val, hash(modulus(a), h))
+dimension(::Type{<:ZZmod}) = 1
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {X,F,R,S,Z<:ZZmod{X,<:R}}

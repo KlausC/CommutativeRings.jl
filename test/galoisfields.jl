@@ -11,7 +11,7 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     
     @test GFImpl(7) <: ZZmod{7}
     @test GFImpl(3) == GFImpl(3,1)
-    @test GFImpl(5,3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5},:γ}}
+    @test GFImpl(5,3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5},:α}}
     
     G7 = GFImpl(7)
     @test G7(3)^2 == G7(2)
@@ -38,7 +38,7 @@ end
     @test GF(p) == GF(p,1)
     @test GF(p, r) <: GaloisField{p^r}
     G = GF(p, r)
-    @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:γ}}
+    @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:α}}
     Q = basetype(G)
     @test modulus(G) == modulus(Q)
     @test order(G) == order(Q) == p ^ r
@@ -111,6 +111,14 @@ end
     G = GF(q, r)
     irr = irreducibles(G[:x], s)
     @test length(collect(irr)) == necklace(order(G), s)
+end
+
+@testset "Galois field - user modulus" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    p = x^3 + x + 1
+    @test GF(5, mod = p) <: GaloisField
+    @test_throws ArgumentError GF(11, mod = p) # p not irreducible in ZZ/11
 end
 
 end
