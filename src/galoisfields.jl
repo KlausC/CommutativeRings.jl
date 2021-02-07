@@ -96,6 +96,7 @@ basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
 characteristic(::Type{<:GaloisField{Id}}) where Id = Id[1]
 dimension(::Type{<:GaloisField{Id}}) where Id = Id[2]
+# order(::Type{<:GaloisField{Id}}) where Id = Id[1]^Id[2]
 @generated order(::Type{<:GaloisField{Id}}) where Id = begin x = Id[1]^Id[2]; :($x) end
 lognegone(G::Type{<:GaloisField{Id}}) where Id = Id[1] == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
@@ -152,9 +153,12 @@ If `α` is the generator of `G`, for `k >= 0` return the `log(α^k + 1)`, for `k
 In other words: `α ^ log_zech(k, G) == α ^ k + 1` for `k >= 0`.
 """
 function log_zech(k, G::Type{<:GaloisField})
-    k < 0 && return 0
     ord = order(G)
     zt = gettypevar(G).zechtable
+    log_zech(k, ord, zt)
+end
+function log_zech(k::Integer, ord::Integer, zt::AbstractVector)
+    k < 0 && return 0
     zt[mod(k, ord - 1) + 2] - 1
 end
 
@@ -256,13 +260,17 @@ end
 function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
+    ord = order(Q)
+    Q(tocoeffs(a, p, r, ord, Z))
+end
+function tocoeffs(a::Integer, p::Integer, r::Integer, ord::Integer, Z::Type)
     c = zeros(Z, r)
-    b = a % order(Q)
-    for i = 1:r
+    b = a % ord
+        for i = 1:r
         iszero(b) && break
         b, c[i] = divrem(b, p)
     end
-    Q(c)
+    c
 end
 
 """
@@ -517,4 +525,56 @@ function order(p, q, xlist)
         rem(p^x, q) == 1 && return x
     end
     0
+end
+
+function logg0(G)
+    p = characteristic(G)
+    ord = order(G)
+    zt = gettypevar(G).zechtable
+    logg0(p, ord, zt)
+end
+function logg0(p::Integer, ord::Integer, zt)
+    v = Vector{Int}(undef, p)
+    v[1] = -1
+    s = v[2] = 0
+    for i = 3:length(v)
+        s = log_zech(s, ord, zt)
+        v[i] = s
+    end
+    v
+end
+
+loggi(k, G::Type{<:GaloisField}) = loggi(k, order(G), gettypevar(G).zechtable)
+function loggi(k::Integer, ord::Integer, zt::AbstractVector)
+    if iszero(k)
+        -1
+    elseif isone(k)
+        0
+    else
+        log_zech(loggi(k-1, ord, zt), ord, zt)
+    end
+end
+
+loggx(a::AbstractVector, G::Type{<:GaloisField}) = loggx(a, order(G), gettypevar(G).zechtable, logg0(G))
+function loggx(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
+    loggi(k) = logt[k+1]
+    k = findfirst(!iszero, a)
+    k === nothing && return -1
+    accu = loggi(a[k]) + k - 1
+    for i = k+1:length(a)
+        ai = a[i]
+        if !iszero(ai)
+            lai = loggi(ai) + i - 1
+            accu = log_zech(mod(accu - lai, ord-1), ord, zt) + lai
+        end
+    end
+    mod(accu, ord-1)
+end
+
+function log_calc(k::Integer, G::Type{<:GaloisField})
+    p, r, ord = characteristic(G), dimension(G), order(G)
+    log_calc(tocoeffs(k, p, r, ord, Int), ord, gettypevar(G).zechtable, logg0(G))
+end
+function log_calc(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
+    loggx(a, ord, zt, logt)
 end
