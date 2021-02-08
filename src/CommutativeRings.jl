@@ -142,9 +142,9 @@ If the ``X``is omitted, an anonymous symbol is used.
 
 The preferred way of construction is via `Zm = Z/m`.
 """
-struct Quotient{R<:Ring,I,X} <: QuotientRing{R,QuotientClass{X,I}}
+struct Quotient{R<:Ring,I,X,Id} <: QuotientRing{R,QuotientClass{X,I}}
     val::R
-    Quotient{R,I,X}(v::R, ::NCT) where {I,X,R<:Ring} = new{R,I,X}(v)
+    Quotient{R,I,X,Id}(v::R, ::NCT) where {I,X,R<:Ring,Id} = new{R,I,X,Id}(v)
 end
 
 """

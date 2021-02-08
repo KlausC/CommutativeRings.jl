@@ -43,15 +43,28 @@ abs(a::Ring) = isunit(a) ? 1 : 0
 value(a::Ring) = a
 
 """
-    order(Z::Type{<:Ring})
+    order(::Type)
 
 Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`. 
 """
+order(::Type) = 0
 order(::Type{Z}) where Z<:ZZmod = uptype(modulus(Z))
-function order(::Type{T}) where {Z,T<:Quotient{<:UnivariatePolynomial{Z}}}
-    intpower(order(Z), deg(modulus(T)))
-end
-order(::Type{<:Ring}) = 0
+
+"""
+    dimension(::Type)
+
+Returns the number of dimensions of vector-space like rings (like quotient rings over polynomials).
+In al other cases return `1`
+"""
+dimension(R::Type) = 1
+
+"""
+    characteristic(::Type)
+
+Returns characteristic `c` of ring `R`.
+`c` is the smallest positive integer with `c * one(R) == 0`, or `0` if `c * one(R) != 0` for all positive integers `c`.
+"""
+characteristic(::Type) = 0
 
 """
     intpower(a, b)
@@ -108,7 +121,6 @@ characteristic(::Type{Z}) where Z<:ZZmod = order(Z)
 characteristic(::Type{T}) where {Z,T<:Quotient{Z}} = characteristic(Z)
 characteristic(::Type{T}) where {Z,T<:Frac{Z}} = characteristic(Z)
 characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
-characteristic(::Type{<:Ring}) = 0
 
 """
     deg(r::Union{Ring,Number})

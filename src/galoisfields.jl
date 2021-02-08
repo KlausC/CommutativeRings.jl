@@ -16,7 +16,7 @@ function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)
     Q = GFImpl(p, r, nr=nr, mod=mod)
     ord = order(Q)
     r = dimension(Q)
-    Id = (p, r)
+    Id = (p, r, ord)
     r == 1 && mod === nothing && return Q
     T = mintype_for(p, r, true)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
@@ -94,11 +94,10 @@ end
 
 basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
-characteristic(::Type{<:GaloisField{Id}}) where Id = Id[1]
-dimension(::Type{<:GaloisField{Id}}) where Id = Id[2]
-# order(::Type{<:GaloisField{Id}}) where Id = Id[1]^Id[2]
-@generated order(::Type{<:GaloisField{Id}}) where Id = begin x = Id[1]^Id[2]; :($x) end
-lognegone(G::Type{<:GaloisField{Id}}) where Id = Id[1] == 2 ? 0 : (order(G) - 1) ÷ 2
+characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
+dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
+order(G::Type{<:GaloisField}) = order(basetype(G))
+lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 
 # multiplication using lookup tables
