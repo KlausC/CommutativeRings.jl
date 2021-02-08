@@ -9,11 +9,11 @@ end
 eltype(::Type{Z}) where Z<:Ring = Z
 length(::Type{Z}) where Z<:Ring = order(Z)
 
-function iterate(m::Type{Z}) where Z<:QuotientRing
+function iterate(::Type{Z}) where Z<:QuotientRing
     z = zero(Z)
     (z, z)
 end
-function iterate(m::Type{Z}, s) where Z<:ZZmod
+function iterate(::Type{Z}, s) where Z<:ZZmod
     v = Z(s.val + 1)
     iszero(v) ? nothing : (v, v)
 end

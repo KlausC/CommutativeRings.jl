@@ -16,18 +16,32 @@ function isirreducible(p::UnivariatePolynomial{<:QuotientRing})
     deg(pp) > 0 && return false
     isddf(p)
 end
+"""
+    isreducible(p::F[X])
+
+Returns iff `p` is a reducible (prime) polynomial over field `F`. See also `factor`.
+"""
+isreducible(p::UnivariatePolynomial{<:QuotientRing}) = !isirreducible(p)
 
 import Base.Iterators: Filter, take, drop
-"""
-    irreducible(P, n)
+"""::UnivariatePolynomial{<:QuotientRing}
+    irreducible(P, n, nr=0)
 
-Returns an irreducible polynomial with in `P` with degree `n`.
+Returns an irreducible polynomial with in `P` with degree `n`. Skip first `nr` ones.
 """
 irreducible(::Type{P}, n) where P<:UnivariatePolynomial = first(irreducibles(P, n))
 function irreducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
     first(drop(irreducibles(P, n), nr))
 end
+"""
+    reducible(P, n, nr=0)
 
+Returns a reducible polynomial with in `P` with degree `n`. Skip first `nr` ones.
+"""
+reducible(::Type{P}, n) where P<:UnivariatePolynomial = first(reducibles(P, n))
+function reducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
+    first(drop(reducibles(P, n), nr))
+end
 """
     irreducibles(P, n)
 
@@ -35,6 +49,14 @@ Returns iterator of all irreducible monic polynomials in `P` with degree `n`.
 """
 function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
     Base.Iterators.Filter(isirreducible, Monic(P, n))
+end
+"""
+reducibles(P, n)
+
+Returns iterator of all reducible monic polynomials in `P` with degree `n`.
+"""
+function reducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
+Base.Iterators.Filter(!isirreducible, Monic(P, n))
 end
 
 """

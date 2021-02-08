@@ -9,7 +9,7 @@
     m = 7
     irrm = collect(irreducibles(Z[:x], m))
     f = prod(irrn[2:4]) * prod(irrm[3:4]) * irrn[2]
-    @test !isirreducible(f)
+    @test isreducible(f)
     ff = factor(f)
     @test length(ff) == 5
     @test prod(ff) == f
@@ -17,6 +17,8 @@
     @test length(irrn) == necklace(p, n)
     @test length(irrm) == necklace(p, m)
 
+    redn = collect(reducibles(Z[:x], n))
+    @test length(redn) + length(irrn) == p^n
 end
 
 @testset "factor non-monic" begin
