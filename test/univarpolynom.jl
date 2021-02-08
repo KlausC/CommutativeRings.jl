@@ -259,4 +259,18 @@ end
     @test QQ[:x]([1//2, 2//3]) == QQ{Int}[:x]([1//2, 2//3])
 end
 
+@testset "GF[:x]" begin
+    G = GF(7, 3)
+    GX = G[:x]
+    x = monom(GX)
+    p = x^3 + G[(7*2+1)*7+5]x + 1
+    q = x^3 + 1 + G[200]*x
+    @test isirreducible(p)
+    @test factor(q) |> length == 3
+    @test deg(p^2) == 6
+    @test p * q == q * p
+    @test p + q - p == q
+    @test q / (x + G[28]) |> deg == 2 
+end
+
 end

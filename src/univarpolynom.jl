@@ -46,7 +46,8 @@ _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} 
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{promote_type(R,S),X}
 
 
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(convert.(R, a.coeff))
+convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{R,X}) where {X,R} = a
+convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(convert.(Ref(R), a.coeff))
 convert(P::Type{<:UnivariatePolynomial{S}}, a::S) where {S} = P([a])
 convert(P::Type{<:UnivariatePolynomial{S}}, a::T) where {S,T} = P([convert(S, a)])
 
