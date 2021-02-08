@@ -16,7 +16,6 @@ function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)
     Q = GFImpl(p, r, nr=nr, mod=mod)
     ord = order(Q)
     r = dimension(Q)
-    Id = (p, r, ord)
     r == 1 && mod === nothing && return Q
     T = mintype_for(p, r, true)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
@@ -26,9 +25,10 @@ function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)
     c[1] = 0
     exptable = [T(tonumber(x, p)) for x in c]
     logtable = invperm(exptable .+ 1) .- 1
-    e = p == 2 ? 0 : (ord - 1) ÷ 2
     zechtable = logtable[[T(tonumber(x + 1, p)) for x in c] .+ 1]
-    new_class(GaloisField{Id,T,Q}, tonumber(gen, p), e, logtable, exptable, zechtable)
+
+    Id = (p, r, ord, tonumber(gen, p))
+    new_class(GaloisField{Id,T,Q}, exptable, zechtable)
 end
 function GF(n::Integer; mod=nothing, nr=0)
     f = factor(n)
@@ -45,20 +45,24 @@ all elements of `GF(p, r)` in `0:p^r-1`.
 The numbers `G[0:p-1]` correspond to the base field, and `G[p]` to the polynomial `x` in
 the representation of `Q`.
 """
-function Base.getindex(::Type{GaloisField{Id,T,Q}}, num::Integer) where {Id,T,Q}
-    tv = gettypevar(GaloisField{Id,T,Q}).logtable[num + 1]
-    GaloisField{Id,T,Q}(tv, NOCHECK)
+function Base.getindex(::Type{G}, num::Integer) where G<:GaloisField
+    tv = log_calc(num, G) + 1
+    G(tv, NOCHECK)
 end
-function Base.getindex(::Type{GaloisField{Id,T,Q}}, num::UnitRange{<:Integer}) where {Id,T,Q}
-    tv = gettypevar(GaloisField{Id,T,Q}).logtable[num .+ 1]
-    GaloisField{Id,T,Q}.(tv, NOCHECK)
+function Base.getindex(::Type{G}, ind::AbstractRange{<:Integer}) where G<:GaloisField
+    p, r, ord = characteristic(G), dimension(G), order(G)
+    zt = gettypevar(G).zechtable
+    logt = logg0(G)
+    v = Vector{G}(undef, length(ind))
+    for (i, k) in enumerate(ind)
+        tv = log_calc(tocoeffs(k, p, r, ord, Int), ord, zt, logt) + 1
+        v[i] = G(tv, NOCHECK)
+    end
+    v
 end
 
-#=
-function (G::Type{GaloisField{Id,T,Q}})(num::Integer) where {Id,T,Q}
-    G[num]
-end
-=#
+Base.collect(::Type{G}) where G<:GaloisField = G[0:order(G)-1]
+
 function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
@@ -167,9 +171,15 @@ end
 Return the generator element of this implementation of Galois field.
 """
 function generator(G::Type{<:GaloisField})
-    tv = gettypevar(G)
-    G[tv.generator]
+    G[generatornum(G)]
 end
+
+"""
+   generatornum(::Type{<:GaloisField})
+
+Return numeric representation of generator (in range `0:order(G)-1`). Ideally `== characteristic(G)`.
+"""
+generatornum(::Type{<:GaloisField{Id}}) where Id = Id[4]
 
 division_error() = throw(ArgumentError("cannot invert zero"))
 
@@ -216,7 +226,7 @@ end
 function -(a::G) where G<:GaloisField
     characteristic(G) == 2 && return a
     iszero(a) && return a
-    e = gettypevar(G).lognegone
+    e = lognegone(G)
     a = a.val
     a = a > e ? a - e : a + e
     G(a, NOCHECK)
@@ -264,8 +274,9 @@ function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:�
 end
 function tocoeffs(a::Integer, p::Integer, r::Integer, ord::Integer, Z::Type)
     c = zeros(Z, r)
-    b = a % ord
-        for i = 1:r
+    0 <= a < ord || throw(ArgumentError("index must be in 0:$(ord-1)"))
+    b = a
+    for i = 1:r
         iszero(b) && break
         b, c[i] = divrem(b, p)
     end
@@ -318,10 +329,6 @@ function GFImpl(p::Integer, m::Integer=1; nr::Integer=0, mod=nothing)
         end
         throw(ArgumentError("given polynomial $gen is not irreducible in $P"))
     end
-end
-
-function dimension(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
-    deg(modulus(Q))
 end
 
 function Base.show(io::IO, q::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
@@ -543,17 +550,6 @@ function logg0(p::Integer, ord::Integer, zt)
     v
 end
 
-loggi(k, G::Type{<:GaloisField}) = loggi(k, order(G), gettypevar(G).zechtable)
-function loggi(k::Integer, ord::Integer, zt::AbstractVector)
-    if iszero(k)
-        -1
-    elseif isone(k)
-        0
-    else
-        log_zech(loggi(k-1, ord, zt), ord, zt)
-    end
-end
-
 loggx(a::AbstractVector, G::Type{<:GaloisField}) = loggx(a, order(G), gettypevar(G).zechtable, logg0(G))
 function loggx(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
     loggi(k) = logt[k+1]
@@ -572,7 +568,8 @@ end
 
 function log_calc(k::Integer, G::Type{<:GaloisField})
     p, r, ord = characteristic(G), dimension(G), order(G)
-    log_calc(tocoeffs(k, p, r, ord, Int), ord, gettypevar(G).zechtable, logg0(G))
+    zt = gettypevar(G).zechtable
+    log_calc(tocoeffs(k, p, r, ord, Int), ord, zt, logg0(p, ord, zt))
 end
 function log_calc(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
     loggx(a, ord, zt, logt)
