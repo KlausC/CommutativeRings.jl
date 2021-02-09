@@ -17,7 +17,7 @@ function iterate(::Type{Z}, s) where Z<:ZZmod
     v = Z(s.val + 1)
     iszero(v) ? nothing : (v, v)
 end
-function iterate(mo::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
+function iterate(::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     c = copy(s.val.coeff)
     m = length(c)
     n = deg(modulus(Q))

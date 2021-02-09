@@ -17,16 +17,16 @@ end
 
 Return value, which has previously been associated with this type
 """
-function gettypevar(t::Type{<:Ring{T}}) where T
+function gettypevar(::Type{R}) where {T,R<:Ring{T}}
     try
-        gettypevar_impl(t)
+        gettypevar_impl(R)
     catch ex
         if ex isa MethodError
-            Base.invokelatest(gettypevar_impl, t)::T
+            Base.invokelatest(gettypevar_impl, R)::T
         else
             rethrow()
         end
-    end
+   end
 end
 """
 Define function before first method will be defined.
