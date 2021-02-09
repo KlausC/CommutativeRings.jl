@@ -45,7 +45,17 @@
 
 end
 
-@testset "polynomial over GaloisField" begin
+@testset "polynomial over GF(7)" begin
+    G = GF(7)
+    GX = G[:x]
+    x = monom(GX)
+    p = (x + 1) ^ 3 + 1
+    q =  x + 2
+    @test p // q == p / q
+    @test p // q^2 == (x^2 + x + 1) // q
+end
+
+@testset "polynomial over GF(4)" begin
     G = GF(4)
     GX = G[:x]
     x = monom(GX)

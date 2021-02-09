@@ -246,14 +246,6 @@ function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     G[rand(r, 0:ord-1)]
 end
 
-//(a::G, b::G) where G<:GaloisField = a / b
-div(a::G, b::G) where G<:GaloisField = a / b
-rem(a::G, b::G) where G<:GaloisField = zero(G)
-gcd(a::G, b::G) where G<:GaloisField = one(G)
-gcdx(a::G, b::G) where G<:GaloisField = one(G), zero(G), zero(G)
-pgcd(a::G, b::G) where G<:GaloisField = gcd(a, b)
-pgcdx(a::G, b::G) where G<:GaloisField = gcdx(a, b)
-
 Base.show(io::IO, g::GaloisField) = Base.show(io, toquotient(g))
 
 function Base.show(io::IO, g::Type{<:GaloisField})

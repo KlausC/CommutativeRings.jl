@@ -82,3 +82,10 @@ function Base.show(io::IO, a::Quotient)
     print(io, v, " mod(", m, ")")
 end
 
+//(a::G, b::G) where G<:QuotientRing = a / b
+div(a::G, b::G) where G<:QuotientRing = a / b
+rem(a::G, b::G) where G<:QuotientRing = zero(G)
+gcd(a::G, b::G) where G<:QuotientRing = one(G)
+gcdx(a::G, b::G) where G<:QuotientRing = one(G), zero(G), zero(G)
+pgcd(a::G, b::G) where G<:QuotientRing = gcd(a, b)
+pgcdx(a::G, b::G) where G<:QuotientRing = gcdx(a, b)
