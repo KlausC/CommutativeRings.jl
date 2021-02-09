@@ -42,6 +42,9 @@ inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-un
 abs(a::Ring) = isunit(a) ? 1 : 0
 value(a::Ring) = a
 
+numerator(a::Ring) = a
+denominator(::R) where R<:Ring = one(R)
+
 """
     order(::Type)
 

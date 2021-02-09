@@ -23,6 +23,7 @@ import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
 import Primes
+import Base: numerator, denominator
 
 using LinearAlgebra
 using Base.Checked
@@ -120,7 +121,7 @@ end
     Frac{R}
 
 The ring of fractions of `R`. The elements consist of pairs `num::R,den::R`.
-During creation the values may be canceled, such as `gcd(num, den) == one(R)`.
+During creation the values may be canceled to achieve `gcd(num, den) == one(R)`.
 The special case of `R<:Integer` is handled by `QQ{R}`.
 """
 struct Frac{P<:Union{Polynomial,ZZ}} <: FractionField{P,FractionClass{P}}

@@ -44,3 +44,13 @@
     @test sprint(show, pq) == "(2*x - 1)/(x - 1)"
 
 end
+
+@testset "polynomial over GaloisField" begin
+    G = GF(4)
+    GX = G[:x]
+    x = monom(GX)
+    p = (x + 1) ^ 3 + 1
+    q =  x + G[2]
+    @test p // q == p / q
+    @test p // q^2 == (x^2 + G[3]*x) // q
+end

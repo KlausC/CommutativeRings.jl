@@ -8,6 +8,9 @@ basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1
 copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
 
+numerator(a::FractionField) = a.num
+denominator(a::FractionField) = a.den
+
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
 Frac{T}(a::Frac{T}) where T = a
 Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
@@ -25,14 +28,17 @@ function Frac(a::T, b::T) where T<:Polynomial
     g = pgcd(a, b)
     a /= g
     b /= g
-    a *= cab.num
-    b *= cab.den
+    a *= numerator(cab)
+    b *= denominator(cab)
+    g = pgcd(a, b)
+    a /= g
+    b /= g
     s = lcunit(b)
     b /= s
     a /= s
     Frac{T}(a, b, NOCHECK)
 end
-function Frac(a::T, b::T) where T<:Ring
+function Frac(a::T, b::T) where T<:ZZ
     g = pgcd(a, b)
     a /= g
     b /= g
