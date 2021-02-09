@@ -60,5 +60,7 @@ hash(a::ZZ, h::UInt) = hash(a.val, h)
 gcd(a::T, b::T) where T<: ZZ = T(gcd(a.val, b.val))
 lcm(a::T, b::T) where T<:ZZ = T(lcm(a.val, b.val))
 
+factor(a::Z) where Z <:ZZ = [Z(first(x)) => last(x) for x in Primes.factor(value(a))]
+
 Base.show(io::IO, z::ZZ) = print(io, z.val)
     

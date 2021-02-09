@@ -1,5 +1,9 @@
 module CommutativeRings
 
+using LinearAlgebra
+using Base.Checked
+using Primes
+
 export Ring, RingInt, FractionField, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField
@@ -22,11 +26,8 @@ export generators, varnames, factors
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless
-import Primes
+import Primes: factor
 import Base: numerator, denominator
-
-using LinearAlgebra
-using Base.Checked
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end

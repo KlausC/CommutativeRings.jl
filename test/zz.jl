@@ -17,7 +17,8 @@ end
 
 @testset "ZZ{$T}" for T in (Int32, Int64, BigInt)
     
-    z = zero(ZZ{T})
+    Z = ZZ{T}
+    z = zero(Z)
     @test z == zero(z)
     @test iszero(z)
     @test !isone(z)
@@ -27,7 +28,7 @@ end
     @test !iszero(o)
     n1 = T(19)
     n2 = Base.hastypemax(T) ? typemax(T) : T(big"987654321987654321987654321")
-    z1 = ZZ{T}(n1)
+    z1 = Z(n1)
     z2 = ZZ(n2)
     @test !isunit(z1)
     @test z1 + z1 == ZZ(T(2n1))
@@ -68,4 +69,7 @@ end
     @test sprint(show, z3) == "$(Int(2n1))"
 
     @test value(z2) === n2
+
+    @test factor(z3) == [Z(2) => 1, n1 => 1]
+    @test eltype(factor(z3)) == Pair{Z,Int}
 end
