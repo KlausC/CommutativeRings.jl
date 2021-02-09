@@ -8,26 +8,22 @@ Associate type with a value.
 The value can be retrieved by calling `gettypevar(t)`.
 """
 function settypevar!(t::Type, value)
-    ex = :( gettypevar_impl(::Type{$t}) = ($value) )
-    eval(ex)
+    get!(TypeVariableTemp, t, value)
 end
+
+const TypeVariableTemp = Dict{DataType, Any}()
+
 
 """
     gettypevar(t::Type)
 
 Return value, which has previously been associated with this type
 """
-function gettypevar(::Type{R}) where {T,R<:Ring{T}}
-    try
-        gettypevar_impl(R)
-    catch ex
-        if ex isa MethodError
-            Base.invokelatest(gettypevar_impl, R)::T
-        else
-            rethrow()
-        end
-   end
+@generated function gettypevar(::Type{R}) where {T,R<:Ring{T}}
+    tv = TypeVariableTemp[R]
+    :( $tv )
 end
+
 """
 Define function before first method will be defined.
 """
