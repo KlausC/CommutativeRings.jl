@@ -4,15 +4,22 @@
 """
     settypevar!(t::Type, value)
 
-Associate type with a value.
+Associate type with a value. The second call for the same type is gnored.
 The value can be retrieved by calling `gettypevar(t)`.
 """
 function settypevar!(t::Type, value)
-    get!(TypeVariableTemp, t, value)
+    get!(TypeVariablesTemp, t, value)
 end
+"""
+    settypevar!(f::Function, t::Type)
 
-const TypeVariableTemp = Dict{DataType, Any}()
-
+Associate type with value `f()`. `f` is called only once per type.
+The value can be retrieved by calling `gettypevar(t)`.
+"""
+function settypevar!(f::Function, t::Type)
+    get!(f, TypeVariablesTemp, t)
+end
+const TypeVariablesTemp = IdDict{DataType, Any}()
 
 """
     gettypevar(t::Type)
@@ -20,7 +27,7 @@ const TypeVariableTemp = Dict{DataType, Any}()
 Return value, which has previously been associated with this type
 """
 @generated function gettypevar(::Type{R}) where {T,R<:Ring{T}}
-    tv = TypeVariableTemp[R]
+    tv = TypeVariablesTemp[R]
     :( $tv )
 end
 
@@ -41,7 +48,8 @@ Example:
 ```
 """
 function new_class(t::Type{<:Ring{T}}, args...) where T
-    settypevar!(t, T(args...))
+    typevar() = T(args...)
+    settypevar!(typevar, t)
     t
 end
 
