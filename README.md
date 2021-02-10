@@ -247,11 +247,18 @@ Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` 
 ```
 
 It may be noted, that `0R` is the zero ideal (containing only the zero element of `R`) and `u*R == R` for all unit elements `u` of `R`.
-We also have `R/0R == R` and `R/1R` == 0R`.
+We also have `R/0R == R` and `R/1R` == `0R`.
 
-If there is one generating element of an ideal, `aR`, the internally a unit multiple of `a` is stored to achieve a standard form, for example a monic univariate polynomial.
+If there is one generating element of an ideal, `aR`, internally a
+unit multiple of `a` is stored to achieve a standard form, for
+example a monic univariate polynomial.
 
-In the case of multiple generating elements, `a, b...`, an attempt is made to standardize and reduce the stored base. For example if `R` is an integral domain, the `gcd(a, b...)` is stored.
+In the case of multiple generating elements, `a, b...`, an attempt
+is made to standardize and reduce the stored base. For example if
+`R` is an integral domain, then `gcd(a, b...)` is stored.
+
+Ideals are most useful with multivariate polynomials, when they
+are best represented by a minimal base - see below.
 
 * ### Constructors for elements
 
