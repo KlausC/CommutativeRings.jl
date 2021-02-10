@@ -32,11 +32,6 @@ Return value, which has previously been associated with this type
 end
 
 """
-Define function before first method will be defined.
-"""
-function gettypevar_impl end
-
-"""
     new_class(t::Type{<:Ring{T}}, args...) where T<:RingClass
 
 Store type variable `T(args...)` for `t` and return `t`.
@@ -50,6 +45,12 @@ Example:
 function new_class(t::Type{<:Ring{T}}, args...) where T
     typevar() = T(args...)
     settypevar!(typevar, t)
+    t
+end
+function new_class(f::Function, t::Type{<:Ring{T}}, args...) where T
+    settypevar!(t) do
+        T(f(args...)...)
+    end
     t
 end
 
