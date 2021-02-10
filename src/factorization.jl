@@ -5,6 +5,17 @@ import Random: rand, SamplerType, AbstractRNG
 export factor
 
 """
+    num_irreducibles(::Type{<:F}, r)
+
+Number of irreducible polynomials over `F` of degree `r`.
+"""
+function num_irreducibles(::Type{G}, r::Integer) where G
+    k = order(G)
+    T = mintype_for(k, r, false)
+    necklace(T(k), r)
+end
+
+"""
     isirreducible(p::F[X])
 
 Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `factor`.

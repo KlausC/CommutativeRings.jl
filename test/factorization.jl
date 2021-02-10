@@ -14,6 +14,7 @@
     @test length(ff) == 5
     @test prod(ff) == f
 
+    @test length(irrn) == num_irreducibles(Z, n)
     @test length(irrn) == necklace(p, n)
     @test length(irrm) == necklace(p, m)
 

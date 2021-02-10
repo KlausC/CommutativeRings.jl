@@ -38,4 +38,14 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
 
     @test value(q + 3 * ideal) == p
 end
+
+@testset "quotient of polynomial over GF" begin
+    G = GF(2, 2)
+    GX = G[:x]
+    x = monom(GX)
+    p = x^3 + 1
+    Q = GX / p
+    @test order(Q) == order(G)^3
+end
+
 end

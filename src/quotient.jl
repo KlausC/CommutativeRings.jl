@@ -7,7 +7,7 @@ Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
 function /(::Type{R}, m) where R<:Ring
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
-    o = r == 0 ? 0 : p^r
+    o = r == 0 ? 0 : order(basetype(R))^r
     new_class(Quotient{R,typeof(ideal),sintern(m),(p,r,o)}, ideal)
 end
 
