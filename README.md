@@ -318,6 +318,31 @@ In other cases, the classes are unused. The user needs not deal with those types
 Access to the type variable is used within the implementation by method `owner(::Type{<:Ring}}` which provides the `RingClass` object, when the complete type is known.
 Preferred operation mode is to take the type parameters directly.
 
+## Univariate Polynomials
+
+For each ring type `R` the class of polynomials over `R` is created like `P = R[:x]` where the symbol `:x` defines the variable name.
+
+Polynomials of this class are obtained by the constructor
+ `g = UnivariatePolynomial{R,:x}([1, 2, 3])`
+or more conveniently by
+
+``` julia
+x = monom(P)
+g = 3x^2 + 2x + 1  
+```
+
+If `R` is a finite Field (that means `ZZ/p` or GaloisField - see below) the following options are available:
+
+Univariate polynomials may be checked by `isirreducible(p)` for their irreducibility
+and `factor(g)` delivers the list of irreducible factors of `g`.
+
+The function `irreducible(P, r)` delivers the first irreducible polynomial with degree `r`.
+All irreducible polynomials of `P` with degree `r` are obtained by `irreducibles(P, r)`
+which is an iterator. That allows to apply  `Iterators.filter` or `find` on this list.
+
+While the number of polynomials of degree `r` is `order(R) ^ r`, the subset of
+irreducibles has order `num_irreducibles(P, r)`.
+
 ## Galois Fields
 
 All finite field have order `p^r` where `p` is a prime number and `r >= 1` an integer.
