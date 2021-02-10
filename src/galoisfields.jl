@@ -17,18 +17,24 @@ function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)
     ord = order(Q)
     r = dimension(Q)
     r == 1 && mod === nothing && return Q
+
     T = mintype_for(p, r, true)
     gen = first(Iterators.filter(x -> order(x) == ord-1, Q))
-    c = fill(gen, ord)
-    c[1] = c[2] = 1
-    cumprod!(c, c)
-    c[1] = 0
-    exptable = [T(tonumber(x, p)) for x in c]
-    logtable = invperm(exptable .+ 1) .- 1
-    zechtable = logtable[[T(tonumber(x + 1, p)) for x in c] .+ 1]
+
+    function gfclass(p, ord, gen)
+        c = fill(gen, ord)
+        c[1] = c[2] = 1
+        cumprod!(c, c)
+        c[1] = 0
+        exptable = [T(tonumber(x, p)) for x in c]
+        logtable = invperm(exptable .+ 1) .- 1
+        zechtable = logtable[[T(tonumber(x + 1, p)) for x in c] .+ 1] 
+        exptable, zechtable
+    end
 
     Id = (p, r, ord, tonumber(gen, p))
-    new_class(GaloisField{Id,T,Q}, exptable, zechtable)
+
+    new_class(gfclass, GaloisField{Id,T,Q}, p, ord, gen)
 end
 function GF(n::Integer; mod=nothing, nr=0)
     f = factor(n)
@@ -73,7 +79,6 @@ end
 (::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G[q.val]
 
 convert(G::Type{<:GaloisField}, a) = G(a)
-convert(G::Type{<:GaloisField}, a::Integer) = G[a] ### TODO remove when G(::Integer) is re-introduced
 convert(::Type{G}, a::G) where G<:GaloisField = a
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
