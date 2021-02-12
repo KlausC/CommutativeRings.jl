@@ -415,6 +415,32 @@ julia> g.(x.^p.^(0:r-1)) |> unique
  {0:0:0:0:0:0%5}
 ```
 
+## Linear Algebra
+
+Matrices and vectors of ring elements are supported. 
+`x - A` is understood as `x * I - A`.
+
+The following methods handle vector spaces und subspaces:
+
+| operation | remarks |
+|-----------|---------|
+| nullspace | null space (kernel) of matrix
+| intersect | instesection of subspaces
+| sum       | sum of subspaces
+| rank      | rank of matrix
+
+For a square matrix, also the following methods exist:
+
+| operation | remarks |
+|-----------|---------|
+| inv       | matrix inverse - using generic LU factorization
+| det       | determinant - using generic LU factorization
+| adjugate  | for regular `A`: `inv(A) * det(A)`
+| characteristic_polynomial | `p(A) == 0`
+| companion | collides with `Polynomials.companion`
+
+For `inv`, `det`, and `adjugate` if the element type is `P<:Polynomial`, it should be widened to `Frac(P)`. 
+
 ## Multivariate Polynomials
 
 Some example usage:

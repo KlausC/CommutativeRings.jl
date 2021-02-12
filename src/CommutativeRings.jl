@@ -23,6 +23,8 @@ export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
 export generators, varnames, factors
 
+export characteristic_polynomial, adjugate, companion
+
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless

@@ -176,7 +176,7 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     v === vp ? p : v === vq ? q : T(v, NOCHECK)
 end
 
-function *(p::UnivariatePolynomial, q::Ring)
+function *(p::UnivariatePolynomial{R}, q::R) where R<:Ring
     if iszero(q)
         zero(p)
     else
@@ -188,7 +188,7 @@ function *(p::UnivariatePolynomial, q::Ring)
 end
 *(p::UnivariatePolynomial{S}, q::Integer) where {S} = *(p, S(q))
 *(q::Integer, p::UnivariatePolynomial) = *(p, q)
-*(q::Ring, p::UnivariatePolynomial) = *(p, q)
+*(q::R, p::UnivariatePolynomial{R}) where R<:Ring = *(p, q)
 
 function /(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     d, r = divrem(p, q)
@@ -200,14 +200,15 @@ end
 /(p::UnivariatePolynomial{S}, q::Integer) where S = /(p, S(q))
 
 function ^(p::P, k::Integer) where P<:Polynomial
-    k < 0 && throw(DomainError((p,k), "polynom power negative exponent"))
     n = deg(p)
-    if k == 0
+    if n == 0
+        P(LC(p)^k)
+    elseif k < 0
+        throw(DomainError((p,k), "polynom power negative exponent"))
+    elseif k == 0
         one(p)
     elseif k == 1 || n < 0
         p
-    elseif n == 0
-        P(LC(p)^k)
     elseif n > 0 && ismonom(p)
         indv = multideg(p)
         lco = LC(p)
@@ -429,7 +430,17 @@ function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
 end
 
+"""
+    ismonom(p::Polynomial)
+
+Return iff polynomial `p` consists is identical to its leading term.
+"""
 ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
+"""
+    ismonic(p::Polynomial)
+
+Return iff leading coefficient of polynomial `p` is one. 
+"""
 ismonic(p::Polynomial) = isone(LC(p))
 
 # induced homomorphism

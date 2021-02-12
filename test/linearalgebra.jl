@@ -1,6 +1,8 @@
 
 using LinearAlgebra
 
+const companion = CommutativeRings.companion
+
 @testset "vector spaces" begin
     
     Z = ZZ/7
@@ -51,4 +53,18 @@ using LinearAlgebra
     @test intersect(xall, xsum) == xsum
     @test sum(xnull, xsum) == xsum
     @test sum(xall, xsum) == xall
+end
+
+@testset "determinant" begin
+    G = ZZ/89
+    A = G.([1 2 3; 4 5 6; 7 8 9])
+    B = G.([1 2 3; 4 5 6; 7 8 8])
+    @test iszero(det(A))
+    @test iszero(adjugate(A) * A)
+    @test !iszero(det(B))
+    @test adjugate(B) ./ det(B) == inv(B)
+
+    p = characteristic_polynomial(B)
+    @test iszero(p(B))
+    @test characteristic_polynomial(companion(p)) == p
 end

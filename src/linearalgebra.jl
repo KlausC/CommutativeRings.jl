@@ -195,7 +195,73 @@ function complement(v::VectorSpace{T}) where T
     VectorSpace(base, piv)
 end
 
-import Base: ==, issubset
+import Base: ==, issubset, -, +, *
 ==(v::V, w::V) where V<:VectorSpace = size(v) == size(w) && rank(v) == rank(intersect(v, w)) 
 issubset(v::V, w::V) where V<:VectorSpace = size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w)) 
 
+function check_square(A::AbstractMatrix)
+    m, n = size(A)
+    m == n || throw(ArgumentError("matrix must be square but is ($m,$n)"))
+    m
+end
+
+*(r::Ring, A::AbstractMatrix) = r .* A
+*(A::AbstractMatrix, r::Ring) = A .* r
+
+function +(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
+    n = check_square(A)
+    I(n) .* x + A
+end
+function +(A::AbstractMatrix{<:Ring}, x::Ring) where P<:Ring
+    n = check_square(A)
+    A .+ I(n) .* x
+end
+function -(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
+    n = check_square(A)
+    I(n) .* x - A
+end
+function -(A::AbstractMatrix{<:Ring}, x::P) where P<:Ring
+    n = check_square(A)
+    I(n) .* x - A
+end
+
+"""
+    characteristic_polynomial(A[, P])
+
+Characteristic polynomial of matrix `A`. `P` is an optional 
+univariate polynomial type, defaulting to `eltype(A)[:x]`
+"""
+function characteristic_polynomial(A, P=eltype(A)[:x])
+    x = Frac(P)(monom(P))
+    numerator(det(x - A))
+end
+
+"""
+    adjugate(A::AbstractMatrix{<:Ring})
+
+The adjugate of matrix `A`. Invariant is `det(A) * I == adjugate(A) * A == det(A) * I(n)`.
+"""
+function adjugate(A::AbstractMatrix{P}) where P
+    PP = P[:λ]
+    Q = Frac(PP)
+    B = Q(monom(PP)) + A
+    d = det(B)
+    C = inv(B) .* d
+    D = numerator.(C)
+    evaluate.(D, 0)
+end
+
+"""
+    companion(p::UnivariatePolynomial)
+
+Return the companion matrix of monic polynomial `p`.
+The negative of `p`'s trailing coefficients are in the last column of the matrix.
+Its characteristic polynomial is identical to `p`.
+"""
+function companion(p::UnivariatePolynomial{T}) where T
+    ismonic(p) || throw(ArgumentError("polynomial is not monic"))
+    n = deg(p)
+    A = diagm(-1 => ones(T, n-1))
+    A[:,n] = -p.coeff[1:n]
+    A
+ end
