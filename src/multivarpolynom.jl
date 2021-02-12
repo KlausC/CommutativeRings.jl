@@ -579,7 +579,7 @@ function divrem(f::P, g::P) where P<:MultivariatePolynomial
     isone(d) ? (a[1], s) : (zero(P), f)
 end
 function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
-    a, s, d = pdivrem(f, gg)
+    a, s, d = pdivrem(f, g)
     isone(d) ? (a, s) : (zeros(P, length(g)), f)
 end
 

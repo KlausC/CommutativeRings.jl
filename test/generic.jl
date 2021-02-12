@@ -25,7 +25,7 @@ end
     @test deg(ZZ(10)) == 0
 end
 
-@testset "testrules" for R in (ZZ/25, GF(25))
+@testset "testrules $R" for R in (ZZ/25, GF(25))
     io = IOBuffer()
     @test sprint(CommutativeRings.testrules, R) == ""
 end

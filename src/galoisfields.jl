@@ -239,19 +239,18 @@ function -(a::G) where G<:GaloisField
 end
 
 iszero(a::GaloisField) = iszero(a.val)
+isone(a::GaloisField) = isone(a.val)
 isunit(a::GaloisField) = !iszero(a)
 issimple(a::GaloisField) = true
 value(g::GaloisField) = value(toquotient(g))
 
-zero(::Type{G}) where G<:GaloisField = G[0]
-one(::Type{G}) where G<:GaloisField = G[1]
+zero(::Type{G}) where G<:GaloisField = G(0, NOCHECK)
+one(::Type{G}) where G<:GaloisField = G(1, NOCHECK)
 
 function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     ord = order(G)
     G[rand(r, 0:ord-1)]
 end
-
-Base.show(io::IO, g::GaloisField) = Base.show(io, toquotient(g))
 
 function Base.show(io::IO, g::Type{<:GaloisField})
     sc(f, g) = try f(g) catch; "?" end
@@ -337,11 +336,11 @@ function GFImpl(p::Integer, m::Integer=1; nr::Integer=0, mod=nothing)
     end
 end
 
-function Base.show(io::IO, q::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function Base.show(io::IO, g::G) where G<:GaloisField
 
-    m = dimension(Q)
-    p = modulus(Z)
-    c = q.val.coeff
+    m = dimension(G)
+    p = characteristic(G)
+    c = toquotient(g).val.coeff
     n = length(c)
     cc(i) = i > n ? 0 : c[i].val
     print(io, '{', cc(m))
@@ -508,11 +507,11 @@ end
 """
     allzeros(p, vx)
 
-Assume `p` is an irreducible polynomial over `ZZ/pr`.
-If `p(vx) == 0` a galois field element `vx`,
+Assume `p` is an irreducible polynomial over `ZZ/q`.
+If `p(vx) == 0` for a galois field element `vx`,
 find all zeros of `p` in the galois field, vx belongs to.
 """
-function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial,Q}
+function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial,Q<:Ring}
     q = characteristic(Q)
     r = deg(p)
     return (vx^q^k for k = 0:r-1)
@@ -537,6 +536,13 @@ function order(p, q, xlist)
         rem(p^x, q) == 1 && return x
     end
     0
+end
+
+function order(x::G) where G<:GaloisField
+    iszero(x) && return 0
+    isone(x) && return 1
+    ord = mult_order(G)
+    ord ÷ gcd(x.val - 1, ord)
 end
 
 function logg0(G)

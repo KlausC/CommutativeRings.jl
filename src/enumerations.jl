@@ -160,14 +160,15 @@ function ofindex(a::Integer, G::Type{<:GaloisField})
     G[mod(a, order(G))]
 end
 
-struct Factors{T<:Integer}
-   f::Primes.Factorization{T}
+struct Factors{T<:Integer,P}
+   f::P
+   Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)
 end
 Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x+1 for x in values(fi.f))
 
-Base.iterate(fi::Factors) = (1, zeros(Int,length(fi.f.pe)))
+Base.iterate(fi::Factors) = (1, zeros(Int,length(fi.f)))
 function Base.iterate(fi::Factors, s::Array{Int})
-    f = fi.f.pe
+    f = fi.f
     n = length(f)
     n == 0 && return nothing
     for i = 1:n
@@ -189,6 +190,7 @@ end
 
 Return an iterator generating all factors of integer `n`.
 """
-factors(f::Primes.Factorization) = Factors(f)
-factors(n::Integer) = factors(factor(n))
+factors(f::Primes.Factorization) = Factors(f.pe)
+factors(f::AbstractVector) = Factors(f)
+factors(n::Integer) = factors(factor(n).pe)
 

@@ -94,9 +94,16 @@ function order(x::Ring)
     isone(x) && return 1
     n = mult_order(typeof(x))
     n <= 1 && return n
-    for k in factors(n)
-        if isone(x^k)
-            return k
+    r = trailing_zeros(n)
+    f = factor(n >> r)
+    for k in factors(f)
+        y = x^k
+        isone(y) && return k
+        j = k
+        for s = 1:r
+            y *= y
+            j += j
+            isone(y) && return j
         end
     end
     0

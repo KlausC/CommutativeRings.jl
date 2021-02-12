@@ -24,7 +24,7 @@ mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
-    @test sprint(show, GFImpl(5,3)([1,2,3])) == "{3:2:1%5}"
+    @test sprint(show, GFImpl(5,3)([1,2,3])) == "3°*α^2 + 2°*α + 1° mod(α^3 + 3°*α + 2°)"
 end
 
 @testset "Galois Fields" begin
@@ -87,9 +87,14 @@ end
     @test (g1 - g1) - g2 == -g2
     @test_throws ArgumentError inv(G[0])
     @test_throws ArgumentError G[0] ^ -2
-
-    @test sprint(show, g1) == sprint(show, q1)
-
+    
+    if r == 8
+        @test sprint(show, g1) == "{0:0:1:1:0:0:1:1%2}"
+        @test sprint(show, q1) == "α^5 + α^4 + α + 1° mod(α^8 + α^4 + α^3 + α^2 + 1°)"
+    else
+        sprint(show, g1) == "{1:2%7}"
+        @test sprint(show, q1) == "α + 2° mod(α^2 + α + 3°)"
+    end
     @test G(one(ZZ/p)) === one(G)
     @test length(modulus(G).(G)) == length(G)
 
