@@ -33,3 +33,10 @@ end
 @testset "basetypes($G)" for G in (Int, ZZ{Int}, ZZ/2, (ZZ/3)[:x], GF(2,2))
     @test length(basetypes(G)) == depth(G) + 1
 end
+
+@testset "homomorphisms" begin
+    R = ZZ/7
+    S = GF(7, 2)
+    h = Hom{R,S}(S)
+    @test h(R(2)) == S(2)
+end

@@ -96,6 +96,10 @@ end
     @test length(modulus(G).(G)) == length(G)
 
     @test value(g1) == value(q1)
+
+    @test num_irreducibles(basetype(basetype(Q)), r) < order(G)
+    @test GF(p, r, nr=1) !== nothing
+    @test_throws ArgumentError GF(p, r, nr = 10000000)
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
