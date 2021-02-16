@@ -235,6 +235,5 @@ include("factorization.jl")
 include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
-include("gcd.jl")
 
 end # module
