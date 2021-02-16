@@ -4,11 +4,20 @@
 pseudo_ideal(::Type{R},m::RingInt) where R = R(m)
 pseudo_ideal(::Type{R},mm::AbstractVector) where R = Ideal(Vector{R}(mm))
 pseudo_ideal(::Type{R},m::Ideal{R}) where R = m
-Ideal(m::R) where R<:Ring = Ideal([m])
+
+function Ideal(m::R) where R<:Ring
+    if iszero(m)
+        Ideal{R}(R[])
+    elseif isunit(m)
+        Ideal{R}([one(R)])
+    else
+        Ideal{R}([m])
+    end
+end
 Ideal(m::T) where T<:Integer = Ideal(ZZ{T}(m))
 Ideal(mm::RingInt...) = Ideal(collect(Base.promote_typeof(mm...), mm))
-Ideal(mm::AbstractVector{<:Integer}) = Ideal(gcd(mm))
-Ideal(mm::AbstractVector{R}) where R<:Polynomial = Ideal{R}(groebnerbase(mm))
+Ideal(mm::AbstractVector{<:RingInt}) = Ideal(gcd(mm))
+Ideal(mm::AbstractVector{R}) where R<:MultivariatePolynomial = Ideal{R}(groebnerbase(mm))
 
 # Arithmetic
 
@@ -26,18 +35,15 @@ function issubset(id1::Ideal{R}, id2::Ideal{R}) where R<:Polynomial
     true
 end
 
-==(id1::Ideal{R}, id2::Ideal{R}) where R<:Ring = id1.base == id2.base
+==(id1::Ideal{R}, id2::Ideal{S}) where {R<:Ring,S<:Ring} = id1.base == id2.base
 ==(id::Ideal{R}, ::Type{R}) where R<:Ring = isone(id)
-==(id::Ideal, a) = false
 ==(::Type{R}, id::Ideal{R}) where R<:Ring = isone(id)
-==(::Any, ::Ideal) = false
-==(::Ideal, ::Ideal) = false
 
 function +(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     Ideal(vcat(id1.base, id2.base))
 end
 +(id::Ideal{R}, a::R) where R = Ideal([id.base; a])
-+(a::R, id::Ideal{R}) where R = Ideal([id.base; a])
++(a::R, id::Ideal{R}) where R = Ideal([a; id.base])
 
 function *(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     C = [ b1 * b2 for b1 in id1.base for b2 in id2.base]  
