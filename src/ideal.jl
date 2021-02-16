@@ -59,10 +59,7 @@ function ^(id::Ideal{R}, p::Integer) where R<:MultivariatePolynomial
     elseif p == 0
         Ideal([one(R)])
     elseif p == 2
-        ib = id.base
-        n = length(ib)
-        C = [ib[i] * ib[j] for i = 1:n for j = 1:i]
-        Ideal(C)
+        id * id
     elseif iseven(p)
         (id^(p÷2))^2
     else

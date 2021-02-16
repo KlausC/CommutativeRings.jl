@@ -67,4 +67,8 @@ end
     @test idb^2 == idb * idb
     @test idb^3 == idb * idb * idb
     @test idb^4 == idb * idb * idb * idb
+
+    @test idb + x == x + idb
+    @test idb * x == x * idb
+    @test rem((x + y)^2, idb) == x^2 + y^2
 end

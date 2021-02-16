@@ -42,6 +42,12 @@ inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-un
 abs(a::Ring) = isunit(a) ? 1 : 0
 value(a::Ring) = a
 
+import Base: literal_pow
+@inline literal_pow(::typeof(^), x::Ring, ::Val{0}) = one(x)
+@inline literal_pow(::typeof(^), x::Ring, ::Val{1}) = x
+@inline literal_pow(::typeof(^), x::Ring, ::Val{2}) = x * x
+@inline literal_pow(::typeof(^), x::Ring, ::Val{3}) = x * x * x
+
 numerator(a::Ring) = a
 denominator(::R) where R<:Ring = one(R)
 
