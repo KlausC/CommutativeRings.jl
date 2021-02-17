@@ -59,8 +59,8 @@ order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
 function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}
-    iszero(F(modulus(Q))) || throw(DomainError((F,R), "ideal not in kernel of homomorphism"))
-    F(a.val)
+    iszero(h.f(modulus(Q))) || throw(DomainError((F,R), "ideal not in kernel of homomorphism"))
+    h.f(a.val)
 end
 
 # note:

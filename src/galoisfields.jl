@@ -1,5 +1,5 @@
 
-export GF, dimension, isomorphism, normalmatrix, allzeros
+export GF, normalmatrix, allzeros
 
 """
     GF(p, r; mod=nothing, nr=0)
@@ -46,7 +46,7 @@ end
 """
     GaloisField{Id,T,Q}[num::Integer]
 
-Ring element constructor. `num` is *not* the canonical isomorphism, but enumerates
+Ring element constructor. `num` is *not* the canonical homomorphism, but enumerates
 all elements of `GF(p, r)` in `0:p^r-1`.
 The numbers `G[0:p-1]` correspond to the base field, and `G[p]` to the polynomial `x` in
 the representation of `Q`.
@@ -131,6 +131,24 @@ function inv(a::G) where G<:GaloisField
     iszero(a) && division_error()
     nlog = mod(ord - a.val, ord - 1) + 1
     G(nlog, NOCHECK)
+end
+
+"""
+    num_primitives(::Type{G})
+
+Number of primitive elements (generators of multiplicative group) of GaloisField `G`.
+"""
+function num_primitives(::Type{G}) where G<:Union{ZZmod,GaloisField,QuotientRing}
+    Primes.totient(order(G)-1)
+end
+
+"""
+    isprimitive(g::G)
+
+Return iff `g` is a primitive element of its ring (its powers are the complete multilicative subgroup of `G`)
+"""
+function isprimitive(g::G) where G<:Union{ZZmod,GaloisField,QuotientRing}
+    order(g) == order(G) - 1
 end
 
 import Base: ^, log
@@ -415,8 +433,7 @@ function sized(a::Vector{Z}, r::Integer) where Z
     n == r ? a : n < r ? vcat(a, zeros(Z, r - n)) : a[1:r]
 end
 
-mulsized(M::Matrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
-mulsized(M::Diagonal{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
+mulsized(M::AbstractMatrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
 function *(M::AbstractMatrix{Z}, a::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     mulsized(M, a.val.coeff)
@@ -427,14 +444,18 @@ function monom(::Type{Q}, k::Integer) where {P<:UnivariatePolynomial,Q<:Quotient
 end
 
 """
-    isomorphism(Q, R)
+    homomorphism(Q, R [,nr=0])
 
-Return a function `iso:Q -> R`, which describes an isomorphism between two galois fields
-`Q` and `R` of the same order, or `Q` being mapped to a subfield of `R`. In both cases, if `order(Q) == p^r`,
-then necessarily `order(R) == p^(r*s)` for some positive integer `s`.
+Return a function `iso: Q -> R`, which describes an homomorphism between two Galois fields
+`Q` and `R` of the same characteristic. If `Q == R` that are the Frobenius automorphisms,
+if `order(Q) == order(R)` isomorphisms, in the case of `order(R) == order(S)^s` with s > 1
+the (injective) monomorphisms.
+
+The optional `nr ∈ 0:r-1` produces all possible monomorphisms (automorphisms) between `Q` and `R`.
+In the automorphism case, `nr = 0` is the identity.co
 """
-function isomorphism end
-function _isomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
+function homomorphism end
+function _homomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
 
     r = dimension(Q)
     s = dimension(R)
@@ -471,28 +492,36 @@ function _isomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynom
             return N, M1
         end
     end
-    throw(ErrorException("no isomorphism found - not reachable"))
+    throw(ErrorException("no homomorphism found - not reachable"))
 end
 
-function _isomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},R<:Quotient{P}}
+function _homomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},R<:Quotient{P}}
     1, 1
 end
 
-function isomorphism(iso::Function, nr::Integer=0)
+function homomorphism(iso::Function, nr::Integer=0)
     N = iso.A.N
     M1 = iso.A.M1
     Q = iso.A.Q
     R = iso.A.R
-    _isomorphism(Q, R, N, M1, nr)
+    _homomorphism(Q, R, N, M1, nr)
 end
 
-function isomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q,R<:Quotient{P}}
+function homomorphism(::Type{Z}, ::Type{H}, nr::Integer=0) where {Z<:ZZmod,H<:GaloisField}
+    Hom{Z,H}(x -> H(x))
+end 
 
-    N, M1 = _isomorphism(Q, R)
-    _isomorphism(Q, R, N, M1, nr)
+function homomorphism(::Type{G}, ::Type{H}, nr::Integer=0) where {G<:GaloisField,H<:GaloisField}
+    N, M1 = _homomorphism(basetype(G), basetype(H))
+    Hom{G,H}(_homomorphism(G, H, N, M1, nr))
 end
 
-function _isomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
+function homomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q,R<:Quotient{P}}
+    N, M1 = _homomorphism(Q, R)
+    _homomorphism(Q, R, N, M1, nr)
+end
+
+function _homomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
     r = size(N, 2)
     nr = mod(nr, r)
     # cyclic permutation of columns of N
@@ -500,7 +529,9 @@ function _isomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
         N = hcat(N[:,nr+1:r], N[:,1:nr])
     end
     A = (T = N * M1, N = N, M1 = M1, Q = Q, R = R)
-    iso(a::Q) = R(A.T * a)
+    quot(x) = x
+    quot(x::GaloisField) = Quotient(x)
+    iso(a::Q) = R(A.T * quot(a))
     iso
 end
 

@@ -25,7 +25,7 @@ convert(::Type{ZZ{T}}, a::Integer) where T = ZZ{T}(T(a))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZ{<:R}}
-    Z(F(p.val))
+    Z(h.f(p.val))
 end
 
 for op in (:+, :-, :/, :(==), :div, :rem, :divrem, :gcd, :gcdx, :pgcd, :pgcdx)

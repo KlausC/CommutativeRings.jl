@@ -5,14 +5,22 @@ import Random: rand, SamplerType, AbstractRNG
 export factor
 
 """
-    num_irreducibles(::Type{<:F}, r)
+    num_irreducibles(::Type{<:UnivariatePolynomial{F}}, r)
 
 Number of irreducible polynomials over `F` of degree `r`.
 """
-function num_irreducibles(::Type{G}, r::Integer) where G
+function num_irreducibles(::Type{<:UnivariatePolynomial{G}}, r::Integer) where G
     k = order(G)
+    iszero(k) && throw(ArgumentError("order of base type is zero"))
     T = mintype_for(k, r, false)
     necklace(T(k), r)
+end
+function num_irreducibles(::Type{Q}) where {G<:UnivariatePolynomial,Q<:QuotientRing{G}}
+    r = dimension(Q)
+    num_irreducibles(G, r)
+end
+function num_irreducibles(::Type{G}, r) where G<:Ring
+    num_irreducibles(G[:x], r)
 end
 
 """

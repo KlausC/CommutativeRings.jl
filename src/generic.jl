@@ -194,8 +194,8 @@ copy(p::QuotientRing) = typeof(p)(p.val)
 # make Ring elements behave like scalars with broadcasting
 Base.broadcastable(x::Ring) = Ref(x)
 
-# apply homimorphism
-(h::Hom{F,R,S})(a::R) where {F,R,S} = F(a)::S
+# apply homomorphism
+(h::Hom{F,R,S})(a::R) where {F,R,S} = h.f(a)::S
 
 divrem2(a::T, b::T) where T = divrem(a, b)
 rem2(a::T, b::T) where T = divrem2(a, b)[2]

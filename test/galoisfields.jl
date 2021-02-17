@@ -97,7 +97,7 @@ end
 
     @test value(g1) == value(q1)
 
-    @test num_irreducibles(basetype(basetype(Q)), r) < order(G)
+    @test num_irreducibles(basetype(G)) < order(G)
     @test GF(p, r, nr=1) !== nothing
     @test_throws ArgumentError GF(p, r, nr = 10000000)
 end
@@ -107,7 +107,7 @@ end
     Z1 = GFImpl(5, 2)
     Z2 = GFImpl(5, 6)
     z1 = Z1(monom(basetype(Z1)))
-    iso = isomorphism(Z1, Z2)
+    iso = homomorphism(Z1, Z2)
     z2 = iso(z1)
     @test z1 != z2
     @test iso(z1) == z2
@@ -122,6 +122,7 @@ end
     G = GF(q, r)
     irr = irreducibles(G[:x], s)
     @test length(collect(irr)) == necklace(order(G), s)
+    @test necklace(order(G), s) == num_irreducibles(G, s)
 end
 
 @testset "Galois field - user modulus" begin

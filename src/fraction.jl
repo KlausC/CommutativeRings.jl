@@ -65,7 +65,7 @@ lcunit(a::Frac) = inv(lcunit(a.den))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Frac{<:R}) where {F,R,S}
-    Frac(F(a.num), F(a.den))
+    Frac(h.f(a.num), h.f(a.den))
 end
 
 Base.isless(p::T, q::T) where T<:Frac = isless(p.num * q.den, q.num * p.den)

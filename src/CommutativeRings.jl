@@ -15,9 +15,11 @@ export isdiv, pdivrem, pgcd, pgcdx, basetype, basetypes, depth
 export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
-export characteristic, order
+export characteristic, dimension, order
 export ofindex, index
 export log_zech, generator
+export GF, homomorphism
+export num_primitives, isprimitive
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
@@ -210,7 +212,8 @@ end
 Represent a ring homomorphism `function:R -> R'`.
 """
 struct Hom{F,R<:RingInt,S<:RingInt}
-    Hom{R,S}(f::Union{Function,Type}) where {R,S} = new{f,R,S}()
+    f::F
+    Hom{R,S}(f::F) where {F<:Union{Function,Type},R,S} = new{F,R,S}(f)
 end
 
 struct VectorSpace{T}

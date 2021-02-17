@@ -52,7 +52,7 @@ convert(F::Type{QQ{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::QQ{<:R}) where {F,R,S}
-    QQ(F(a.num), F(a.den))
+    QQ(h.f(a.num), h.f(a.den))
 end
 
 # operations for QQ
