@@ -82,6 +82,8 @@ convert(G::Type{<:GaloisField}, a) = G(a)
 convert(::Type{G}, a::G) where G<:GaloisField = a
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
+Quotient(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
+Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
 
 promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G

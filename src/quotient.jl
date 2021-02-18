@@ -1,13 +1,15 @@
 
 # class constructors
 Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
+Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
 
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
 function /(::Type{R}, m) where R<:Ring
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
-    o = r == 0 ? 0 : order(basetype(R))^r
+    b = order(basetype(R))
+    o = iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
     new_class(Quotient{R,typeof(ideal),sintern(m),(p,r,o)}, ideal)
 end
 

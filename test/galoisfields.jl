@@ -3,6 +3,7 @@ using Random
 using LinearAlgebra
 
 import CommutativeRings: GFImpl
+const Polynomial = CommutativeRings.Polynomial
 
 let rng = MersenneTwister(1), x
 mat(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
@@ -38,8 +39,11 @@ end
     @test GF(p) == GF(p,1)
     @test GF(p, r) <: GaloisField
     G = GF(p, r)
-    @test basetype(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:α}}
-    Q = basetype(G)
+    @test Quotient(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:α}}
+    Q = Quotient(G)
+    P = Polynomial(G)
+    @test Q == basetype(G)
+    @test P / modulus(G) == Q
     @test modulus(G) == modulus(Q)
     @test order(G) == order(Q) == p ^ r
     @test characteristic(G) == characteristic(Q) == p
@@ -97,7 +101,7 @@ end
 
     @test value(g1) == value(q1)
 
-    @test num_irreducibles(basetype(G)) < order(G)
+    @test num_irreducibles(Polynomial(G), dimension(G)) < order(G)
     @test GF(p, r, nr=1) !== nothing
     @test_throws ArgumentError GF(p, r, nr = 10000000)
 end

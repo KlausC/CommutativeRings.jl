@@ -164,7 +164,10 @@ struct Factors{T<:Integer,P}
    f::P
    Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)
 end
-Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x+1 for x in values(fi.f))
+Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x+1 for x in _values(fi.f))
+
+_values(d::AbstractDict) = values(d)
+_values(d::Vector{<:Pair}) = (last(x) for x in d)
 
 Base.iterate(fi::Factors) = (1, zeros(Int,length(fi.f)))
 function Base.iterate(fi::Factors, s::Array{Int})

@@ -29,4 +29,9 @@ end
     n = length(Q)
     @test length(Q) == 125
     @test sort(ofindex.(0:n-1, Ref(Q))) == sort(collect(Q))
-end    
+end
+
+@testset "factors" begin
+    @test length(factors(12)) == 6
+    @test factors(12) |> collect |> sort == [1, 2, 3, 4, 6, 12]
+end

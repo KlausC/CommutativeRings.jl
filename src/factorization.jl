@@ -15,10 +15,6 @@ function num_irreducibles(::Type{<:UnivariatePolynomial{G}}, r::Integer) where G
     T = mintype_for(k, r, false)
     necklace(T(k), r)
 end
-function num_irreducibles(::Type{Q}) where {G<:UnivariatePolynomial,Q<:QuotientRing{G}}
-    r = dimension(Q)
-    num_irreducibles(G, r)
-end
 function num_irreducibles(::Type{G}, r) where G<:Ring
     num_irreducibles(G[:x], r)
 end
@@ -46,7 +42,7 @@ import Base.Iterators: Filter, take, drop
 """::UnivariatePolynomial{<:QuotientRing}
     irreducible(P, n, nr=0)
 
-Returns an irreducible polynomial with in `P` with degree `n`. Skip first `nr` ones.
+Returns an irreducible polynomial with in `P` with degree `n`. Skip first `nr` hits.
 """
 irreducible(::Type{P}, n) where P<:UnivariatePolynomial = first(irreducibles(P, n))
 function irreducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
@@ -55,7 +51,7 @@ end
 """
     reducible(P, n, nr=0)
 
-Returns a reducible polynomial with in `P` with degree `n`. Skip first `nr` ones.
+Returns a reducible polynomial with in `P` with degree `n`. Skip first `nr` hits.
 """
 reducible(::Type{P}, n) where P<:UnivariatePolynomial = first(reducibles(P, n))
 function reducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
@@ -69,13 +65,19 @@ Returns iterator of all irreducible monic polynomials in `P` with degree `n`.
 function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
     Base.Iterators.Filter(isirreducible, Monic(P, n))
 end
+function irreducibles(::Type{G}, n) where G<:Ring
+    irreducibles(G[:x], n)
+end
 """
 reducibles(P, n)
 
 Returns iterator of all reducible monic polynomials in `P` with degree `n`.
 """
 function reducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
-Base.Iterators.Filter(!isirreducible, Monic(P, n))
+    Base.Iterators.Filter(!isirreducible, Monic(P, n))
+end
+function reducibles(::Type{G}, n) where G<:Ring
+    reducibles(G[:x], n)
 end
 
 """
