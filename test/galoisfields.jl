@@ -137,4 +137,10 @@ end
     @test_throws ArgumentError GF(11, mod = p) # p not irreducible in ZZ/11
 end
 
+@testset "isprimitive $G" for G in (GF(31), GF(2^3), GF(3^4))
+    gG = (x for x in G)
+    ord = order(G) - 1
+    @test isprimitive.(gG) == ( order.(gG) .== ord )
+end
+
 end

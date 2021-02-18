@@ -149,8 +149,14 @@ end
 
 Return iff `g` is a primitive element of its ring (its powers are the complete multilicative subgroup of `G`)
 """
+
 function isprimitive(g::G) where G<:Union{ZZmod,GaloisField,QuotientRing}
-    order(g) == order(G) - 1
+    iszero(g) && return false
+    n = order(G) - 1
+    for p in keys(factor(n))
+        isone(g ^ (n ÷ p)) && return false
+    end
+    true
 end
 
 import Base: ^, log
