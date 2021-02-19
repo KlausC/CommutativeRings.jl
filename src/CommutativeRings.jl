@@ -10,7 +10,8 @@ export GaloisField
 
 export Hom, Ideal
 
-export isunit, deg, content, primpart, LC, LM, LT, lcunit, multideg, modulus, value
+export isunit, deg, content, primpart, isnegative
+export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, basetype, basetypes, depth
 export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise

@@ -124,7 +124,7 @@ end
 @testset "gcd calculations" begin
 
     P = UnivariatePolynomial{ZZ{Int},:x}
-    @test P([0, 1]) != nothing
+    @test P([0, 1]) == monom(P)
     x = P([0,1])
     @test deg(x + 2x^2 + 1 +0*x^3) == 2
     p = x^8 + x^6 -3x^4 - 3x^3 + 8x^2 +2x - 5
@@ -147,11 +147,13 @@ end
     @test div(p, q) == q
     @test content(p) == ZZ(1)
     @test primpart(p) == p
+    @test content(-p) == ZZ(-1)
+    @test primpart(-p) == p
 
     Q = UnivariatePolynomial{QQ{Int},:x}
-    qp = Q(p) / 12
+    qp = Q(-p) / 12
     @test primpart(qp) == Q(p)
-    @test content(qp) == 1//12
+    @test content(qp) == -1//12
 
     @test iszero(LC(zero(P)))
     @test isone(LC(one(P)))
@@ -183,7 +185,7 @@ end
     a, b, f = pdivrem(p, P([2]))
     @test f * p == a * P([2]) + b
 
-    @test_throws DomainError gcd(p, q)
+    @test gcd(p, q) == one(P)
     @test pgcd(p, q) == P([1])
     @test_throws DomainError gcdx(p, q)
     g, u, v, f = pgcdx(p, q)

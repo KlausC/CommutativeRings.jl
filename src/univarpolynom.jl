@@ -388,13 +388,26 @@ end
 """
     content(p::Polynomial)
 
-Return the content of the polynomial p, i.e. the `gcd` of its coefficients.
+Return the content of the polynomial p, i.e. the `gcd` of its coefficients,
+negated if leading coefficient is negative.
 """
-content(p::Polynomial) = gcd(p.coeff)
+function content(p::Polynomial)
+    g = gcd(p.coeff)
+    isnegative(LC(p)) ? -g : g
+end
 function content(q::Polynomial{Q}) where Q<:Union{QQ,Quotient}
     c = lcm(getfield.(q.coeff, :den))
     g = gcd(getfield.(q.coeff, :num) .* ( div.(c, getfield.(q.coeff, :den))))
-    Q(g , c)
+    g = isnegative(LC(q)) ? -g : g
+    Q(g, c)
+end
+"""
+    isnegative(a::Ring)
+
+Check if a < 0.
+"""
+function isnegative(a::RingInt)
+    a < zero(a)
 end
 
 """
@@ -517,7 +530,7 @@ function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     a / lcunit(a)
 end
 """
-    g, u, v = pgcdx(a, b)
+    g, u, v, f = pgcdx(a, b)
 
 Extended pseudo GCD algorithm.
 Return `g == pgcd(a, b)` and `u, v, f` with `a * u + b * v == g * f`.

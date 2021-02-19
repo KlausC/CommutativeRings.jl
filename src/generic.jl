@@ -208,8 +208,15 @@ end
 
 # generic Euclid's algorithm
 function gcd(a::T, b::T) where T<:Ring
+    iszero(b) && return a
+    a, b = b, rem2(a, b)
     while !iszero(b)
-        a, b = b, rem2(a, b)
+        d, c = divrem2(a, b)
+        if iszero(d)
+            a = one(a)
+            break
+        end
+        a, b = b, c
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
     end
     u = lcunit(a)
