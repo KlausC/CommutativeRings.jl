@@ -61,10 +61,12 @@ convert(F::Type{Frac{T}}, a::Ring) where T = F(T(a), one(T), NOCHECK)
 convert(F::Type{Frac{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
 convert(F::Type{Frac{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
+isfield(::Type{<:FractionField}) = true
+
 lcunit(a::Frac) = inv(lcunit(a.den))
 
 # induced homomorphism
-function (h::Hom{F,R,S})(p::Frac{<:R}) where {F,R,S}
+function (h::Hom{F,R,S})(a::Frac{<:R}) where {F,R,S}
     Frac(h.f(a.num), h.f(a.den))
 end
 

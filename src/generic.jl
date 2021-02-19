@@ -139,6 +139,13 @@ characteristic(::Type{T}) where {Z,T<:Frac{Z}} = characteristic(Z)
 characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
 
 """
+    isfield(::Type{<:Ring})
+
+Return iff type is a field (all elements except `zero` are invertible).
+"""
+isfield(::Type{<:Ring}) = false
+
+"""
     deg(r::Union{Ring,Number})
 
 Return the degree of ring element or number `r`.

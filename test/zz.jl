@@ -3,6 +3,8 @@
     @test basetype(ZZ{Int}) == Int
     @test depth(ZZ{Int8}) == 1
     @test iscoprime(ZZ(18), ZZ(35))
+    @test isirreducible(ZZ(17))
+    @test !isirreducible(ZZ(18))
     @test typeof(copy(ZZ(big"2"))) == ZZ{BigInt}
     a = ZZ(16)
     @test ZZ{Int}(a) === a

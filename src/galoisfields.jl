@@ -111,6 +111,7 @@ order(G::Type{<:GaloisField}) = order(basetype(G))
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 issimpler(a::G, b::G) where G<:GaloisField = a.val < b.val
+isfield(::Type{<:GaloisField}) = true
 
 # multiplication using lookup tables
 function *(a::G, b::G) where G<:GaloisField
@@ -463,6 +464,9 @@ The optional `nr ∈ 0:r-1` produces all possible monomorphisms (automorphisms) 
 In the automorphism case, `nr = 0` is the identity.co
 """
 function homomorphism end
+function homomorphism(f::Function, ::Type{G}, ::Type{H}) where {G,H}
+    Hom{G,H}(f)
+end
 function _homomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
 
     r = dimension(Q)

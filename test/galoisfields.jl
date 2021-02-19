@@ -120,6 +120,9 @@ end
     @test iso(Z1(1)) == Z2(1)
     @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1
 
+    G = GF(47)
+    h = homomorphism(x->G(2x), Int, G)
+    @test h(18) == G(36)
 end
 
 @testset "Galois field - irreducibles GF{$q,$r} ^ $s" for (q, r, s) in ((2, 3, 3), (3, 2, 3))
@@ -141,6 +144,7 @@ end
     gG = (x for x in G)
     ord = order(G) - 1
     @test isprimitive.(gG) == ( order.(gG) .== ord )
+    @test isfield(G)
 end
 
 end

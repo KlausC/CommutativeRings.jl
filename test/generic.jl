@@ -40,3 +40,7 @@ end
     h = Hom{R,S}(S)
     @test h(R(2)) == S(2)
 end
+
+@testset "isfield $F" for (F, r) in ((ZZ{Int}, false), (ZZ/6, false), (ZZ/3, true), (QQ{Int}, true), (ZZ{Int}[:x], false))
+    @test isfield(F) == r
+end

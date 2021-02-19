@@ -55,6 +55,12 @@ convert(::Type{ZZmod{m,S}}, a::Integer) where {m,S} = ZZmod{m,S}(a)
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
 modulus(::T) where T<:ZZmod = modulus(T)
 
+@generated function isfield(::Type{Z}) where Z<:Union{ZZmod,Quotient}
+    ty(::Type{T}) where T = T
+    p = isirreducible(modulus(ty(Z)))
+    :( $p )
+end
+
 Base.isless(p::T, q::T) where T <: ZZmod = isless(p.val, q.val)
 
 # arithmetic
