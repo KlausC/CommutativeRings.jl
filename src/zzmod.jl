@@ -39,6 +39,7 @@ function _promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,
     end
 end
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}
+promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:ZZ} = ZZmod{m,S}
 
 function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
     if modulus(ZT) == modulus(ZS)

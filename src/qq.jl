@@ -42,7 +42,7 @@ QQ(a::T) where T<:Integer = QQ{T}(a, one(T), NOCHECK)
 _promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 _promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
-promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
+promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 
 convert(F::Type{QQ{T}}, a::QQ{T}) where T = a
 convert(F::Type{QQ{T}}, a::QQ{S}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)

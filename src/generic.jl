@@ -1,8 +1,12 @@
 
 # promotions and conversions
-function promote_rule(T::Type{<:Ring}, S::Type{<:Ring})
+function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
     depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
 end
+
+promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}= _promote_rule(R, S)
+promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
+_promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = promote_rule(R, promote_type(basetype(R), S))
 
 depth(::Type{<:Number}) = 0
 
