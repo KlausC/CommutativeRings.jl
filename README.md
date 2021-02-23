@@ -516,7 +516,7 @@ here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
 
-[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=master
-[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=master
-[codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/master/graph/badge.svg
+[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=main
+[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=main
+[codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl
