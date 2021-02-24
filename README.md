@@ -2,13 +2,14 @@
 
 [![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
-#### W.I.P
-
 ## Introduction
 
 This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
 fractional `ℚ`, polynomials `ℤ[x]`. Also multivariate polynomials `ℤ[x,y,...]` and Galois fields `GF(p^r)` are supported.
+
+This is not seen as a replacement of `Nemo.jl` or `AbstractAlgebra.jl`, which should be used for serious work.
+It is understood more like a sandbox to try out a simpler API.
 
 It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the quotient ring for a prime number `p`),
 `Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
