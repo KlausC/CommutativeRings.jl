@@ -49,7 +49,7 @@ end
 end
 
 @testset "show" begin
-    P = Z{Int}[:x]
+    P = ZZ{Int}[:x]
     x = monom(P)
     Q = P / (x^2 + 17)
     @test sprint(show, Q(1)) == "1"

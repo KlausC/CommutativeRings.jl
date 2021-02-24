@@ -248,6 +248,8 @@ function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
 end
 gcd(a::T...) where T<:Ring = gcd(a)
 
+pgcd(a::R, b::R) where R<:Ring = gcd(a, b)
+
 # generic extended Euclid's algorithm
 function gcdx(a::T, b::T) where T<:Ring
     s0, s1 = one(T), zero(T)
