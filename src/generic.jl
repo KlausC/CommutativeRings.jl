@@ -1,7 +1,19 @@
 
 # promotions and conversions
 function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
-    depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
+    dts = depth(T) - depth(S)
+    if dts < 0
+        promote_rule(S, T)
+    elseif dts > 0
+        B = basetype(T)
+        if B == S
+            T
+        else
+            promote_rule(B, S) == B ? T : _promote_rule(T, S)
+        end
+    else
+        _promote_rule(T, S)
+    end
 end
 
 promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}= _promote_rule(R, S)

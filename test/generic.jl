@@ -61,8 +61,18 @@ end
     Q = P / ( x^2 - 3)
     PP = Q[:y]
     y = monom(PP)
-    @test_throws ErrorException x * y
+    @test x * y == Q(x) * y
     @test Q(x) * y isa PP
 end
 
-
+@testset "promotion3" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    R = P[:y]
+    y = monom(R)
+    S = R[:z]
+    z = monom(S)
+    @test z + x isa S
+    @test (x + y + z)^2 == x^2 + y^2 + z^2 + 2x*y + 2x*z + 2y*z
+    
+end
