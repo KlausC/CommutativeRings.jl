@@ -47,7 +47,7 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Union{I
 
 
 convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{R,X}) where {X,R} = a
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(convert.(Ref(R), a.coeff))
+convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(a)
 convert(P::Type{<:UnivariatePolynomial{S}}, a::S) where {S} = P([a])
 convert(P::Type{<:UnivariatePolynomial{S}}, a::T) where {S,T} = P([convert(S, a)])
 
@@ -64,19 +64,20 @@ function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
     UnivariatePolynomial{S,x}(v, NOCHECK)
 end
 # convert coefficient vector to polynomial, element type of vector determines class 
-UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S,T} = UnivariatePolynomial{S,x}(v)
-UnivariatePolynomial(x::Symbol, v::S) where {S,T} = UnivariatePolynomial{S,x}([v])
+UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S} = UnivariatePolynomial{S,x}(v)
+UnivariatePolynomial(x::Symbol, v::S) where {S} = UnivariatePolynomial{S,x}([v])
 # convert polynomial with same symbol and type aliasing original
 UnivariatePolynomial{S,X}(p::UnivariatePolynomial{S,X}) where {X,S<:Ring} = p
 # convert polynomial with different coefficient type
 function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     if X == Y
-        UnivariatePolynomial{S,X}(S.(p.coeff), NOCHECK)
+        co = [S(c) for c in p.coeff]
+        UnivariatePolynomial{S,X}(co)
     elseif S <: UnivariatePolynomial
-        yp = S(p)
-        UnivariatePolynomial{S,X}([yp], NOCHECK)
+        co = [S(p)]
+        UnivariatePolynomial{S,X}(co)
     else
-        throw(DomainError((X,Y), "cannot convert different variable names"))
+        throw(DomainError((X,Y), "cannot convert polynomials with differing variable names"))
     end 
 end
 

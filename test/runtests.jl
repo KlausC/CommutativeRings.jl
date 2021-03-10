@@ -21,3 +21,4 @@ using CommutativeRings
 @testset "enumerations" begin include("enumerations.jl") end
 @testset "linearalgebra" begin include("linearalgebra.jl") end
 #@testset "gcd" begin include("gcd.jl") end
+=#

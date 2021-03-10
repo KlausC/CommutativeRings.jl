@@ -5,10 +5,14 @@
 /(::Type{ZZ}, m::Integer) = mintype_for(m, 1, false) / m
 
 # construction
-basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
+basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{wsigned(T)}
 depth(::Type{<:ZZmod}) = depth(ZZ) + 1
 _lcunit(a::ZZmod) = one(a)
 issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
+
+wsigned(::Type{T}) where T<:Signed = T
+wsigned(::Type{T}) where T<:Unsigned = widen(signed(T))
+wsigned(a::T) where T<:Integer = convert(wsigned(T), a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
@@ -40,16 +44,18 @@ function _promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,
 end
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}
 
-function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
-    if modulus(ZT) == modulus(ZS)
-        R = promote_type(S,T)
-        mn = m == n ? promote(m, n)[1] : n isa Symbol ? n : m
-        ZZmod{mn,R}(a.val)
+function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
+    mzt = modulus(ZT)
+    mzs = modulus(ZS)
+    if mzt % mzs == 0
+        ZT(a.val % mzt)
     else
-        throw(DomainError((ZT,a), "cannot convert "))
+        throw(DomainError((ZT, a), "cannot convert $ZS to $ZT"))
     end
 end
 convert(::Type{ZZmod{m,S}}, a::Integer) where {m,S} = ZZmod{m,S}(a)
+(::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
+convert(::Type{T}, a::ZZmod) where T<:Integer = T(a)
 
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus

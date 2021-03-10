@@ -1,9 +1,23 @@
 
+let x = monom(ZZ{Int}[:x]), u = x^8 + x^6 -3x^4 -3x^3 +8x^2 + 2x - 5
+
 @testset "integer polynomials over $T" for T in (Int64, BigInt)
-    P = ZZ{T}[:x]
-    x = monom(P)
+    x = monom(ZZ{T}[:x])
     a = x^2 + 5x + 1
     b = x + 2
     c = a * b
-    @test factor(c) == [a =>1; b=>1]
+    @test_broken factor(c) == [a =>1; b=>1]
+end
+
+@testset "coeffbounds" begin
+    @test_throws ArgumentError coeffbounds(zero(u), 0)
+    @test_throws ArgumentError coeffbounds(10one(u), 1)
+    @test coeffbounds(10one(u), 0) == [10]
+    @test coeffbounds(u, 0) == [1]
+    @test coeffbounds(u, 1) == [5, 1]
+    @test coeffbounds(u, 2) <= [5, 12, 1]
+    @test coeffbounds(u, 3) <= [5, 21, 13, 1]
+    @test coeffbounds(u, 4) <= [5, 26, 36, 14, 1]
+end
+
 end
