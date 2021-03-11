@@ -9,11 +9,15 @@ depth(::Type{<:QQ}) = 1
 issimpler(a::T, b::T) where T<:QQ = QQ(abs(a.num),a.den) < QQ(abs(b.num),b.den)
 copy(a::QQ) = typeof(a)(a.num,a.den)
 
-QQ(a::QQ{T}) where T = a
 QQ{T}(a::QQ) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
 QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
 QQ{T}(a::Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
+
+QQ(a::QQ{T}) where T = a
+QQ(a::ZZ{T}) where T = QQ{T}(a)
+QQ(a::T) where T = QQ{T}(a)
+QQ(a::Rational{T}) where T = QQ{T}(a)
 
 function QQ{T}(num::Integer, den::Integer) where T<:Integer
     iszero(num) && iszero(den) && throw(ArgumentError("invalid rational: zero($T)//zero($T)"))
@@ -33,13 +37,7 @@ function QQ(a::S, b::T) where {S<:Integer,T<:Integer}
     QQ{R}(R(a), R(b))
 end
 QQ(num::T, den::T) where T = QQ{T}(num, den)
-QQ(a::Rational{T}) where T = QQ{T}(a.num, a.den)
-QQ{T}(a::Rational) where T = QQ{T}(a.num, a.den)
 Rational(a::QQ{T}) where T = Rational(a.num, a.den)
-QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
-QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
-QQ(a::ZZ{T}) where T = QQ{T}(a.val, one(T), NOCHECK)
-QQ(a::T) where T<:Integer = QQ{T}(a, one(T), NOCHECK)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
 
 # promotion and conversion

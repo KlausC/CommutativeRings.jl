@@ -13,6 +13,14 @@ function lcunit(a::Polynomial)
 end
 
 """
+    varname(P)
+
+Return variable name of univariate polynomial or polynomial type `P` as a symbol.
+"""
+varname(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = X
+varname(::T) where T<:Polynomial = varname(T)
+
+"""
     iscoprime(a, b)
 
 Return if there is a common non-unit divisor of `a` and `b`.

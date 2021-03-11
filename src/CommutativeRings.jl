@@ -24,7 +24,7 @@ export num_primitives, isprimitive
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
-export generators, varnames, factors
+export generators, varnames, varname, factors
 
 export characteristic_polynomial, adjugate, companion
 
