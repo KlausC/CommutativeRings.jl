@@ -1,4 +1,6 @@
 
+const hensel_lift = CommutativeRings._hensel_lift
+
 let x = monom(ZZ{Int}[:x]), u = x^8 + x^6 -3x^4 -3x^3 +8x^2 + 2x - 5
 
 @testset "integer polynomials over $T" for T in (Int64, BigInt)
@@ -18,6 +20,19 @@ end
     @test coeffbounds(u, 2) <= [5, 12, 1]
     @test coeffbounds(u, 3) <= [5, 21, 13, 1]
     @test coeffbounds(u, 4) <= [5, 26, 36, 14, 1]
+end
+
+@testset "hensel_lifting" for (p, q) in [(13, 13)]
+    r = gcd(p, q)
+    X = varname(x)
+    Pq = (ZZ/q)[X]
+    Pqr = (ZZ/(q*r))[X]
+    vv = first.(factor(Pq(u)))
+    v = vv[2]
+    w = Pq(u) / v
+    _, a, b = gcdx(v, w)
+    V, W = hensel_lift(u, v, w, a, b, p, q, r, 1)
+    @test Pqr(u) == V * W
 end
 
 end
