@@ -32,8 +32,7 @@ _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
 _promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Ring,Id} = Quotient{promote_type(R,S),I,X,Id}
 promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} = Quotient{R,I,X,Id}
 
-convert(::Type{Q}, a::Q) where {R,Q<:Quotient{R}} = a
-convert(::Type{Q}, a::S) where {S,R,Q<:Quotient{R}} = Q(convert(R, a))
+(::Type{Q})(a::S) where {S,R,Q<:Quotient{R}} = Q(R(a))
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 

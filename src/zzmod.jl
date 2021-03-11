@@ -53,9 +53,7 @@ function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
         throw(DomainError((ZT, a), "cannot convert $ZS to $ZT"))
     end
 end
-convert(::Type{ZZmod{m,S}}, a::Integer) where {m,S} = ZZmod{m,S}(a)
 (::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
-convert(::Type{T}, a::ZZmod) where T<:Integer = T(a)
 
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus

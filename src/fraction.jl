@@ -12,15 +12,17 @@ numerator(a::FractionField) = a.num
 denominator(a::FractionField) = a.den
 
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
+
 Frac{T}(a::Frac{T}) where T = a
 Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
 
-Frac{T}(a::Integer) where T = convert(Frac{T}, a)
-Frac{T}(a::Ring) where T = convert(Frac{T}, a)
-Frac(a::T) where T<:Ring  = convert(Frac{T}, a)
-Frac(a::T) where T<:Integer = convert(Frac{ZZ{T}}, a)
+Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
+Frac{T}(a::Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
+Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
+Frac(a::T) where T<:Ring  = Frac{T}(a)
+Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
+Frac(a::Rational{T}) where T<:Integer = Frac{ZZ{T}}(a)
 Frac{T}(a::Integer,b::Integer) where T = Frac(T(a), T(b))
-Frac{T}(a::Rational) where T = convert(Frac{T}, a)
 function Frac(a::T, b::T) where T<:Polynomial
     cab = content(a) // content(b)
     a = primpart(a)
@@ -54,12 +56,6 @@ _promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(
 _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S,T} = Frac{promote_type(S,T)}
-
-convert(F::Type{Frac{T}}, a::Frac{T}) where T = a
-convert(F::Type{Frac{T}}, a::Frac{S}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)
-convert(F::Type{Frac{T}}, a::Ring) where T = F(T(a), one(T), NOCHECK)
-convert(F::Type{Frac{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
-convert(F::Type{Frac{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
 isfield(::Type{<:FractionField}) = true
 

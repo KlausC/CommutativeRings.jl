@@ -8,8 +8,12 @@ basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 depth(::Type{<:QQ}) = 1
 issimpler(a::T, b::T) where T<:QQ = QQ(abs(a.num),a.den) < QQ(abs(b.num),b.den)
 copy(a::QQ) = typeof(a)(a.num,a.den)
-QQ{T}(a::QQ) where T = convert(QQ{T}, a)
+
 QQ(a::QQ{T}) where T = a
+QQ{T}(a::QQ) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
+QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
+QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
+QQ{T}(a::Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 
 function QQ{T}(num::Integer, den::Integer) where T<:Integer
     iszero(num) && iszero(den) && throw(ArgumentError("invalid rational: zero($T)//zero($T)"))
@@ -43,12 +47,6 @@ _promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 _promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
-
-convert(F::Type{QQ{T}}, a::QQ{T}) where T = a
-convert(F::Type{QQ{T}}, a::QQ{S}) where {S,T} = F(T(a.num), T(a.den), NOCHECK)
-convert(F::Type{QQ{T}}, a::ZZ{S}) where {S,T} = F(T(a.val), one(T), NOCHECK)
-convert(F::Type{QQ{T}}, a::Integer) where T = F(T(a), one(T), NOCHECK)
-convert(F::Type{QQ{T}}, a::Rational) where T = F(T(a.num), T(a.den), NOCHECK)
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::QQ{<:R}) where {F,R,S}

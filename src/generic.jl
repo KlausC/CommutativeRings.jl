@@ -17,6 +17,10 @@ end
 # generic operations
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = T
+
+convert(::Type{T}, a::T) where T = a
+convert(::Type{T}, a::S) where {S,T} = T(a)
+
 (G::Type{<:Ring})(a) = G !== basetype(G) ? G(convert(basetype(G), a)) : throw(MethodError(G, a))
 @generated function basetypes(a)
     _basetypes(::Type{a}) where a = begin b = basetype(a); a == b ? [a] : [a; _basetypes(b)] end

@@ -36,9 +36,6 @@ function issimpler(a::T, b::T) where T<:UnivariatePolynomial
     da < db || da == db && issimpler(LC(a), LC(b))
 end
 
-UnivariatePolynomial{S,X}(a::Ring) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
-UnivariatePolynomial{S,X}(a::Integer) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
-
 # promotion and conversion
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,Y}}) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,X}}) where {X,R,S} = UnivariatePolynomial{promote_type(R,S),X}
@@ -46,10 +43,8 @@ _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} 
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{promote_type(R,S),X}
 
 
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{R,X}) where {X,R} = a
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(a)
-convert(P::Type{<:UnivariatePolynomial{S}}, a::S) where {S} = P([a])
-convert(P::Type{<:UnivariatePolynomial{S}}, a::T) where {S,T} = P([convert(S, a)])
+(P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])
+(P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T} = P([S(a)])
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
