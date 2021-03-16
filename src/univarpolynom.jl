@@ -12,6 +12,11 @@ function lcunit(a::Polynomial)
     isunit(lco) ? lco : one(lco)
 end
 
+### access to polynomial coefficients
+function getindex(u::UnivariatePolynomial, i::Integer)
+    0 <= i <= deg(u) ? u.coeff[i+1] : zero(basetype(u)) 
+end
+
 """
     varname(P)
 
@@ -429,7 +434,7 @@ deg(p::UnivariatePolynomial) = length(p.coeff) - 1
 
 function inv(p::T) where T<:Polynomial
     if isunit(p)
-        return T(inv(p.coeff[1]))
+        return T(inv(p[0]))
     else
         throw(DomainError(p, "Only unit polynomials can be inverted"))
     end
@@ -444,7 +449,7 @@ one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 ==(p::Polynomial, q::Polynomial) = false
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
+    n == 0 ? hash(0, h) : n == 1 ? hash(p[0]) : hash(X, hash(p.coeff, h))
 end
 
 """
@@ -506,6 +511,7 @@ end
 Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
 The next to last calculated remainder is a scalar multiple of the gcd. 
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
+and TAoCP 2nd Ed. 4.6.1.
 """
 function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     
@@ -514,6 +520,7 @@ function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     db = deg(b)
     d = da - db
     d < 0 && return pgcd(b, a)
+    cc, a, b = normgcd(a, b)
     E = one(S)
     ψ = -E
     β = iseven(d) ? E : -E
@@ -531,8 +538,9 @@ function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
         β = -γ * ψ^d
     end
     a = primpart(a)
-    a / lcunit(a)
+    a / lcunit(a) * cc
 end
+
 """
     g, u, v, f = pgcdx(a, b)
 
@@ -550,6 +558,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
         g, u, v, f = pgcdx(b, a)
         return g, v, u, f
     end
+    cc, a, b = normgcd(a, b)
     ψ = -E
     β = iseven(d) ? E : -E
     EE = one(T)
@@ -575,8 +584,21 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     cs = gcd(content(s2), content(t2))
     a = a / cs
     f = content(a)
-    a/f, s2/cs, t2/cs, f
+    a / (f / cc), s2 / cs, t2 / cs, f
 end
+
+"""
+    g, ag, bg = normgcd(a, b)
+
+Divided `a` and `b` by the gcd of their contents.
+"""
+function normgcd(a, b)
+    ca = content(a)
+    cb = content(b)
+    g = gcd(ca, cb)
+    isunit(g) ? (one(g), a, b) : (g, a / g, b / g)
+end
+
 """
     invert(p, q)
 
@@ -647,14 +669,14 @@ end
 
 Return formal derivative of polynomial `p`.
 
-For `k in 1:deg(p)` we have `derive(p).coeff[k] = k * p.coeff[k+1]`.
+For `k in 1:deg(p)` we have `derive(p)[k-1] = k * p[k]`.
 If `deg(p) * LC(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
 """
 function derive(p::P) where P<:UnivariatePolynomial
     n = deg(p)
     c = similar(p.coeff, n)
     for k = 1:n
-        c[k] = p.coeff[k+1] * k
+        c[k] = p[k] * k
     end
     while n > 0 && iszero(c[n])
         n -= 1
@@ -704,22 +726,22 @@ issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
 issimple(::Any) = false
 
-function showvar(io::IO, var::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
-    if n == 2
+function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
+    if n == 1
         print(io, X)
-    elseif n != 1
-        print(io, string(X, '^', n - 1))
+    elseif n != 0
+        print(io, string(X, '^', n))
     end
 end
 
-isconstterm(p::UnivariatePolynomial, n::Integer) = n == 1
+isconstterm(::UnivariatePolynomial, n::Integer) = n == 0
 
 function show(io::IO, p::Polynomial{T}) where T
-    N = length(p.coeff)
+    N = deg(p)
     N <= 0 && return show(io, zero(T))
     start = true
-    for n = N:-1:1
-        el = p.coeff[n]
+    for n = N:-1:0
+        el = p[n]
         iszero(el) && !start && continue
         !start && print(io, ' ')
         if isconstterm(p, n)
@@ -759,4 +781,3 @@ function showelem(io::IO, el, start::Bool)
         print(io, v1 == '+' ? SubString(v, nextind(v, 1)) : v)
     end
 end
-

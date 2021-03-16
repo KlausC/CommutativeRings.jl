@@ -23,16 +23,29 @@ end
 end
 
 @testset "hensel_lifting" for (p, q) in [(13, 13)]
-    r = gcd(p, q)
     X = varname(x)
+    
+    r = gcd(p, q)
     Pq = (ZZ/q)[X]
     Pqr = (ZZ/(q*r))[X]
     vv = first.(factor(Pq(u)))
     v = vv[2]
     w = Pq(u) / v
     _, a, b = gcdx(v, w)
-    V, W = hensel_lift(u, v, w, a, b, p, q, r, 1)
+    V, W = hensel_lift(u, v, w, Pq(a), Pq(b), p, q, r, 1)
     @test Pqr(u) == V * W
+    @test Pq(V) == v
+    @test Pq(W) == w
+
+    p, q = p, q * r
+    r = gcd(p, q)
+    Pq = (ZZ/q)[X]
+    Pqr = (ZZ/(q*r))[X]
+    v, w = V, W
+    V, W = hensel_lift(u, v, w, Pq(a), Pq(b), p, q, r, 1)
+    @test Pqr(u) == V * W
+    @test Pq(V) == v
+    @test Pq(W) == w
 end
 
 end

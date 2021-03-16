@@ -49,11 +49,19 @@ function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
     mzs = modulus(ZS)
     if mzt % mzs == 0
         ZT(a.val % mzt)
+    elseif mzs % mzt == 0
+        ZT(a.val % mzt)
     else
         throw(DomainError((ZT, a), "cannot convert $ZS to $ZT"))
     end
 end
-(::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
+
+(::Type{T})(a::ZZmod) where T<:Unsigned = T(value(a))
+function (::Type{T})(a::ZZmod) where T<:Signed
+    v = T(value(a))
+    m = T(modulus(a))
+    2v > m ? v - m : v
+end
 
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
