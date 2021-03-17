@@ -738,7 +738,7 @@ isconstterm(::UnivariatePolynomial, n::Integer) = n == 0
 
 function show(io::IO, p::Polynomial{T}) where T
     N = deg(p)
-    N <= 0 && return show(io, zero(T))
+    N < 0 && return show(io, zero(T))
     start = true
     for n = N:-1:0
         el = p[n]
