@@ -9,8 +9,7 @@ function /(::Type{R}, m) where R<:Ring
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
     b = order(basetype(R))
-    o = iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
-    new_class(Quotient{R,typeof(ideal),sintern(m),(p,r,o)}, ideal)
+    new_class(Quotient{R,typeof(ideal),sintern(m),(p,r)}, ideal)
 end
 
 # Constructors
@@ -56,7 +55,11 @@ one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 value(a::QuotientRing) = a.val
 characteristic(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[1]
 dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
-order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
+function order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id}
+    r = Id[2]
+    b = order(basetype(R))
+    iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
+end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
 function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}

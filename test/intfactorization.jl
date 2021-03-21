@@ -1,5 +1,5 @@
 
-const hensel_lift = CommutativeRings._hensel_lift
+using CommutativeRings: hensel_lift, partsums
 
 let x = monom(ZZ{Int}[:x]), u = x^8 + x^6 -3x^4 -3x^3 +8x^2 + 2x - 5
 
@@ -46,6 +46,13 @@ end
     @test Pqr(u) == V * W
     @test Pq(V) == v
     @test Pq(W) == w
+end
+
+@testset "partsums" begin
+    s = [2, 3, 10]
+    @test partsums(s) == 0
+
+
 end
 
 end

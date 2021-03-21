@@ -166,10 +166,17 @@ function Base.show(io::IO, a::ZZmod)
     end
 end
 
+@inline function minlength_for(v::Integer, ::Val{1}, off::Bool)
+    ndigits(v - off, base=2, pad=0)
+end    
+@inline function minlength_for(v::Integer, ::Val{ex}, off::Bool) where ex
+    l2n = log2(v) * ex
+    Int(off ? ceil(l2n) : floor(l2n) + 1)
+end
+
 function mintype_for(v::Integer, ex::Integer, off::Bool)
-    v > typemax(UInt128) && return BigInt
-    l2v = log2(v) * ex
-    len = Integer(off ? ceil(l2v) : floor(l2v) + 1)
+    v isa BigInt && v > typemax(UInt128) && return BigInt
+    len = minlength_for(v, Val(ex), off)
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         n = sizeof(T) * 8
         len <= n && return len < n ? signed(T) : T

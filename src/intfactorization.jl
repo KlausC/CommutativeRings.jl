@@ -15,6 +15,49 @@ function zassenhaus(p)
     [p => 1]
 end
 
+function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
+    X = varname(u)
+    Zp = (ZZ/p)[X]
+    Z = ZZ{BigInt}[X]
+    res = Z[]
+    u = convert(Z, u)
+    x = monom(Z)
+    while iszero(u[0])
+        push!(res, x)
+        u = u / x
+    end
+    uu = Zp(u)
+    fac = factor(uu)
+    vv = first.(fac) .^ last.(fac)
+    r0 = 0
+    while (r = length(vv)) > 1 && r != r0
+        tr = (one(p))<<(r-1) - 1
+        for i = 1:tr
+            d = enumx(i, r)
+            if dividecheck(u, vv, d)
+                v = Z(pprod(vv, d))
+                qd, rd = divrem(u, v)
+                if iszero(rd)
+                    push!(res, v)
+                    u = qd
+                    remove_subset!(vv, d)
+                    break
+                end
+            end
+        end
+        r0 = r
+    end
+    push!(res, prod(vv))
+    res
+end
+
+function dividecheck(u::P, vv, d) where {T,P<:UnivariatePolynomial{T}}
+    S = basetype(T)
+    l0 = S(l0prod(vv, d))
+    u0 = value(u[0])
+    !iszero(l0) && iszero(rem(u0, l0))
+end
+
 """
     coeffbounds(u::Polygon, m)::Vector{<:Integer}
 
@@ -137,51 +180,71 @@ function convertmod(::Type{P}, u::Q) where {P,Q}
 end
 
 """
-    prod(v::Vector, n::{Integer,BitVector})
+    pprod(v::Vector, n::{Integer,BitVector})
 
 Product of elements of `v`, with corresponding bit in `n` is set.
 (lsb corresponds to index 1).
 """
-function pprod(vv::AbstractVector, n::Integer)
+pprod(vv, n) = preduce(*, oneunit(eltype(vv)), vv, n)
+
+"""
+    deg_prod(v, n)
+
+Calculate and return `deg(pprod(v, n))` efficiently.
+"""
+deg_prod(vv, n) = preduce((p, v) -> p + deg(v), 0, vv, n)
+
+"""
+    l0prod(v, n)
+
+Return `pprod(v, n)[0]` efficiently.
+"""
+function l0prod(vv, n)
+    start = oneunit(basetype(eltype(vv)))
+    preduce((p, v) -> p * v[0], start, vv, n)
+end
+
+"""
+    l1prod(v, n)
+
+Return `pprod(v, n)[0:1]` efficiently.
+"""
+function l1prod(vv, n)
+    T = basetype(eltype(vv))
+    start = (oneunit(T), zero(T))
+    preduce((p, v) -> (p[1]*v[0], p[2] * v[0] + p[1] * v[1]), start, vv, n)
+end
+
+function preduce(op, start, vv::AbstractVector, n::Integer)
     r = length(vv)
     j = iszero(n) ? r : trailing_zeros(n)
-    j >= r && return oneunit(eltype(vv))
+    p = start
+    j >= r && return p
     n >>= j
     j += 1
-    p = vv[j]
+    p = op(p, vv[j])
     while j < r
         j += 1
         n >>= 1
         if isodd(n)
-            p *= vv[j]
+            p = op(p, vv[j])
         end
     end
     p
 end
-function pprod(vv::AbstractVector, n::BitVector)
-    p = oneunit(eltype(vv))
+function preduce(op, start, vv::AbstractVector, n::BitVector)
+    p = start
     for j = 1:length(vv)
         if n[j]
-            p *= vv[j]
+            p = op(p, vv[j])
         end
     end
     p
 end
 
-function deg_prod(vv::AbstractVector, n::Integer)
-    r = length(vv)
-    j = trailing_zeros(n)
-    n >>= j
-    p = 0
-    while j < r
-        j += 1
-        if isodd(n)
-            p += deg(vv[j])
-        end
-        n >>= 1
-    end
-    p
-end   
+function remove_subset!(vv::AbstractVector, d)
+    deleteat!(vv, preduce(push!, Int[], 1:length(vv), d))
+end
 
 """
     smallfactors(vv::Vector{Polynomial{ZZ/p}}, u::Polynomial{ZZ{Integer}})::w
@@ -233,7 +296,7 @@ end
 
 function partsums(s::Vector{<:Integer})
     m = length(s)
-    n = sum(s) + 1
+    n = sum(s) ÷ 2 + 1
     if n > 64
         a = falses(n)
         a[1] = true
@@ -248,7 +311,7 @@ function partsums(s::Vector{<:Integer})
         ps = fill(BitVector[], n)
         ps[1] = [falses(m)]
     else
-        ps = fill(UInt64[], m)
+        ps = fill(UInt64[], n)
         ps[1] = [0]
     end
     ps = partsums!(ps, s)
@@ -316,6 +379,68 @@ function partsums!(a::Vector{<:Vector{<:Integer}}, s::Vector)
                 end
             end
         end
+    end
+    a
+end
+
+function enumx_slow(n::Integer, bits::Int)
+    nm = (oftype(n, 1)<<bits) - 1
+    nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
+    bits == 0 && return zero(n)
+    if n >> (bits - 1) == 1
+        return nm - enumx(nm - n, bits)
+    end
+    s = zero(n)
+    d = s
+    for k = 0:bits
+        t = s + binomial(bits, k)
+        mm = binomial(bits - 1, k-1)
+        if n < t || t <= 0
+            m = n - s
+            return (enumx(m + d, bits - 1) << 1) + (m < mm)
+        end
+        s = t
+        d += mm
+    end
+    s
+end
+
+"""
+    enumx(n::Integer, bits)::Integer
+
+For each `bits >= 0, n -> enumx(n, bits)` is a bijection of `0:2^bits-1`
+in a way that `enumx.(0:2^bits-1, bits)` is sorted by number of ones
+in two's complement representation. 
+"""
+function enumx(n::Integer, bits::Int)
+    mask = (oftype(n, 1)<<bits) - 1
+    nm = mask
+    nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
+    a = zero(n)
+    b = one(n)
+    while bits > 0
+        if n > nm - n
+            n = nm - n
+            a = a ⊻ (~(b - 1) & mask)
+        end
+        u0 = v0 = w0 = one(n)
+        u1 = v1 = w1 = d = zero(n)
+        for k = 0:bits
+            if n < w0 || w0 <= 0
+                if n - w1 < u1
+                    a ⊻= b
+                end
+                break
+            end
+            d += u1
+            u1, u0 = u0, u0 * (bits-k-1) ÷ (k+1)
+            v1, v0 = v0, u0 + v0
+            w1, w0 = w0, v0 + v1
+        end
+        n += d - w1
+        bits -= 1
+        b <<= 1
+        nm >>= 1
     end
     a
 end
