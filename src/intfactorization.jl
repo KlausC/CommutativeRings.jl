@@ -1,18 +1,67 @@
 
 function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
+    X = varname(p)
+    Z = ZZ{BigInt}[X]
+    u = convert(Z, p)
+    x = monom(Z)
+    e = 0
+    while deg(p) >= 0 && iszero(p[0])
+        e += 1
+        p = p / x
+    end
     c = content(p)
     q = primpart(p)
-    r = yun(q)
-    s = zassenhaus(r)
-    isone(c) ? s : [P(c) => 1; s]
+    res = Pair{P,Int}[]
+    isone(c) || push!(res, P(c) => 1)
+    iszero(e) || push!(res, x => e)
+
+    if deg(q) > 0
+        r = yun(q)
+        for (e, u) in enumerate(r)
+            if !isone(u)
+                s = zassenhaus(u)
+                append!(res, s .=> e)
+            end
+        end
+    end
+    res
 end
 
-function yun(p)
-    p
+"""
+    yun(u::UnivariatePolynomial)::Vector
+
+Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
+such that `p = u_1^1 * u_2^2 * ... * u_e^e`.  
+"""
+function yun(u::UnivariatePolynomial{<:ZZ})
+    t, v, w = GCD(u, derive(u))
+    res = typeof(u)[]
+    if isone(t)
+        push!(res, u)
+    else
+        while ( wv = w - derive(v) )  |> !iszero
+            u, v, w = GCD(v, wv)
+            push!(res, u)
+        end
+        push!(res, v)
+    end
+    res
 end
 
-function zassenhaus(p)
-    [p => 1]
+"""
+    GCD(u::P, v::P) where P<:UnivariatePolynomial
+
+Calculate `g = gcd(u, v) and 
+return `gcd(u, v), u / g, v / g`.
+"""
+function GCD(u, v)
+    t = pgcd(u, v)
+    isone(t) ? (t, u, v) : (t, u/t, v/t)
+end
+
+function zassenhaus(u)
+    p = prevprime(typemax(UInt64))
+    factormod(u, p)
 end
 
 function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
@@ -21,11 +70,6 @@ function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     Z = ZZ{BigInt}[X]
     res = Z[]
     u = convert(Z, u)
-    x = monom(Z)
-    while iszero(u[0])
-        push!(res, x)
-        u = u / x
-    end
     uu = Zp(u)
     fac = factor(uu)
     vv = first.(fac) .^ last.(fac)

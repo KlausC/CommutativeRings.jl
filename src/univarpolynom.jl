@@ -674,6 +674,7 @@ If `deg(p) * LC(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
 """
 function derive(p::P) where P<:UnivariatePolynomial
     n = deg(p)
+    n < 0 && return p
     c = similar(p.coeff, n)
     for k = 1:n
         c[k] = p[k] * k
