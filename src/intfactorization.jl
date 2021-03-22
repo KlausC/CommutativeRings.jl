@@ -1,6 +1,6 @@
 
 function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
-    X = varname(p)
+    X = varname(P)
     Z = ZZ{BigInt}[X]
     u = convert(Z, p)
     x = monom(Z)
@@ -11,8 +11,8 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     end
     c = content(p)
     q = primpart(p)
-    res = Pair{P,Int}[]
-    isone(c) || push!(res, P(c) => 1)
+    res = Pair{Z,Int}[]
+    isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
 
     if deg(q) > 0
@@ -60,6 +60,17 @@ function GCD(u, v)
 end
 
 function zassenhaus(u)
+    un = LC(u)
+    v = tomonic(u)
+    vv = zassenhaus_monic(v)
+    if isone(un)
+        vv
+    else
+        primpart.(frommonic.(vv, un))
+    end
+end
+
+function zassenhaus_monic(u)
     p = prevprime(typemax(UInt64))
     factormod(u, p)
 end
@@ -487,4 +498,30 @@ function enumx(n::Integer, bits::Int)
         nm >>= 1
     end
     a
+end
+
+function tomonic(u::P) where P<:UnivariatePolynomial
+    un = LC(u)
+    isone(un) && return u
+    c = copy(u.coeff)
+    n = deg(u)
+    c[n+1] = one(un)
+    s = un
+    for i = n-1:-1:1
+        c[i] *= s
+        s *= un
+    end
+    P(c)
+end
+
+function frommonic(u::P, un) where P<:UnivariatePolynomial
+    isone(un) && return u
+    c = copy(u.coeff)
+    n = deg(u)
+    s = un
+    for i = 2:n+1
+        c[i] *= s
+        s *= un
+    end
+    P(c)
 end
