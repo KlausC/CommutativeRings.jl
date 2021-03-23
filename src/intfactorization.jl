@@ -1,4 +1,15 @@
 
+function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:ZZ}
+    q, e = tominexp(p)
+    res = factor_minexp(q)
+    if e == 1
+        res
+    else
+        x = monom(P)
+        [first(res[i])(x^e) => last(res[i]) for i = 1:length(res)]
+    end
+end
+
 function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     Z = ZZ{BigInt}[X]
@@ -19,12 +30,12 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
         r = yun(q)
         for (e, u) in enumerate(r)
             if !isone(u)
-                s = zassenhaus(u)
+                s, q = zassenhaus(u)
                 append!(res, s .=> e)
             end
         end
     end
-    res
+    res, q
 end
 
 """
@@ -59,7 +70,7 @@ function GCD(u, v)
     isone(t) ? (t, u, v) : (t, u/t, v/t)
 end
 
-function zassenhaus(u)
+function zassenhaus_unused_tomonic_etc(u)
     un = LC(u)
     v = tomonic(u)
     vv = zassenhaus_monic(v)
@@ -70,45 +81,95 @@ function zassenhaus(u)
     end
 end
 
-function zassenhaus_monic(u)
+function zassenhaus(u)
     p = prevprime(typemax(UInt64))
-    factormod(u, p)
+    un = LC(u)
+    fac, v = factormod(u, p)
+    while false && !isone(v) && p > 2
+        p = prevprime(p, 2)
+        res, v = factormod(v, p)
+        append!(fac, res)
+    end
+    fac, v
 end
 
+"""
+    factormod(u, p::Integer)
+
+Given integer polynomial `u` and `p`, which is a power of a prime number and coprime to `LC(u)`,
+factorize `u modulo p`.
+Return vector of integer factors of `u`.
+If their degree sums up to the degree of `u`, the factorization was successfull.
+If not, the returned factors are not complete, and the procedure has to be repeated with increased `p`.
+If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.  
+"""
 function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(u)
-    Zp = (ZZ/p)[X]
+    Zp = (ZZ/p)
     Z = ZZ{BigInt}[X]
     res = Z[]
     u = convert(Z, u)
-    uu = Zp(u)
-    fac = factor(uu)
-    vv = first.(fac) .^ last.(fac)
+    un = LC(u)
+    isunit(gcd(p, un)) || return (res, u)
+    unp = Zp(un)
+    up = Zp[X](u) / unp
+    uu = u * un
+    fac = factor(up)
+    vv = first.(fac)
+    maximum(last.(fac)) <= 1 || return (res, u)
     r0 = 0
-    while (r = length(vv)) > 1 && r != r0
-        tr = (one(p))<<(r-1) - 1
+    levels = zeros(Int, 2)
+    while (r = length(vv)) > 0 && r != r0
+        n = deg(uu)
+        tr = max((one(p))<<(r-1) - 1, 1)
         for i = 1:tr
             d = enumx(i, r)
-            if dividecheck(u, vv, d)
-                v = Z(pprod(vv, d))
-                qd, rd = divrem(u, v)
+            nv = deg_prod(vv, d)
+            if 2*nv > n || ( 2*nv == n && (d & 1 == 1) )
+                # println("before d = $(bitstring(d)) nv = $nv n = $n r = $r")
+                d = (1 << r - 1) & ~d
+                nv = n - nv
+                # println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
+            end
+            if dividecheck(uu, unp, vv, d)
+                v = Z(pprod(vv, d) * unp)
+                qd, rd = divrem(uu, v)
                 if iszero(rd)
-                    push!(res, v)
-                    u = qd
+                    co = content(v)
+                    push!(res, v / co)
+                    unc = un / co
+                    un = LC(qd) / unc
+                    unp = Zp(un)
+                    # println("($qd) * $un / $unc")
+                    uu = qd * (un / unc)
                     remove_subset!(vv, d)
+                    levels .= 0
+                    # println("reset levels: n = $n nv = $nv")
                     break
+                end
+            end
+            if nv > levels[1]
+                levels[1] = nv
+                B = maximum(coeffbounds(uu, nv))
+                if B * 2 >= p
+                    # println("log2(B) = $(log2(B)) n = $n nv = $nv")
+                    levels[2] = nv
                 end
             end
         end
         r0 = r
     end
-    push!(res, prod(vv))
-    res
+    uu = uu / un
+    if levels[2] == 0
+        push!(res, uu)
+        uu = one(uu)
+    end
+    res, uu
 end
 
-function dividecheck(u::P, vv, d) where {T,P<:UnivariatePolynomial{T}}
+function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
     S = basetype(T)
-    l0 = S(l0prod(vv, d))
+    l0 = S(l0prod(vv, d) * unp)
     u0 = value(u[0])
     !iszero(l0) && iszero(rem(u0, l0))
 end
@@ -243,11 +304,11 @@ Product of elements of `v`, with corresponding bit in `n` is set.
 pprod(vv, n) = preduce(*, oneunit(eltype(vv)), vv, n)
 
 """
-    deg_prod(v, n)
+    deg_prod(v, d)
 
 Calculate and return `deg(pprod(v, n))` efficiently.
 """
-deg_prod(vv, n) = preduce((p, v) -> p + deg(v), 0, vv, n)
+deg_prod(vv, d) = preduce((p, v) -> p + deg(v), 0, vv, d)
 
 """
     l0prod(v, n)
@@ -524,4 +585,16 @@ function frommonic(u::P, un) where P<:UnivariatePolynomial
         s *= un
     end
     P(c)
+end
+
+function common_exp(u::UnivariatePolynomial)
+    gcd(filter(i -> !iszero(u[i]), 0:deg(u)))
+end
+
+function tominexp(u::P) where P<:UnivariatePolynomial
+    e = common_exp(u)
+    e == 1 && return u, e
+    n = deg(u) ÷ e
+    c = [u[i*e] for i = 0:n]
+    P(c), e
 end
