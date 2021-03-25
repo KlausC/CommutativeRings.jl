@@ -98,12 +98,23 @@ end
 
 Given integer polynomial `u` and `p`, which is a power of a prime number and coprime to `LC(u)`,
 factorize `u modulo p`.
-Return vector of integer factors of `u`.
+Return vector of irreducible integer polynomial factors of `u` and `u / product(factors)`.
 If their degree sums up to the degree of `u`, the factorization was successfull.
 If not, the returned factors are not complete, and the procedure has to be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.  
 """
 function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
+    fl = leftfactor(u)
+    fr = rightfactor(u)
+    u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
+    res, v = factormod0(u, p)
+    for u in res
+        rightop!(leftop!(u, *, fl), *, fr)
+    end
+    rightop!(leftop!(v, *, fl), *, fr)
+    res, v
+end
+function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(u)
     Zp = (ZZ/p)
     Z = ZZ{BigInt}[X]
@@ -114,7 +125,8 @@ function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     unp = Zp(un)
     up = Zp[X](u) / unp
     uu = u * un
-    fac = factor(up)
+
+    fac = factor(up) # modulo p
     vv = first.(fac)
     maximum(last.(fac)) <= 1 || return (res, u)
     r0 = 0
@@ -141,7 +153,7 @@ function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
                     un = LC(qd) / unc
                     unp = Zp(un)
                     # println("($qd) * $un / $unc")
-                    uu = qd * (un / unc)
+                    uu = qd * un / unc
                     remove_subset!(vv, d)
                     levels .= 0
                     # println("reset levels: n = $n nv = $nv")
@@ -216,7 +228,7 @@ Algorithm see TAoCP 2.Ed 4.6.2 Exercise 22.
 """
 function hensel_lift(u::P, v::P1, w::P1, a::P1, b::P1, p::Integer, q::Integer, r::Integer, c::Integer) where {P<:Polynomial,P1<:Polynomial}
 #= The following assumptions are made, but not verified here:
-    r = gcd(p, q) - p and q need not be prime!
+    r = gcd(p, q), p and q need not be prime!
     u == v * w (modulo q)
     a * v + b * w == 1 (modulo p) with deg(a) < deg(w) and deg(b) < deg(v)
     c * LC(v) == 1 (modulo r)
@@ -499,6 +511,7 @@ function partsums!(a::Vector{<:Vector{<:Integer}}, s::Vector)
     a
 end
 
+# to be moved to test, once productive implementation is stable - used to verify results
 function enumx_slow(n::Integer, bits::Int)
     nm = (oftype(n, 1)<<bits) - 1
     nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
@@ -561,6 +574,8 @@ function enumx(n::Integer, bits::Int)
     a
 end
 
+# From here experimental to simplify cases with: 1. p(x) = q(x^e) 2. p(x) = q(f*x)
+
 function tomonic(u::P) where P<:UnivariatePolynomial
     un = LC(u)
     isone(un) && return u
@@ -598,3 +613,67 @@ function tominexp(u::P) where P<:UnivariatePolynomial
     c = [u[i*e] for i = 0:n]
     P(c), e
 end
+
+# x -> k * x
+function leftop!(u::UnivariatePolynomial, op, v)
+    c = u.coeff
+    p = eltype(c)(v)
+    for i = 2:length(c)
+        c[i] = op(c[i], p)
+        p *= v
+    end
+    u
+end
+function rightop!(u::UnivariatePolynomial, op, v)
+    c = u.coeff
+    p = eltype(c)(v)
+    for i = length(c)-1:-1:1
+        c[i] = op(c[i], p)
+        p *= v
+    end
+    u
+end
+
+"""
+    leftfactor(u)
+
+Find greatest integer `g` such that `g^k` divides `u[k]` for all `k = 1:deg(u)`
+"""
+leftfactor(u) = polyfactor(u, true)
+
+"""
+    rightfactor(u)
+
+Find greatest integer `g` such that `g^k` divides `u[deg(u)-k]` for all `k = 1:deg(u)`
+"""
+rightfactor(u) = polyfactor(u, false)
+
+function polyfactor(u::UnivariatePolynomial{ZZ{T}}, left::Bool) where T<:Integer
+    c = u.coeff
+    n = deg(u)
+    g = Vector{T}(undef, n)
+    gk = zero(T)
+    cc(k) = left ? c[k+1] : c[n - k + 1]
+
+    for k = n:-1:1
+        gk = gcd(gk, value(cc(k)))
+        g[k] = gk
+        isone(gk) && return gk
+    end
+    for a in factors(gk)
+        a = gk ÷ a
+        b = a
+        isone(b) && break
+        ok = true
+        for k = 2:n
+            b *= a
+            if !iszero(rem(g[k], b))
+                ok = false
+                break
+            end
+        end
+        ok && return a
+    end
+    one(gk)
+end
+
