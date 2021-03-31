@@ -128,6 +128,8 @@ end
     @test (Int8/17)(1) == ZZp1(1)
 
     @test value((UInt8/17)(18)) === UInt8(1)
+    @test value.((ZZ/255).(126:128)) == [126, 127, -127]
+    @test value.((ZZ/254).(126:128)) == [126, -127, -126]
 end
 
 @testset "auxiliary functions" begin

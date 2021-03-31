@@ -25,17 +25,16 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     res = Pair{Z,Int}[]
     isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
-
     if deg(q) > 0
         r = yun(q)
         for (e, u) in enumerate(r)
             if !isone(u)
-                s, q = zassenhaus(u)
-                append!(res, s .=> e)
+                s = zassenhaus(u)
+                append!(res, first.(s) .=> e)
             end
         end
     end
-    res, q
+    res
 end
 
 """
@@ -82,15 +81,27 @@ function zassenhaus_unused_tomonic_etc(u)
 end
 
 function zassenhaus(u)
-    p = prevprime(typemax(UInt64))
-    un = LC(u)
-    fac, v = factormod(u, p)
-    while false && !isone(v) && p > 2
+    p = prevprime(typemax(UInt8))
+    fac = []
+    while isempty(fac)
+        fac = factormod(u, p)
         p = prevprime(p, 2)
-        res, v = factormod(v, p)
-        append!(fac, res)
     end
-    fac, v
+    res = []
+    for i = 1:length(fac)
+        u, vv = fac[i]
+        append!(res, checked_irreducible(u, p, vv))
+    end
+    res
+end
+
+function checked_irreducible(u, p, vv)
+    n2 = deg(u) ÷ 2
+    B = maximum(coeffbounds(u, n2))
+    if length(vv) > 1 && 2 * B > p
+        @warn "irreducibility of $u cannot be proved - p = $p"
+    end
+    [(u, vv)]
 end
 
 """
@@ -98,7 +109,7 @@ end
 
 Given integer polynomial `u` and `p`, which is a power of a prime number and coprime to `LC(u)`,
 factorize `u modulo p`.
-Return vector of irreducible integer polynomial factors of `u` and `u / product(factors)`.
+Return vector of integer polynomial factors of `u` and `u / product(factors)`.
 If their degree sums up to the degree of `u`, the factorization was successfull.
 If not, the returned factors are not complete, and the procedure has to be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.  
@@ -107,28 +118,27 @@ function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res, v = factormod0(u, p)
-    for u in res
+    res = factormod0(u, p)
+    for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
-    rightop!(leftop!(v, *, fl), *, fr)
-    res, v
+    res
 end
 function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(u)
     Zp = (ZZ/p)
     Z = ZZ{BigInt}[X]
-    res = Z[]
+    res = Pair{Z, Any}[]
     u = convert(Z, u)
     un = LC(u)
-    isunit(gcd(p, un)) || return (res, u)
+    isunit(gcd(p, un)) || return res
     unp = Zp(un)
     up = Zp[X](u) / unp
     uu = u * un
 
     fac = factor(up) # modulo p
     vv = first.(fac)
-    maximum(last.(fac)) <= 1 || return (res, u)
+    maximum(last.(fac)) <= 1 || return res
     r0 = 0
     levels = zeros(Int, 2)
     while (r = length(vv)) > 0 && r != r0
@@ -148,7 +158,8 @@ function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
                 qd, rd = divrem(uu, v)
                 if iszero(rd)
                     co = content(v)
-                    push!(res, v / co)
+                    v = v / co
+                    !isone(v) && push!(res, v => subset(vv, d))
                     unc = un / co
                     un = LC(qd) / unc
                     unp = Zp(un)
@@ -172,11 +183,8 @@ function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
         r0 = r
     end
     uu = uu / un
-    if levels[2] == 0
-        push!(res, uu)
-        uu = one(uu)
-    end
-    res, uu
+    !isone(uu) && push!(res, uu => subset(vv, -1))
+    res
 end
 
 function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
@@ -222,10 +230,37 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
 end
 
 """
-    hensel_lift()
+    hensel_lift(u, v, a) -> V
 
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 22.
+Assumptions fo the input
+
+u = prod(v) mod q
+sum( a .* prod(v) ./ v) = 1 mod p
+In the case of u is not monic, the factor lc(u) has to be multiplied into v[1]. lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
+
+The output vector V contains polynomials of same degree as corresponding v.
 """
+function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {P<:Polynomial,Pq<:Polynomial,Pp<:Polynomial}
+    X = varname(Pq)
+    Zp = basetype(Pp)
+    Zq = basetype(Pq)
+    p = modulus(Zp)
+    q = modulus(Zq)
+    Zqp = ZZ/(widen(q)*widen(p))
+    Pqp = Zqp[X]
+    V = liftmod.(Pqp, v)
+    V[1].coeff[end] = value(LC(u))
+    f = liftmod(Pqp, u) - prod(V)
+    fp = map(x -> Zp(value(x) ÷ q), f)
+    fi = rem.(a .* fp, v)
+    V .+= liftmod.(Pqp, fi) * q
+    V, f, fp, fi
+end
+
+
+
+
 function hensel_lift(u::P, v::P1, w::P1, a::P1, b::P1, p::Integer, q::Integer, r::Integer, c::Integer) where {P<:Polynomial,P1<:Polynomial}
 #= The following assumptions are made, but not verified here:
     r = gcd(p, q), p and q need not be prime!
@@ -240,7 +275,7 @@ function hensel_lift(u::P, v::P1, w::P1, a::P1, b::P1, p::Integer, q::Integer, r
 
     If r is prime, the results are unique modulo q*r.
 =#
-    X = varnames(P)[1]
+    X = varname(P)
     Pqr = (ZZ/(q*r))[X]
     Pr = (ZZ/r)[X]
     u, v, w, a, b = convert.(Pqr, (u, v, w, a, b))
@@ -249,6 +284,20 @@ function hensel_lift(u::P, v::P1, w::P1, a::P1, b::P1, p::Integer, q::Integer, r
     V = convertmod(Pqr, vv, %, r)
     W = convertmod(Pqr, f * a + t * w, %, r)
     V * q + v, W * q + w
+end
+
+function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZ{T}}
+    Z(signed(T)(value(a)))
+end
+function liftmod(::Type{Z}, a::ZZ) where {X,T,Z<:ZZmod{X,T}}
+Z(signed(T)(value(a)))
+end
+function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
+    Z(signed(T)(a))
+end
+function liftmod(::Type{P}, a::Polynomial) where {Z, P<:Polynomial{Z}}
+    c = liftmod.(Z, a.coeff)
+    P(c)
 end
 
 """
@@ -305,6 +354,17 @@ function convertmod(::Type{P}, u::Q) where {P,Q}
     m = modulus(basetype(P))
     n = modulus(basetype(Q))
     convertmod(P, u, %, div(n, m))
+end
+
+"""
+    map(f, p::Polynomial)
+
+Apply `f` to all coefficients of `p` and form new polynomial.
+The dgree is adapted.    
+"""
+function Base.map(f, p::P) where {X,T,P<:UnivariatePolynomial{T,X}}
+    c = map(f, p.coeff)
+    UnivariatePolynomial{eltype(c),X}(c)
 end
 
 """
@@ -368,6 +428,10 @@ function preduce(op, start, vv::AbstractVector, n::BitVector)
         end
     end
     p
+end
+
+function subset(vv::AbstractVector, d)
+    vv[preduce(push!, Int[], 1:length(vv), d)]
 end
 
 function remove_subset!(vv::AbstractVector, d)
@@ -677,3 +741,27 @@ function polyfactor(u::UnivariatePolynomial{ZZ{T}}, left::Bool) where T<:Integer
     one(gk)
 end
 
+"""
+    allgcdx(v)
+
+Given vector `v` of mutual coprime elements.
+Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 and abs.(a) .< abs.(v)`.
+If element type is polynomial, read `abs` as `degree`. 
+"""
+function allgcdx(v::AbstractVector{T}) where T
+    b = one(T)
+    p = prod(v)
+    n = length(v)
+    w = Vector{T}(undef, n)
+    for k = 1:n
+        vk = v[k]
+        p = div(p, vk)
+        g, a, c = gcdx(p, vk)
+        isone(g) || throw(ArgumentError("factors must be coprime"))
+        a *= b
+        c *= b
+        t, w[k] = divrem(a, vk)
+        b = c + t * p
+    end
+    w
+end

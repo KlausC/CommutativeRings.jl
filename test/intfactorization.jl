@@ -50,9 +50,19 @@ end
 
 @testset "partsums" begin
     s = [2, 3, 10]
-    @test partsums(s) == 0
+    @test partsums(s) == ( 0xb42d, [1,0,1,1,0,1,0,0], [[0], [], [1], [2], [], [3], [], []])
 
 
 end
 
+@testset "subsets" begin
+    vv = [10, 20, 30, 40]
+    @test subset(vv, 0) == Int[]
+    @test subset(vv, 6) == [20, 30]
+    @test subset(vv, -1) == vv
+
+    @test remove_subset!(copy(vv), -1) |> isempty
+    @test remove_subset!(copy(vv), 5) == [20, 40]
+    remove_subset!(vv, 8)
+    @test vv == [10, 20, 30]
 end

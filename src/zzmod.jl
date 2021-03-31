@@ -47,20 +47,27 @@ promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}
 function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
     mzt = modulus(ZT)
     mzs = modulus(ZS)
-    if mzt % mzs == 0
-        ZT(a.val % mzt)
-    elseif mzs % mzt == 0
+    if mzs % mzt == 0
         ZT(a.val % mzt)
     else
         throw(DomainError((ZT, a), "cannot convert $ZS to $ZT"))
     end
 end
 
-(::Type{T})(a::ZZmod) where T<:Unsigned = T(value(a))
-function (::Type{T})(a::ZZmod) where T<:Signed
-    v = T(value(a))
-    m = T(modulus(a))
-    2v > m ? v - m : v
+(::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
+
+"""
+    value(a::ZZmod{m,T})
+
+Return unique signed(T) integer in the range `[-m/2, m/2)` representing `a`, where `m` is the modulus.
+"""
+function value(a::ZZmod{X,T}) where {X,T}
+    S = signed(T)
+    v = a.val
+    m = modulus(a)
+    m1 = m >> 1
+    m2 = m - m1
+    v < m2 ? S(v) : S(v - m2) - S(m1)
 end
 
 # get type variable
