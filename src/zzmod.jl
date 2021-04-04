@@ -134,7 +134,7 @@ end
 
 # improved version of invmod
 function invmod2(n::T, m::T) where T<:Integer
-    m == T(0) && throw(DomainError(m, "`m` must not be 0."))
+    iszero(m) && throw(DomainError(m, "`m` must not be 0."))
     p = _unsigned(abs(m))
     q = n >= 0 ? rem(_unsigned(n), p) : p - rem(_unsigned(-n), p)
     !iszero(q) && p != q || throw(DomainError((n, m), "Greatest common divisor is $m"))

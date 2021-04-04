@@ -12,16 +12,11 @@ end
 
 function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
-    Z = ZZ{BigInt}[X]
-    u = convert(Z, p)
-    x = monom(Z)
-    e = 0
-    while deg(p) >= 0 && iszero(p[0])
-        e += 1
-        p = p / x
-    end
     c = content(p)
-    q = primpart(p)
+    Z = ZZ{BigInt}[X]
+    q = convert(Z, isone(c) ? p : p / c)
+    x = monom(Z)
+    q, e = stripzeros!(q)
     res = Pair{Z,Int}[]
     isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
@@ -30,7 +25,7 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
         for (e, u) in enumerate(r)
             if !isone(u)
                 s = zassenhaus(u)
-                append!(res, first.(s) .=> e)
+                append!(res, s .=> e)
             end
         end
     end
@@ -83,25 +78,46 @@ end
 function zassenhaus(u)
     p = prevprime(typemax(UInt8))
     fac = []
-    while isempty(fac)
-        fac = factormod(u, p)
+    while (fac = factormod(u, p)) |> isempty
         p = prevprime(p, 2)
     end
     res = []
-    for i = 1:length(fac)
-        u, vv = fac[i]
-        append!(res, checked_irreducible(u, p, vv))
+    while !all_factors_irreducible!(res, fac, p)
+        for i = 1:length(fac)
+            fac, p = lift!(fac, i)
+        end
     end
     res
 end
 
-function checked_irreducible(u, p, vv)
-    n2 = deg(u) ÷ 2
-    B = maximum(coeffbounds(u, n2))
-    if length(vv) > 1 && 2 * B > p
-        @warn "irreducibility of $u cannot be proved - p = $p"
+function all_factors_irreducible!(res, fac, p)
+    del = Int[]
+    for i = 1:length(fac)
+        u, vv = fac[i]
+        n2 = deg(u) ÷ 2
+        B = maximum(coeffbounds(u, n2))
+        if length(vv) > 1 && 2 * B > p
+            @warn "irreducibility of $u cannot be proved - p = $p B = $B"
+        else
+            @info "irreducibility of $u proved - p = $p B = $B"
+            push!(del, i)
+            push!(res, u)
+        end
     end
-    [(u, vv)]
+    deleteat!(fac, del)
+    isempty(fac)
+end
+
+function lift!(fac, i)
+    u, v = fac[i]
+    lc = value(LC(u))
+    v[1] *= lc
+    a = allgcdx(v)
+    V, p = hensel_lift(u, v, a)
+    V[1] = V[1] / lc
+    fac2 = factormod0(u, p, V)
+    splice!(fac, i, fac2)
+    fac, p
 end
 
 """
@@ -118,13 +134,13 @@ function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = factormod0(u, p)
+    res = factormod0(u, p, nothing)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
     res
 end
-function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
+function factormod0(u::P, p::Integer, vv) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(u)
     Zp = (ZZ/p)
     Z = ZZ{BigInt}[X]
@@ -133,17 +149,18 @@ function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
     un = LC(u)
     isunit(gcd(p, un)) || return res
     unp = Zp(un)
-    up = Zp[X](u) / unp
     uu = u * un
 
-    fac = factor(up) # modulo p
-    vv = first.(fac)
-    maximum(last.(fac)) <= 1 || return res
+    if vv === nothing
+        up = Zp[X](u) / unp
+        fac = factor(up) # modulo p
+        maximum(last.(fac)) <= 1 || return res
+        vv = first.(fac)
+    end
     r0 = 0
-    levels = zeros(Int, 2)
     while (r = length(vv)) > 0 && r != r0
         n = deg(uu)
-        tr = max((one(p))<<(r-1) - 1, 1)
+        tr = max(UInt64(1)<<(r-1) - 1, 1)
         for i = 1:tr
             d = enumx(i, r)
             nv = deg_prod(vv, d)
@@ -166,17 +183,8 @@ function factormod0(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
                     # println("($qd) * $un / $unc")
                     uu = qd * un / unc
                     remove_subset!(vv, d)
-                    levels .= 0
                     # println("reset levels: n = $n nv = $nv")
                     break
-                end
-            end
-            if nv > levels[1]
-                levels[1] = nv
-                B = maximum(coeffbounds(uu, nv))
-                if B * 2 >= p
-                    # println("log2(B) = $(log2(B)) n = $n nv = $nv")
-                    levels[2] = nv
                 end
             end
         end
@@ -232,12 +240,12 @@ end
 """
     hensel_lift(u, v, a) -> V
 
-Algorithm see TAoCP 2.Ed 4.6.2 Exercise 22.
-Assumptions fo the input
+Algorithm see "D. Knuth - TAoCP 2.Ed 4.6.2 Exercise 22" and "E. Kaltofen - Factorization of Polynomials"
 
+Assumptions fo the input
 u = prod(v) mod q
 sum( a .* prod(v) ./ v) = 1 mod p
-In the case of u is not monic, the factor lc(u) has to be multiplied into v[1]. lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
+In the case u is not monic, the factor lc(u) has to be multiplied into v[1]. lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
 
 The output vector V contains polynomials of same degree as corresponding v.
 """
@@ -248,6 +256,7 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
     p = modulus(Zp)
     q = modulus(Zq)
     Zqp = ZZ/(widen(q)*widen(p))
+    qp = modulus(Zqp)
     Pqp = Zqp[X]
     V = liftmod.(Pqp, v)
     V[1].coeff[end] = value(LC(u))
@@ -255,42 +264,14 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
     fp = map(x -> Zp(value(x) ÷ q), f)
     fi = rem.(a .* fp, v)
     V .+= liftmod.(Pqp, fi) * q
-    V, f, fp, fi
+    V, qp
 end
 
-
-
-
-function hensel_lift(u::P, v::P1, w::P1, a::P1, b::P1, p::Integer, q::Integer, r::Integer, c::Integer) where {P<:Polynomial,P1<:Polynomial}
-#= The following assumptions are made, but not verified here:
-    r = gcd(p, q), p and q need not be prime!
-    u == v * w (modulo q)
-    a * v + b * w == 1 (modulo p) with deg(a) < deg(w) and deg(b) < deg(v)
-    c * LC(v) == 1 (modulo r)
-    deg(u) == deg(v) + deg(w)
-
-    The algorithm constructs polynomials V == v (modulo q) and W == w (modulo q)
-    such that u == V * W ( modulo q*r) and
-    LC(V) == LC(v) and LC(W) == lc(w) and deg(V) == deg(v) and deg(W) == deg(w)
-
-    If r is prime, the results are unique modulo q*r.
-=#
-    X = varname(P)
-    Pqr = (ZZ/(q*r))[X]
-    Pr = (ZZ/r)[X]
-    u, v, w, a, b = convert.(Pqr, (u, v, w, a, b))
-    f = convertmod(Pqr, u - v * w, ÷, q)
-    t, vv = divrem(f * b, v)
-    V = convertmod(Pqr, vv, %, r)
-    W = convertmod(Pqr, f * a + t * w, %, r)
-    V * q + v, W * q + w
-end
-
-function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZ{T}}
+function liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
     Z(signed(T)(value(a)))
 end
 function liftmod(::Type{Z}, a::ZZ) where {X,T,Z<:ZZmod{X,T}}
-Z(signed(T)(value(a)))
+    Z(value(a))
 end
 function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
     Z(signed(T)(a))
@@ -301,59 +282,39 @@ function liftmod(::Type{P}, a::Polynomial) where {Z, P<:Polynomial{Z}}
 end
 
 """
-    hensel_start(u, ZZ-type, p)
+    stripzeros!(q)
 
-Given an integer polynomial `u`, and a prime number `p`, find the factorization of
-`u` modulo `p`.
-Give a hint, if this is not square-free. 
+count and remove trailing zero coefficients.
 """
-function hensel_start(u::UnivariatePolynomial, p::Integer)
-    Pp = (ZZ/p)[varname(u)]
-    up = convert(Pp, u)
-    fac = factor(up)
-    square_free = maximum(last.(fac)) == 1
-    square_free, first.(fac)
-end
-
-function hensel_lift(u::P, vv, mask::Integer, p::Integer, q::Integer, r::Integer) where P<:UnivariatePolynomial{<:ZZ{<:Integer}}
-    # Assume u is a primitive, square-free polynomial over integers.
-    # For given prime number `p` find a factorization of `u` modulo `p`.
-    # For all combinations of factors `v`
-    #    calculate coefficient bounds `B` for the degree of `v`.
-    #    lift `v` to `V` in a way that `V` is a factor of `u` modulo `p^e > B`
-    #    adjust coeffients of `V` to be in `-p^e/2:p^e/2`.
-    #    check if `v` divides `u` over the integers.
-    #    
-    X = varname(u)
-    Pq = (ZZ/q)[X]
-    vv = factor(Pq(u))
-    for (n, v, w) in smallfactors(vv, u, mask)
-        d = deg(v)
-        B = maximum(coeffbounds(u, d))
-        pe = p
-        while pe < B
-            g, a, b = gcdx(v, w)
-            pe, v, w, a, b, c = hensel_lift(u, v, w, a, b, c)
-        end
-        vp = P(v)
-        if divides_maybe(vp, u)
-            u, r = divrem(u, vp)
-            if iszero(r)
-                return n, vp, u
-            end
-        end
+function stripzeros!(p)
+    c = p.coeff
+    n = length(c)
+    e = 1
+    while e <= n && iszero(c[e])
+        e += 1
     end
-    return 0, one(P), u
+    e -= 1
+    if e > 0
+        deleteat!(c, 1:e)
+    end 
+    p, e
 end
 
-function convertmod(::Type{P}, u::UnivariatePolynomial, op, q::Integer) where P<:UnivariatePolynomial
-    P(op.(value.(u.coeff), q))
-end
+"""
+    reverse(p::UnivariatePolynomial)
 
-function convertmod(::Type{P}, u::Q) where {P,Q}
-    m = modulus(basetype(P))
-    n = modulus(basetype(Q))
-    convertmod(P, u, %, div(n, m))
+Revert the order of coefficients. decrease degree if `p(0) == 0`. 
+"""
+Base.reverse(p::P) where P<:UnivariatePolynomial = reverse!(copy(p))
+function Base.reverse!(p::P) where P<:UnivariatePolynomial
+    c = p.coeff
+    n = length(c)
+    reverse!(c)
+    while n > 0 && iszero(c[n])
+        n -= 1
+    end
+    resize!(c, n)
+    p
 end
 
 """
@@ -749,19 +710,40 @@ Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 and abs.(a) .< abs.(
 If element type is polynomial, read `abs` as `degree`. 
 """
 function allgcdx(v::AbstractVector{T}) where T
+    check_mutual_coprime(v)
+    println("allgcdx")
     b = one(T)
     p = prod(v)
     n = length(v)
     w = Vector{T}(undef, n)
     for k = 1:n
         vk = v[k]
+        println("$k n=$n $(basetype(vk)) $vk")
         p = div(p, vk)
+        if true
+            println("gcd: trying gcd($p,$vk)")
+        end
+        g = gcd(p, vk)
         g, a, c = gcdx(p, vk)
-        isone(g) || throw(ArgumentError("factors must be coprime"))
+#       println("g = $g, a = $a, c = $c, f = $f, p = $p, vk = $vk")
+#       isone(g) || throw(ArgumentError("factors must be coprime"))
         a *= b
         c *= b
         t, w[k] = divrem(a, vk)
         b = c + t * p
     end
     w
+end
+
+function check_mutual_coprime(v)
+    n = length(v)
+    for i = 1:n
+        for k = i+1:n
+            g = gcd(v[i], v[k])
+            if !isone(g)
+                println("not coprime: v[i], v[k], $g = gcd($(v[i]), $(v[k]))")
+            end
+        end
+    end
+    nothing
 end

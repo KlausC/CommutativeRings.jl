@@ -445,7 +445,7 @@ isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
 iszero(p::Polynomial) = deg(p) < 0
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
-==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
+==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial} = p.coeff == q.coeff 
 ==(p::Polynomial, q::Polynomial) = false
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
