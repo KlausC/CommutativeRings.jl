@@ -2,7 +2,7 @@
 
 [![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
-#### W.I.P
+W.I.P
 
 ## Introduction
 
@@ -187,7 +187,7 @@ linearalgebra |   23     23
 | `ZZ{type}`      | `Ring`         | integer numbers | `type` is an integer Julia type
 | `ZZmod{M,type}` | `QuotientRing` | `ZZ / m` quotient class modulo `m` | `m` is an integer Julia value of type `M`
 | `QQ{type}`      | `FractionField`| rational numbers over integer | like `Rational{type}` - supports integer Julia and integer Rings
-| `Frac{R}`       | `FractionField`| fractions over a `R` typically polynomials | 
+| `Frac{R}`       | `FractionField`| fractions over a `R` typically polynomials |
 | `Quotient{m,R}` | `QuotientRing` | also `R/m`, ring modulo `m`| `m` is an element or an ideal of `R`
 | `UnivariatePolynomial{X,R}`  |`Polynomial`| also `R[:x]`, ring of polynomials over `R`|`X` is a symbol like `:x`
 | `MultivariatePolynomial{X,R}`|`Polynomial`| also `R[:x,:y,...]` | `X` is a list of distinct variable names
@@ -417,7 +417,7 @@ julia> g.(x.^p.^(0:r-1)) |> unique
 
 ## Linear Algebra
 
-Matrices and vectors of ring elements are supported. 
+Matrices and vectors of ring elements are supported.
 `x - A` is understood as `x * I - A`.
 
 The following methods handle vector spaces und subspaces:
@@ -439,7 +439,7 @@ For a square matrix, also the following methods exist:
 | characteristic_polynomial | `p(A) == 0`
 | companion | collides with `Polynomials.companion`
 
-For `inv`, `det`, and `adjugate` if the element type is `P<:Polynomial`, it should be widened to `Frac(P)`. 
+For `inv`, `det`, and `adjugate` if the element type is `P<:Polynomial`, it should be widened to `Frac(P)`.
 
 ## Multivariate Polynomials
 
