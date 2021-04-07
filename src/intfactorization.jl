@@ -76,10 +76,22 @@ function zassenhaus_unused_tomonic_etc(u)
 end
 
 function zassenhaus(u)
-    p = prevprime(typemax(UInt8))
+    X = varname(u)
+    Z = ZZ{BigInt}[X]
+    u = convert(Z, u)
+    un = LC(u)
+    p = typemax(UInt8)
     fac = []
-    while (fac = factormod(u, p)) |> isempty
-        p = prevprime(p, 2)
+    while isempty(fac)
+        p = prevprime(p - 1)
+        compatible_with(p, un) || continue
+        Zp = ZZ/p
+        unp = Zp(un)
+        up = Zp[X](u) / unp
+        fac = factor(up) # modulo p
+        maximum(last.(fac)) <= 1 || continue
+        v = first.(fac)
+        fac = combinefactors(u, v)
     end
     res = []
     while !all_factors_irreducible!(res, fac, p)
@@ -90,6 +102,21 @@ function zassenhaus(u)
     res
 end
 
+# check if p is coprime with leading coefficient
+function compatible_with(p::Integer, u::ZZ)
+    u = abs(value(u))
+    gcd(p, u) == 1
+end
+
+"""
+    all_factors_irreducible!(res, fac, p)
+
+Move factors, that are proved irreducible, from `fac` to `res`.
+Factors ar proved irreducible with respect to integer `p`, if either
+they cannot be reduced modulo `p`, or the absolute values of the coefficients
+are less than `B / 2`. `B` is an upper bound on the coefficients.
+Return `true` iff `fac` becomes empty.
+"""
 function all_factors_irreducible!(res, fac, p)
     del = Int[]
     for i = 1:length(fac)
@@ -109,54 +136,49 @@ function all_factors_irreducible!(res, fac, p)
 end
 
 function lift!(fac, i)
-    u, v = fac[i]
+    u, v, a = fac[i]
     lc = value(LC(u))
     v[1] *= lc
     a = allgcdx(v)
     V, p = hensel_lift(u, v, a)
     V[1] = V[1] / lc
-    fac2 = factormod0(u, p, V)
+    fac2 = combinefactors(u, V)
     splice!(fac, i, fac2)
     fac, p
 end
 
 """
-    factormod(u, p::Integer)
+    factormod
 
-Given integer polynomial `u` and `p`, which is a power of a prime number and coprime to `LC(u)`,
-factorize `u modulo p`.
-Return vector of integer polynomial factors of `u` and `u / product(factors)`.
-If their degree sums up to the degree of `u`, the factorization was successfull.
-If not, the returned factors are not complete, and the procedure has to be repeated with increased `p`.
-If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.  
-"""
-function factormod(u::P, p::Integer) where P<:UnivariatePolynomial{<:ZZ}
+The procedure may be repeated with increased `p`.
+If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
+""" 
+function factormod(u::P) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = factormod0(u, p, nothing)
+    res = zassenhaus(u)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
     res
 end
-function factormod0(u::P, p::Integer, vv) where P<:UnivariatePolynomial{<:ZZ}
-    X = varname(u)
-    Zp = (ZZ/p)
-    Z = ZZ{BigInt}[X]
-    res = Pair{Z, Any}[]
-    u = convert(Z, u)
+
+"""
+    combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}})
+
+Given integer polynomial `u` and a squarefree factorization of `u modulo p`.  
+Return vector of integer polynomial factors of `u`.
+If their degree sums up to the degree of `u`, the factorization was successfull.
+It is also possible, that only one factor is found.
+The factors are not proved to be irreducible.
+"""
+function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
+    res = Tuple{Z, Any, Any}[]
     un = LC(u)
-    isunit(gcd(p, un)) || return res
     unp = Zp(un)
     uu = u * un
 
-    if vv === nothing
-        up = Zp[X](u) / unp
-        fac = factor(up) # modulo p
-        maximum(last.(fac)) <= 1 || return res
-        vv = first.(fac)
-    end
     r0 = 0
     while (r = length(vv)) > 0 && r != r0
         n = deg(uu)
@@ -165,18 +187,18 @@ function factormod0(u::P, p::Integer, vv) where P<:UnivariatePolynomial{<:ZZ}
             d = enumx(i, r)
             nv = deg_prod(vv, d)
             if 2*nv > n || ( 2*nv == n && (d & 1 == 1) )
-                # println("before d = $(bitstring(d)) nv = $nv n = $n r = $r")
+                #println("before d = $(bitstring(d)) nv = $nv n = $n r = $r")
                 d = (1 << r - 1) & ~d
                 nv = n - nv
-                # println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
+                #println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
             end
-            if dividecheck(uu, unp, vv, d)
+            if true || dividecheck(uu, unp, vv, d)
                 v = Z(pprod(vv, d) * unp)
                 qd, rd = divrem(uu, v)
                 if iszero(rd)
                     co = content(v)
                     v = v / co
-                    !isone(v) && push!(res, v => subset(vv, d))
+                    !isone(v) && push!(res, (v, subset(vv, d), []))
                     unc = un / co
                     un = LC(qd) / unc
                     unp = Zp(un)
@@ -191,7 +213,7 @@ function factormod0(u::P, p::Integer, vv) where P<:UnivariatePolynomial{<:ZZ}
         r0 = r
     end
     uu = uu / un
-    !isone(uu) && push!(res, uu => subset(vv, -1))
+    !isone(uu) && push!(res, (uu, subset(vv, -1), []))
     res
 end
 
@@ -705,23 +727,23 @@ end
 """
     allgcdx(v)
 
-Given vector `v` of mutual coprime elements.
-Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 and abs.(a) .< abs.(v)`.
+Given vector `v` of mutual coprime elements modulo `p`.
+Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 modulo p` and `abs.(a) .< abs.(v)`.
 If element type is polynomial, read `abs` as `degree`. 
 """
 function allgcdx(v::AbstractVector{T}) where T
     check_mutual_coprime(v)
-    println("allgcdx")
+    #println("allgcdx")
     b = one(T)
     p = prod(v)
     n = length(v)
     w = Vector{T}(undef, n)
     for k = 1:n
         vk = v[k]
-        println("$k n=$n $(basetype(vk)) $vk")
+        #println("$k n=$n $(basetype(vk)) $vk")
         p = div(p, vk)
         if true
-            println("gcd: trying gcd($p,$vk)")
+            #println("gcd: trying gcd($p,$vk)")
         end
         g = gcd(p, vk)
         g, a, c = gcdx(p, vk)
