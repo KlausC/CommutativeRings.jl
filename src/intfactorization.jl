@@ -88,9 +88,9 @@ function zassenhaus(u)
         Zp = ZZ/p
         unp = Zp(un)
         up = Zp[X](u) / unp
-        fac = factor(up) # modulo p
-        maximum(last.(fac)) <= 1 || continue
-        v = first.(fac)
+        fac0 = factor(up) # modulo p
+        maximum(last.(fac0)) <= 1 || continue
+        v = first.(fac0)
         fac = combinefactors(u, v)
     end
     res = []
