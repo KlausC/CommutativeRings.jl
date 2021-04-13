@@ -76,27 +76,79 @@ function zassenhaus_unused_tomonic_etc(u)
 end
 
 function zassenhaus(u)
-    X = varname(u)
-    Z = ZZ{BigInt}[X]
+    kmax = 5
+    vmin = 4
+    vmax = 13
+    p0 = Unsigned(100000)
+    Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
     un = LC(u)
-    p = typemax(UInt8)
-    fac = []
-    while isempty(fac)
-        p = prevprime(p - 1)
-        compatible_with(p, un) || continue
-        Zp = ZZ/p
-        unp = Zp(un)
-        up = Zp[X](u) / unp
-        fac0 = factor(up) # modulo p
-        maximum(last.(fac0)) <= 1 || continue
-        v = first.(fac0)
-        fac = combinefactors(u, v)
+    v, p = factormod(u, p0)
+    q = p
+    k = 0
+    vl = length(v)
+    println("find p = $p length(v) = $vl")
+    kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
+    while k < kbreak(vl)
+        w, q = factormod(u, q)
+        wl = length(w)
+        println("find p = $q length(v) = $wl")
+        if wl < vl
+            vl = wl
+            v = w
+            p = q
+        end
+        k += 1
     end
+    fac = combinefactors(u, v)
     res = []
     while !all_factors_irreducible!(res, fac, p)
         for i = 1:length(fac)
             fac, p = lift!(fac, i)
+        end
+    end
+    res
+end
+
+function factormod(u, p::Integer)
+    X = varname(u)
+    un = LC(u)
+    v = []
+    while isempty(v)
+        p = nextprime(p + 1)
+        compatible_with(p, un) || continue
+        Zp = ZZ/p
+        unp = Zp(un)
+        up = Zp[X](u) / unp
+        fac = factor(up) # modulo p
+        maximum(last.(fac)) <= 1 || continue
+        v = first.(fac)
+    end
+    v, p
+end
+
+
+"""
+    factor1(u::UnivariatePolynomial, a::Integer)
+
+factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
+"""
+function factor1(u::UnivariatePolynomial, a::Integer)
+    println("factor1($u, $a)")
+    r = factor(u)
+    a == 1 && return r
+    b = a
+    res = []
+    x = monom(typeof(u))
+    afactors = sort(collect(factors(a)))
+    for (v, e) ∈ r
+        for ab in drop(afactors, 1)
+            b = a ÷ ab
+            s = factor1(v(x^ab), b)
+            append!(res, s)
+            if length(s) > 1
+                break
+            end
         end
     end
     res
