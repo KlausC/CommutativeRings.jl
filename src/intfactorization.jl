@@ -76,19 +76,32 @@ function zassenhaus_unused_tomonic_etc(u)
 end
 
 function zassenhaus(u)
-    kmax = 5
-    vmin = 4
-    vmax = 13
-    p0 = Unsigned(100000)
+
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
+    v, p = best_prime(u)
+    fac = combinefactors(u, v)
+    res = []
+    while !all_factors_irreducible!(res, fac, p)
+        for i = 1:length(fac)
+            fac, p = lift!(fac, i)
+        end
+    end
+    res
+end
+
+# find small prime number >= p0 for which number of 
+# factors modulo p is smallest
+function best_prime(u, p0=100000, kmax=5, vmin=10, vmax=15)
+
+    kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
+
     un = LC(u)
     v, p = factormod(u, p0)
     q = p
     k = 0
     vl = length(v)
     println("find p = $p length(v) = $vl")
-    kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
     while k < kbreak(vl)
         w, q = factormod(u, q)
         wl = length(w)
@@ -100,16 +113,11 @@ function zassenhaus(u)
         end
         k += 1
     end
-    fac = combinefactors(u, v)
-    res = []
-    while !all_factors_irreducible!(res, fac, p)
-        for i = 1:length(fac)
-            fac, p = lift!(fac, i)
-        end
-    end
-    res
+    v, p
 end
 
+# find next prime number > p, for which factorization of u mod p
+# is has degree of u and is square free
 function factormod(u, p::Integer)
     X = varname(u)
     un = LC(u)
@@ -127,7 +135,6 @@ function factormod(u, p::Integer)
     v, p
 end
 
-
 """
     factor1(u::UnivariatePolynomial, a::Integer)
 
@@ -140,15 +147,14 @@ function factor1(u::UnivariatePolynomial, a::Integer)
     b = a
     res = []
     x = monom(typeof(u))
-    afactors = sort(collect(factors(a)))
+    #afactors = drop(sort(collect(factors(a))), 1)
+    afactors = first.(factor(a).pe)
     for (v, e) ∈ r
-        for ab in drop(afactors, 1)
+        for ab in afactors
             b = a ÷ ab
             s = factor1(v(x^ab), b)
             append!(res, s)
-            if length(s) > 1
-                break
-            end
+            break
         end
     end
     res
