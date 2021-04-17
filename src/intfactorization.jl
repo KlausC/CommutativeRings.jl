@@ -193,6 +193,12 @@ function all_factors_irreducible!(res, fac, p)
     isempty(fac)
 end
 
+"""
+    lift!(fac, i)
+
+Replace `(u, v, a) = fac[i]` with a list of lifted `(U, V, A)`.
+This list constains one entry for each factor of `u`, which could be found, but none of the U needs to be irreducible.
+"""
 function lift!(fac, i)
     u, v, a = fac[i]
     lc = value(LC(u))
@@ -225,8 +231,8 @@ end
 """
     combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}})
 
-Given integer polynomial `u` and a squarefree factorization of `u modulo p`.  
-Return vector of integer polynomial factors of `u`.
+Given integer polynomial `u` and `v` a squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).  
+Return vector of tuple containing integer polynomial factors `v`, vector with corresponding factorization.
 If their degree sums up to the degree of `u`, the factorization was successfull.
 It is also possible, that only one factor is found.
 The factors are not proved to be irreducible.
