@@ -80,7 +80,7 @@ function zassenhaus(u)
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
     v, p = best_prime(u)
-    fac = combinefactors(u, v)
+    fac = combinefactors(u, v, [])
     res = []
     while !all_factors_irreducible!(res, fac, p)
         for i = 1:length(fac)
@@ -203,10 +203,10 @@ function lift!(fac, i)
     u, v, a = fac[i]
     lc = value(LC(u))
     v[1] *= lc
-    a = allgcdx(v)
+    # a = allgcdx(v)
     V, p = hensel_lift(u, v, a)
     V[1] = V[1] / lc
-    fac2 = combinefactors(u, V)
+    fac2 = combinefactors(u, V, [])
     splice!(fac, i, fac2)
     fac, p
 end
@@ -237,7 +237,7 @@ If their degree sums up to the degree of `u`, the factorization was successfull.
 It is also possible, that only one factor is found.
 The factors are not proved to be irreducible.
 """
-function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
+function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa::AbstractVector) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
     res = Tuple{Z, Any, Any}[]
     un = LC(u)
     unp = Zp(un)
@@ -262,7 +262,7 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}) wh
                 if iszero(rd)
                     co = content(v)
                     v = v / co
-                    !isone(v) && push!(res, (v, subset(vv, d), []))
+                    !isone(v) && push!(res, (v, subset_with_a(vv, d, aa)...))
                     unc = un / co
                     un = LC(qd) / unc
                     unp = Zp(un)
@@ -277,8 +277,18 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}) wh
         r0 = r
     end
     uu = uu / un
-    !isone(uu) && push!(res, (uu, subset(vv, -1), []))
+    !isone(uu) && push!(res, (uu, subset_with_a(vv, -1, aa)...))
     res
+end
+
+function subset_with_a(v, d, a)
+    s = subset(v, d)
+    b = if isempty(a)
+        allgcdx(s)
+    else
+        allgcdx(s)
+    end
+    s, b
 end
 
 function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
@@ -792,31 +802,26 @@ end
     allgcdx(v)
 
 Given vector `v` of mutual coprime elements modulo `p`.
-Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 modulo p` and `abs.(a) .< abs.(v)`.
-If element type is polynomial, read `abs` as `degree`. 
+Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 modulo p` and `deg.(a) .< deg.(v)`.
+If element type is not a polynomial over `ZZ/p`, read `deg` as `abs`. 
 """
 function allgcdx(v::AbstractVector{T}) where T
-    check_mutual_coprime(v)
+    # check_mutual_coprime(v)
     #println("allgcdx")
-    b = one(T)
-    p = prod(v)
+    c = one(T)
+    s = prod(v)
     n = length(v)
     w = Vector{T}(undef, n)
     for k = 1:n
         vk = v[k]
         #println("$k n=$n $(basetype(vk)) $vk")
-        p = div(p, vk)
-        if true
-            #println("gcd: trying gcd($p,$vk)")
-        end
-        g = gcd(p, vk)
-        g, a, c = gcdx(p, vk)
+        s = div(s, vk)
+        g, a, aa = gcdx(s, vk)
+        @assert isone(g)
 #       println("g = $g, a = $a, c = $c, f = $f, p = $p, vk = $vk")
 #       isone(g) || throw(ArgumentError("factors must be coprime"))
-        a *= b
-        c *= b
-        t, w[k] = divrem(a, vk)
-        b = c + t * p
+        r, w[k] = divrem(a * c, vk)
+        c = aa * c + r * s
     end
     w
 end
