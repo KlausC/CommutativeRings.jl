@@ -18,7 +18,7 @@ ZZ{T}(a::ZZ) where T = ZZ{T}(T(a.val))
 _promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
 _promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
-promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
+promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZ{<:R}}

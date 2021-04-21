@@ -48,4 +48,16 @@ end
     @test order(Q) == order(G)^3
 end
 
+@testset "show" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    Q = P / (x^2 + 17)
+    @test sprint(show, Q(1)) == "1"
+    @test sprint(show, Q(x)) == "\u23b7-17"
+    @test sprint(show, Q(-2x + 10)) == "-2*\u23b7-17 + 10"
+    @test sprint(show, -Q(2x + 10)) == "-2*\u23b7-17 - 10"
+    R = P / (x^3 + 1)
+    @test sprint(show, R(x^2 + x + 1)) == "x^2 + x + 1 mod(x^3 + 1)"
+end
+
 end

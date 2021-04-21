@@ -55,7 +55,7 @@ Frac{T}(a, b) where T = Frac(T(a), T(b))
 _promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
 _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S,T} = Frac{promote_type(S,T)}
+promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 
 isfield(::Type{<:FractionField}) = true
 

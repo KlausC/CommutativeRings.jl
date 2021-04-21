@@ -10,6 +10,9 @@ This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
 fractional `ℚ`, polynomials `ℤ[x]`. Also multivariate polynomials `ℤ[x,y,...]` and Galois fields `GF(p^r)` are supported.
 
+This is not seen as a replacement of `Nemo.jl` or `AbstractAlgebra.jl`, which should be used for serious work.
+It is understood more like a sandbox to try out a simpler API.
+
 It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the quotient ring for a prime number `p`),
 `Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
 The quotient rings include ideals, which are of major importance with multivariate polynomials.
@@ -518,7 +521,7 @@ The factorization of integer polynomials follows the D. Knuths infamous book "Th
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
 
-[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=master
-[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=master
-[codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/master/graph/badge.svg
+[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=main
+[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=main
+[codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl

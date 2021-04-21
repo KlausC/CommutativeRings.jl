@@ -1,8 +1,24 @@
 
 # promotions and conversions
-function promote_rule(T::Type{<:Ring}, S::Type{<:Ring})
-    depth(T) < depth(S) ? _promote_rule(S, T) : _promote_rule(T, S)
+function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
+    dts = depth(T) - depth(S)
+    if dts < 0
+        promote_rule(S, T)
+    elseif dts > 0
+        B = basetype(T)
+        if B == S
+            T
+        else
+            promote_rule(B, S) == B ? T : _promote_rule(T, S)
+        end
+    else
+        _promote_rule(T, S)
+    end
 end
+
+promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}= _promote_rule(R, S)
+promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
+_promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = promote_rule(R, promote_type(basetype(R), S))
 
 depth(::Type{<:Number}) = 0
 
@@ -245,6 +261,8 @@ function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     g
 end
 gcd(a::T...) where T<:Ring = gcd(a)
+
+pgcd(a::R, b::R) where R<:Ring = gcd(a, b)
 
 # generic extended Euclid's algorithm
 function gcdx(a::T, b::T) where T<:Ring

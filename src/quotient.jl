@@ -83,7 +83,16 @@ hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 function Base.show(io::IO, a::Quotient)
     v = a.val
     m = modulus(a)
-    print(io, v, " mod(", m, ")")
+    if m isa UnivariatePolynomial && deg(m) == 2 &&
+         iszero(m.coeff[2]) && isone(m.coeff[3])
+
+        x = string(varnames(m)[1])
+        y = string('\u23b7', -m.coeff[1])
+        vs = replace(sprint(show, v), x => y)
+        print(io, vs)
+    else
+        print(io, v, " mod(", m, ")")
+    end
 end
 
 //(a::G, b::G) where G<:QuotientRing = a / b

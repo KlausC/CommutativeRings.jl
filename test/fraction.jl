@@ -43,6 +43,9 @@
     @test sprint(show, F(p)) == "-2*x + 1"
     @test sprint(show, pq) == "(2*x - 1)/(x - 1)"
 
+    Q = Frac(ZZ{Int})
+    @test sprint(show, Q(12, 8)) == "(3)/(2)"
+
 end
 
 @testset "polynomial over GF(7)" begin
