@@ -150,7 +150,7 @@ function factor1(u::UnivariatePolynomial, a::Integer)
     #afactors = drop(sort(collect(factors(a))), 1)
     afactors = first.(factor(a).pe)
     for (v, e) ∈ r
-        for ab in afactors
+        for ab in reverse(afactors)
             b = a ÷ ab
             s = factor1(v(x^ab), b)
             append!(res, s)
