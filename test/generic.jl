@@ -44,3 +44,35 @@ end
 @testset "isfield $F" for (F, r) in ((ZZ{Int}, false), (ZZ/6, false), (ZZ/3, true), (QQ{Int}, true), (ZZ{Int}[:x], false))
     @test isfield(F) == r
 end
+
+@testset "promotion1" begin
+    P = QQ{Int}[:x]
+    x = monom(P)
+    Q = P / (x^2 - 2)
+    @test x + 1//7 isa P
+    @test 1//7 + x isa P
+    @test Q(x) + 1 // 7 isa Q
+    @test 1 // 7 + Q(x) isa Q
+end
+
+@testset "promotion2" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    Q = P / ( x^2 - 3)
+    PP = Q[:y]
+    y = monom(PP)
+    @test x * y == Q(x) * y
+    @test Q(x) * y isa PP
+end
+
+@testset "promotion3" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    R = P[:y]
+    y = monom(R)
+    S = R[:z]
+    z = monom(S)
+    @test z + x isa S
+    @test (x + y + z)^2 == x^2 + y^2 + z^2 + 2x*y + 2x*z + 2y*z
+    
+end

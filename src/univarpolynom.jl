@@ -53,7 +53,8 @@ end
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,Y}}) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,X}}) where {X,R,S} = UnivariatePolynomial{promote_type(R,S),X}
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{promote_type(R,S),X}
-promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Union{Integer,Rational}} = UnivariatePolynomial{promote_type(R,S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} = UnivariatePolynomial{promote_type(R,S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} = UnivariatePolynomial{promote_type(R,S),X}
 
 
 (P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])

@@ -44,7 +44,7 @@ Rational(a::QQ{T}) where T = Rational(a.num, a.den)
 _promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 _promote_rule(::Type{QQ{T}}, ::Type{ZZ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{QQ{T}}, ::Type{S}) where {S<:Integer,T} = QQ{promote_type(S,T)}
-promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S,T} = QQ{promote_type(S,T)}
+promote_rule(::Type{QQ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = QQ{promote_type(S,T)}
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::QQ{<:R}) where {F,R,S}
