@@ -314,12 +314,11 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
     uc = LC(q)
     isunit(uc) || return divrem(p, q)[2]
     n > 0 || return zero(typeof(q))
-    uc = inv(uc)
     c = p.coeff[m-n+2:m+1]
     cp = p.coeff
     cq = q.coeff
     for i = m-n+1:-1:1
-        fc = c[n] * uc
+        fc = c[n] / uc
         for k = n:-1:2
             c[k] = c[k-1] - cq[k] * fc
         end
@@ -509,37 +508,88 @@ end
 """
     pgcd(a, b)
 
+Pseudo gcd of univariate polynomials gcd`a` and `b`.
+Uses subresultant sequence to accomplish non-field coeffient types.
+"""
+function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
+    iszero(b) && return a
+    iszero(a) && return b
+    a, cc = presultant_seq(a, b)
+    a = primpart(a)
+    a / lcunit(a) * cc
+end
+
+"""
+    resultant(a, b)
+
+Calculate resultant of two univariate polynomials of general coeffient types.
+"""
+function resultant(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
+    _, _, r = presultant_seq(a, b)
+    r(0)
+end
+resultant(a::T, b::T) where T = oneunit(T)
+resultant(a, b) = resultant(promote(a,b)...)
+
+"""
+    discriminant(a)
+
+Calculate discriminant of a univariate polynomial `a`. 
+"""
+function discriminant(a::UnivariatePolynomial)
+    la = LC(a)
+    s = iseven(deg(a) >> 1) ? la : -la
+    resultant(a, derive(a)) / s
+end
+
+"""
+    presultant_seq(a, b)
+
 Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
-The next to last calculated remainder is a scalar multiple of the gcd. 
+The next to last calculated remainder is a scalar multiple of the gcd.
+Another interpretation of this remainder yields the resultant of `a` and `b`. 
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 and TAoCP 2nd Ed. 4.6.1.
 """
-function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
-    
-    iszero(b) && return a
+function presultant_seq(a::T, b::T)  where {S,T<:UnivariatePolynomial{S}}
     da = deg(a)
     db = deg(b)
     d = da - db
-    d < 0 && return pgcd(b, a)
+    s = one(S)
+    if d < 0
+        a, b, da, db, d = b, a, db, da, -d
+        if isodd(da) && isodd(db)
+            s = -s
+        end
+    end
     cc, a, b = normgcd(a, b)
+    iszero(b) && return b, cc, b
+    s *= cc^(da+db)
     E = one(S)
     ψ = -E
-    β = iseven(d) ? E : -E
+    β = iseven(d) ? -E : E
+    det = E
     while true
         γ = LC(b)
-        a = a * γ^(d+1)
-        c = rem(a, b) / β
-        a, b = b, c
-        iszero(b) && break
+        δ = γ^(d+1)
+        a = a * δ
+        c = rem(a, b)
+        iszero(c) && break
+        dc = deg(c)
+        c /= β
         # prepare for next turn
-        da = db
-        db = deg(c)
-        ψ = (-γ)^d / ψ^(d-1)
+        det = det * δ ^ db / γ ^ (da - dc) / β ^ db
+        if isodd(db) && isodd(da - dc)
+            det = -det
+        end
+        ψ = iszero(d) ? ψ : (-γ)^d / ψ^(d-1)
+        a, b = b, c
+        da, db = db, dc
         d = da - db
         β = -γ * ψ^d
     end
-    a = primpart(a)
-    a / lcunit(a) * cc
+    r = db > 0 ? zero(b) : d < 1 ? one(b) : d == 1 ? b : LC(b)^(d-1) * b
+    b, cc, r * s / det
 end
 
 """
@@ -586,6 +636,42 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     a = a / cs
     f = content(a)
     a / (f / cc), s2 / cs, t2 / cs, f
+end
+
+"""
+    sylvester(u::P, v::P) where P<:UnivariatePolynomial
+
+Return sylvester matrix of polynomials `u` and `v`.
+"""
+function LinearAlgebra.sylvester(v::P, u::P) where {Z,P<:UnivariatePolynomial{Z}}
+    nu = deg(u)
+    nv = deg(v)
+    n = max(nu, 0) + max(nv, 0)
+    S = zeros(Z, n, n)
+    if nv >= 0
+        for k = 1:nu
+            S[k:k+nv,k] .= reverse(v.coeff)
+        end
+    end
+    if nu >= 0
+        for k = 1:nv
+            S[k:k+nu,k+nu] .= reverse(u.coeff)
+        end
+    end
+    S
+end
+
+"""
+    resultant_naive(u, v)
+
+Reference implementation of resultant (determinant of sylvester matrix)
+"""
+function resultant_naive(u::P, v::P) where {Z,P<:UnivariatePolynomial{Z}}
+    Q = Frac(basetype(Z))[:x]
+    u = Q(u)
+    v = Q(v)
+    S = sylvester(u, v)
+    det(S)
 end
 
 """
@@ -726,24 +812,25 @@ import Base: show
 
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
+issimple(p::Polynomial) = ismonom(p)
 issimple(::Any) = false
 
 function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
-    if n == 1
+    if n == 2
         print(io, X)
-    elseif n != 0
-        print(io, string(X, '^', n))
+    elseif n != 1
+        print(io, string(X, '^', n-1))
     end
 end
 
-isconstterm(::UnivariatePolynomial, n::Integer) = n == 0
+isconstterm(::UnivariatePolynomial, n::Integer) = n == 1
 
 function show(io::IO, p::Polynomial{T}) where T
-    N = deg(p)
-    N < 0 && return show(io, zero(T))
+    N = length(p.coeff)
+    N <= 0 && return show(io, zero(T))
     start = true
-    for n = N:-1:0
-        el = p[n]
+    for n = N:-1:1
+        el = p.coeff[n]
         iszero(el) && !start && continue
         !start && print(io, ' ')
         if isconstterm(p, n)

@@ -575,11 +575,11 @@ divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
 
 function divrem(f::P, g::P) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, [g])
-    isone(d) ? (a[1], s) : (zero(P), f)
+    isunit(d) ? (a[1], s) : (zero(P), f)
 end
 function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, g)
-    isone(d) ? (a, s) : (zeros(P, length(g)), f)
+    isunit(d) ? (a, s) : (zeros(P, length(g)), f)
 end
 
 # division and Gröbner base calculation
