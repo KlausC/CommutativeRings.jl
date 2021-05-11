@@ -445,7 +445,10 @@ isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
 iszero(p::Polynomial) = deg(p) < 0
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
-==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial} = p.coeff == q.coeff 
+==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff
+function ==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial}
+    (varname(S) == varname(T) || deg(p) == 0) && p.coeff == q.coeff
+end
 ==(p::Polynomial, q::Polynomial) = false
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
@@ -514,7 +517,7 @@ Uses subresultant sequence to accomplish non-field coeffient types.
 function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     iszero(b) && return a
     iszero(a) && return b
-    a, cc = presultant_seq(a, b)
+    a, cc = presultant_seq(a, b, Val(false))
     a = primpart(a)
     a / lcunit(a) * cc
 end
@@ -525,10 +528,10 @@ end
 Calculate resultant of two univariate polynomials of general coeffient types.
 """
 function resultant(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
-    _, _, r = presultant_seq(a, b)
+    _, _, r = presultant_seq(a, b, Val(true))
     r(0)
 end
-resultant(a::T, b::T) where T = oneunit(T)
+resultant(a::T, b::T) where T = iszero(a) || iszero(b) ? zero(T) : oneunit(T)
 resultant(a, b) = resultant(promote(a,b)...)
 
 """
@@ -551,11 +554,12 @@ Another interpretation of this remainder yields the resultant of `a` and `b`.
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 and TAoCP 2nd Ed. 4.6.1.
 """
-function presultant_seq(a::T, b::T)  where {S,T<:UnivariatePolynomial{S}}
+function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:UnivariatePolynomial{S}}
+    E = one(S)
     da = deg(a)
     db = deg(b)
     d = da - db
-    s = one(S)
+    s = E
     if d < 0
         a, b, da, db, d = b, a, db, da, -d
         if isodd(da) && isodd(db)
@@ -565,10 +569,9 @@ function presultant_seq(a::T, b::T)  where {S,T<:UnivariatePolynomial{S}}
     cc, a, b = normgcd(a, b)
     iszero(b) && return b, cc, b
     s *= cc^(da+db)
-    E = one(S)
     ψ = -E
     β = iseven(d) ? -E : E
-    det = E
+    det = isodd(da) && isodd(db) ? -E : E
     while true
         γ = LC(b)
         δ = γ^(d+1)
@@ -578,8 +581,11 @@ function presultant_seq(a::T, b::T)  where {S,T<:UnivariatePolynomial{S}}
         dc = deg(c)
         c /= β
         # prepare for next turn
-        det = det * δ ^ db / γ ^ (da - dc) / β ^ db
-        if isodd(db) && isodd(da - dc)
+        if Usedet
+            det = det * δ ^ db / γ ^ (da - dc) / β ^ db
+        
+        end
+        if isodd(db) && isodd(dc)
             det = -det
         end
         ψ = iszero(d) ? ψ : (-γ)^d / ψ^(d-1)

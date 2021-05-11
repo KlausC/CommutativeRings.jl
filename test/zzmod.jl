@@ -13,7 +13,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test lcunit(ZZmod{14,Int}(7)) == 1
     @test ZZmod{13,Int}(ZZ(8)) == ZZ13(8)
     @test ZZ13(1) + ZZ13(Int8(12)) == 0
-    @test_throws ErrorException ZZmod{13,Int}(1) - ZZmod{14,Int}(1)
+    @test_throws MethodError ZZmod{13,Int}(1) - ZZmod{14,Int}(1)
     ZZp = ZZ(Int) / 13
     @test ZZmod{13,Int}(1) + ZZp(12) == 0
     @test typeof(ZZmod{13,Int}(1) + ZZp(1)) == ZZp
@@ -127,7 +127,7 @@ end
     @test modulus(BigInt/31) == 31
     @test (Int8/17)(1) == ZZp1(1)
 
-    @test value((UInt8/17)(18)) === UInt8(1)
+    @test value((UInt8/17)(18)) === Int8(1)
     @test value.((ZZ/255).(126:128)) == [126, 127, -127]
     @test value.((ZZ/254).(126:128)) == [126, -127, -126]
 end
