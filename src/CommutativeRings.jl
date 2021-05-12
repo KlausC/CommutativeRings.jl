@@ -12,7 +12,8 @@ export Hom, Ideal
 
 export isfield, isunit, deg, content, primpart, isnegative
 export LC, LM, LT, lcunit, multideg, modulus, value
-export isdiv, pdivrem, pgcd, pgcdx, basetype, basetypes, depth
+export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
+export basetype, basetypes, depth
 export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
@@ -24,9 +25,11 @@ export num_primitives, isprimitive
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
-export generators, varnames, factors
+export generators, varnames, varname, factors
 
 export characteristic_polynomial, adjugate, companion
+
+export coeffbounds
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
@@ -236,6 +239,7 @@ include("multivarpolynom.jl")
 include("ideal.jl")
 include("enumerations.jl")
 include("factorization.jl")
+include("intfactorization.jl")
 include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")

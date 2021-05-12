@@ -3,7 +3,7 @@ uuid = "a6d4fa9c-9e0b-4795-89f3-f481b7b5e384"
 license = "MIT"
 authors = ["Klaus Crusius <klaus.crusius@web.de>"]
 repo = "https://github.com/KlausC/CommutativeRings.jl"
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -11,5 +11,16 @@ Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
-julia = "1"
+Polynomials = "1"
 Primes = "0.5"
+julia = "1"
+
+[extras]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "Primes", "Random", "Polynomials", "LinearAlgebra"]

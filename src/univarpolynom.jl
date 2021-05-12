@@ -12,6 +12,19 @@ function lcunit(a::Polynomial)
     isunit(lco) ? lco : one(lco)
 end
 
+### access to polynomial coefficients
+function getindex(u::UnivariatePolynomial, i::Integer)
+    0 <= i <= deg(u) ? u.coeff[i+1] : zero(basetype(u)) 
+end
+
+"""
+    varname(P)
+
+Return variable name of univariate polynomial or polynomial type `P` as a symbol.
+"""
+varname(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = X
+varname(::T) where T<:Polynomial = varname(T)
+
 """
     iscoprime(a, b)
 
@@ -36,9 +49,6 @@ function issimpler(a::T, b::T) where T<:UnivariatePolynomial
     da < db || da == db && issimpler(LC(a), LC(b))
 end
 
-UnivariatePolynomial{S,X}(a::Ring) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
-UnivariatePolynomial{S,X}(a::Integer) where {X,S} = convert(UnivariatePolynomial{S,X}, a)
-
 # promotion and conversion
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,Y}}) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
 _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,X}}) where {X,R,S} = UnivariatePolynomial{promote_type(R,S),X}
@@ -47,10 +57,8 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} = UnivariatePolynomial{promote_type(R,S),X}
 
 
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{R,X}) where {X,R} = a
-convert(P::Type{UnivariatePolynomial{R,X}}, a::UnivariatePolynomial{S,X}) where {X,R,S} = P(convert.(Ref(R), a.coeff))
-convert(P::Type{<:UnivariatePolynomial{S}}, a::S) where {S} = P([a])
-convert(P::Type{<:UnivariatePolynomial{S}}, a::T) where {S,T} = P([convert(S, a)])
+(P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])
+(P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T} = P([S(a)])
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
@@ -65,19 +73,20 @@ function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
     UnivariatePolynomial{S,x}(v, NOCHECK)
 end
 # convert coefficient vector to polynomial, element type of vector determines class 
-UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S,T} = UnivariatePolynomial{S,x}(v)
-UnivariatePolynomial(x::Symbol, v::S) where {S,T} = UnivariatePolynomial{S,x}([v])
+UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S} = UnivariatePolynomial{S,x}(v)
+UnivariatePolynomial(x::Symbol, v::S) where {S} = UnivariatePolynomial{S,x}([v])
 # convert polynomial with same symbol and type aliasing original
 UnivariatePolynomial{S,X}(p::UnivariatePolynomial{S,X}) where {X,S<:Ring} = p
 # convert polynomial with different coefficient type
 function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     if X == Y
-        UnivariatePolynomial{S,X}(S.(p.coeff), NOCHECK)
+        co = [S(c) for c in p.coeff]
+        UnivariatePolynomial{S,X}(co)
     elseif S <: UnivariatePolynomial
-        yp = S(p)
-        UnivariatePolynomial{S,X}([yp], NOCHECK)
+        co = [S(p)]
+        UnivariatePolynomial{S,X}(co)
     else
-        throw(DomainError((X,Y), "cannot convert different variable names"))
+        throw(DomainError((X,Y), "cannot convert polynomials with differing variable names"))
     end 
 end
 
@@ -305,12 +314,11 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
     uc = LC(q)
     isunit(uc) || return divrem(p, q)[2]
     n > 0 || return zero(typeof(q))
-    uc = inv(uc)
     c = p.coeff[m-n+2:m+1]
     cp = p.coeff
     cq = q.coeff
     for i = m-n+1:-1:1
-        fc = c[n] * uc
+        fc = c[n] / uc
         for k = n:-1:2
             c[k] = c[k-1] - cq[k] * fc
         end
@@ -426,7 +434,7 @@ deg(p::UnivariatePolynomial) = length(p.coeff) - 1
 
 function inv(p::T) where T<:Polynomial
     if isunit(p)
-        return T(inv(p.coeff[1]))
+        return T(inv(p[0]))
     else
         throw(DomainError(p, "Only unit polynomials can be inverted"))
     end
@@ -437,11 +445,14 @@ isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
 iszero(p::Polynomial) = deg(p) < 0
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
-==(p::T, q::T) where T<:UnivariatePolynomial = p.coeff == q.coeff 
+==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff
+function ==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial}
+    (varname(S) == varname(T) || deg(p) == 0) && p.coeff == q.coeff
+end
 ==(p::Polynomial, q::Polynomial) = false
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    n == 0 ? hash(0, h) : n == 1 ? hash(p.coeff[1]) : hash(X, hash(p.coeff, h))
+    n == 0 ? hash(0, h) : n == 1 ? hash(p[0]) : hash(X, hash(p.coeff, h))
 end
 
 """
@@ -500,36 +511,93 @@ end
 """
     pgcd(a, b)
 
-Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
-The next to last calculated remainder is a scalar multiple of the gcd. 
-See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
+Pseudo gcd of univariate polynomials gcd`a` and `b`.
+Uses subresultant sequence to accomplish non-field coeffient types.
 """
 function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
-    
     iszero(b) && return a
+    iszero(a) && return b
+    a, cc = presultant_seq(a, b, Val(false))
+    a = primpart(a)
+    a / lcunit(a) * cc
+end
+
+"""
+    resultant(a, b)
+
+Calculate resultant of two univariate polynomials of general coeffient types.
+"""
+function resultant(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
+    _, _, r = presultant_seq(a, b, Val(true))
+    r(0)
+end
+resultant(a::T, b::T) where T = iszero(a) || iszero(b) ? zero(T) : oneunit(T)
+resultant(a, b) = resultant(promote(a,b)...)
+
+"""
+    discriminant(a)
+
+Calculate discriminant of a univariate polynomial `a`. 
+"""
+function discriminant(a::UnivariatePolynomial)
+    la = LC(a)
+    s = iseven(deg(a) >> 1) ? la : -la
+    resultant(a, derive(a)) / s
+end
+
+"""
+    presultant_seq(a, b)
+
+Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
+The next to last calculated remainder is a scalar multiple of the gcd.
+Another interpretation of this remainder yields the resultant of `a` and `b`. 
+See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
+and TAoCP 2nd Ed. 4.6.1.
+"""
+function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:UnivariatePolynomial{S}}
+    E = one(S)
     da = deg(a)
     db = deg(b)
     d = da - db
-    d < 0 && return pgcd(b, a)
-    E = one(S)
+    s = E
+    if d < 0
+        a, b, da, db, d = b, a, db, da, -d
+        if isodd(da) && isodd(db)
+            s = -s
+        end
+    end
+    cc, a, b = normgcd(a, b)
+    iszero(b) && return b, cc, b
+    s *= cc^(da+db)
     ψ = -E
-    β = iseven(d) ? E : -E
+    β = iseven(d) ? -E : E
+    det = isodd(da) && isodd(db) ? -E : E
     while true
         γ = LC(b)
-        a = a * γ^(d+1)
-        c = rem(a, b) / β
-        a, b = b, c
-        iszero(b) && break
+        δ = γ^(d+1)
+        a = a * δ
+        c = rem(a, b)
+        iszero(c) && break
+        dc = deg(c)
+        c /= β
         # prepare for next turn
-        da = db
-        db = deg(c)
-        ψ = (-γ)^d / ψ^(d-1)
+        if Usedet
+            det = det * δ ^ db / γ ^ (da - dc) / β ^ db
+        
+        end
+        if isodd(db) && isodd(dc)
+            det = -det
+        end
+        ψ = iszero(d) ? ψ : (-γ)^d / ψ^(d-1)
+        a, b = b, c
+        da, db = db, dc
         d = da - db
         β = -γ * ψ^d
     end
-    a = primpart(a)
-    a / lcunit(a)
+    r = db > 0 ? zero(b) : d < 1 ? one(b) : d == 1 ? b : LC(b)^(d-1) * b
+    b, cc, r * s / det
 end
+
 """
     g, u, v, f = pgcdx(a, b)
 
@@ -547,6 +615,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
         g, u, v, f = pgcdx(b, a)
         return g, v, u, f
     end
+    cc, a, b = normgcd(a, b)
     ψ = -E
     β = iseven(d) ? E : -E
     EE = one(T)
@@ -572,8 +641,57 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     cs = gcd(content(s2), content(t2))
     a = a / cs
     f = content(a)
-    a/f, s2/cs, t2/cs, f
+    a / (f / cc), s2 / cs, t2 / cs, f
 end
+
+"""
+    sylvester(u::P, v::P) where P<:UnivariatePolynomial
+
+Return sylvester matrix of polynomials `u` and `v`.
+"""
+function LinearAlgebra.sylvester(v::P, u::P) where {Z,P<:UnivariatePolynomial{Z}}
+    nu = deg(u)
+    nv = deg(v)
+    n = max(nu, 0) + max(nv, 0)
+    S = zeros(Z, n, n)
+    if nv >= 0
+        for k = 1:nu
+            S[k:k+nv,k] .= reverse(v.coeff)
+        end
+    end
+    if nu >= 0
+        for k = 1:nv
+            S[k:k+nu,k+nu] .= reverse(u.coeff)
+        end
+    end
+    S
+end
+
+"""
+    resultant_naive(u, v)
+
+Reference implementation of resultant (determinant of sylvester matrix)
+"""
+function resultant_naive(u::P, v::P) where {Z,P<:UnivariatePolynomial{Z}}
+    Q = Frac(basetype(Z))[:x]
+    u = Q(u)
+    v = Q(v)
+    S = sylvester(u, v)
+    det(S)
+end
+
+"""
+    g, ag, bg = normgcd(a, b)
+
+Divided `a` and `b` by the gcd of their contents.
+"""
+function normgcd(a, b)
+    ca = content(a)
+    cb = content(b)
+    g = gcd(ca, cb)
+    isunit(g) ? (one(g), a, b) : (g, a / g, b / g)
+end
+
 """
     invert(p, q)
 
@@ -644,14 +762,15 @@ end
 
 Return formal derivative of polynomial `p`.
 
-For `k in 1:deg(p)` we have `derive(p).coeff[k] = k * p.coeff[k+1]`.
+For `k in 1:deg(p)` we have `derive(p)[k-1] = k * p[k]`.
 If `deg(p) * LC(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
 """
 function derive(p::P) where P<:UnivariatePolynomial
     n = deg(p)
+    n < 0 && return p
     c = similar(p.coeff, n)
     for k = 1:n
-        c[k] = p.coeff[k+1] * k
+        c[k] = p[k] * k
     end
     while n > 0 && iszero(c[n])
         n -= 1
@@ -699,17 +818,18 @@ import Base: show
 
 issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
 issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
+issimple(p::Polynomial) = ismonom(p)
 issimple(::Any) = false
 
-function showvar(io::IO, var::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
+function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
     if n == 2
         print(io, X)
     elseif n != 1
-        print(io, string(X, '^', n - 1))
+        print(io, string(X, '^', n-1))
     end
 end
 
-isconstterm(p::UnivariatePolynomial, n::Integer) = n == 1
+isconstterm(::UnivariatePolynomial, n::Integer) = n == 1
 
 function show(io::IO, p::Polynomial{T}) where T
     N = length(p.coeff)
@@ -756,4 +876,3 @@ function showelem(io::IO, el, start::Bool)
         print(io, v1 == '+' ? SubString(v, nextind(v, 1)) : v)
     end
 end
-

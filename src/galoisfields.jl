@@ -78,10 +78,7 @@ end
 (::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G[tonumber(q, characteristic(Q))]
 (::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G[q.val]
 
-convert(G::Type{<:GaloisField}, a) = G(a)
-convert(::Type{G}, a::G) where G<:GaloisField = a
-
-Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = convert(Q, g)
+Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = quotient(Q, g)
 Quotient(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
 
@@ -89,12 +86,12 @@ promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G
 _promote_rule(G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}}, ::Type{Q}) where {Id,T,Q} = G
 
-function convert(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
+function quotient(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
 end
 
-(::Type{Q})(g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}} = convert(Q, g)
+(::Type{Q})(g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}} = quotient(Q, g)
 
 import Base.Broadcast: broadcastable
 broadcastable(x::Type{<:GaloisField}) = collect(x)

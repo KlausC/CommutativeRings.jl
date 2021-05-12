@@ -2,6 +2,8 @@
 
 [![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
 
+W.I.P
+
 ## Introduction
 
 This software is the start of a computer algebra system specialized to
@@ -19,7 +21,7 @@ The mentioned examples are elementary examples for ring structures. The can be
 liberately combined to fractional fields, quotient rings, and polynomials of previously defined structures.
 
 So it is possible to work with rational functions, which are fractions of polynomials, where the polynomial coefficients are in ℤ/p, for example.
-The the current standard library we have modules `Rational` and `Polynomial` besides the numeric subtypes of `Number`and some support for modular calculations with integers.
+The the current standard library we have modules `Rational` and `Polynomial` besides the numeric subtypes of `Number` and some support for modular calculations with integers.
 
 The original motivation for writing this piece of sofware, when I tried to handle polynomials over a quotient ring. There was no obvious way of embedding my ring elements
 into the `Julia` language and for example exploit polynomial calculations from the `Polynomial` package for that. There seems to be a correspondence between `Julia` types and structures and the algebraic stuctures I want to work with. So the idea was born to define
@@ -29,7 +31,7 @@ define combinations in a language affine way. Also `ring homomorphisms`, i.e. st
 
 The exploitation of the julia structures is in contrast to the alternative package [AbstractAlgebra](https://github.com/Nemocas/AbstractAlgebra.jl), which defines separate types for ring elements and the ring classes themselves, the elements keeping an explicit link to the owner structure.
 
-To distinct variants of rings, we use type parameters, for example the `m` in `ℤ/m` or the `x` in `ℤ[x]`. Other type parameters may be used to specify implementation restictions, for
+To distinct variants of rings, we use type parameters, for example the `m` in `ℤ/m` or the `x` in `ℤ[:x]`. Other type parameters may be used to specify implementation restictions, for
 example typically the integer types used for the representation of the objects.
 
 Correspondence between algebraic and Julia categories:
@@ -193,9 +195,8 @@ linearalgebra |   23     23
 | `UnivariatePolynomial{X,R}`  |`Polynomial`| also `R[:x]`, ring of polynomials over `R`|`X` is a symbol like `:x`
 | `MultivariatePolynomial{X,R}`|`Polynomial`| also `R[:x,:y,...]` | `X` is a list of distinct variable names
 | `GaloisField`   | `QuotientRing` | `GF(p^r)` - efficient implementation of Galois fields | more details see below
-|||
 
-#### class construction
+### class construction
 
 Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be used directly.
 For that purpose, there is a special function `new_class`:
@@ -211,8 +212,8 @@ For that purpose, there is a special function `new_class`:
 ```
 
 For general quotient classes and for polynomials there are convenient constructors, which
-look like the typical mathematical notation `R[:x,:y,...]` and `R / I`.
-Here the symbols `:x, :y` define the name of the indetermineds of a uni-
+look like the typical mathematical notation `R[:x,:y,...]` and `R/I`.
+Here the symbols `:x, :y` define the name of the variables of a uni-
 or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
 `R`, which represents the corresponding principal ideal.
 
@@ -223,15 +224,15 @@ or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
     Q = P/(x^2 + 1)
 ```
 
-The `/` notion is also implemented for `Julia`integer types,
+The `/` notion is also implemented for `Julia` integer types,
 so this works:
 
 ``` julia
-    Z31 = Int8 / 31    # equivalent to ZZmod{31,Int8}
-    Zbig = BigInt / (big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
+    Z31 = Int8/31    # equivalent to ZZmod{31,Int8}
+    Zbig = BigInt/(big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
 ```
 
-* #### Ideals
+### Ideals
 
 Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` or
 `Ideal(a)`. For convenience, principal ideals support also `a * R == Ideal(a)` and
@@ -250,7 +251,7 @@ Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` 
 It may be noted, that `0R` is the zero ideal (containing only the zero element of `R`) and `u*R == R` for all unit elements `u` of `R`.
 We also have `R/0R == R` and `R/1R` == `0R`.
 
-If there is one generating element of an ideal, `aR`, internally a
+If there is one generating element of an ideal, `a*R`, internally a
 unit multiple of `a` is stored to achieve a standard form, for
 example a monic univariate polynomial.
 
@@ -261,18 +262,18 @@ is made to standardize and reduce the stored base. For example if
 Ideals are most useful with multivariate polynomials, when they
 are best represented by a minimal base - see below.
 
-* ### Constructors for elements
+### Constructors for elements
 
 The class names of all concrete types serve also as constructor names.
 That means, if `R` is a class name, then `R(a)` is an element of `R` for all
 `a`, which are integers or elements of (other) rings, which can be natuarally
 embedded into `R`.
 
-For polynomial rings `P{:x}`, the method call `monom(P, i)` constructs the monic
-monimials `x^i` for non-negative integers `i`. That is extended to multivariate
+For polynomial rings `P`, the method call `monom(P, i)` constructs the monic
+monomials `x^i` for non-negative integers `i`. That is extended to multivariate
 cases `monom(P, i, j, ...)`.
 
-* ### Mathematical operations
+### Mathematical operations
 
 | operation | operator |remarks|
 |-----------|:--------:|-------|
@@ -343,12 +344,13 @@ If `R` is a finite Field (that means `ZZ/p` or GaloisField - see below) the foll
 
 Univariate polynomials may be checked by `isirreducible(p)` for their irreducibility
 and `factor(g)` delivers the list of irreducible factors of `g`.
+The factorization is also implemented for univariate polynomials over the integers (for example of type `UnivariatePolynomials{ZZ{BigInt}[:x]}`)
 
 The function `irreducible(P, r)` delivers the first irreducible polynomial with degree `r`.
 All irreducible polynomials of `P` with degree `r` are obtained by `irreducibles(P, r)`
 which is an iterator. That allows to apply  `Iterators.filter` or `find` on this list.
 
-While the number of polynomials of degree `r` is `order(R) ^ r`, the subset of
+While the number of polynomials of degree `r` is `order(R)^r`, the subset of
 irreducibles has order `num_irreducibles(P, r)`.
 
 ## Galois Fields
@@ -510,7 +512,9 @@ julia> groebnerbase(I)
 ## Acknowledgements
 
 This package was inspired by the `C++` library `CoCoALib`, which can be found
-here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/) .
+here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/).
+
+The factorization of integer polynomials follows the D. Knuths infamous book "The Art of Computer Programming" chapter 4.6.2.
 
 ### Copyright © 2019-2021 by Klaus Crusius. This work is released under The MIT License
 

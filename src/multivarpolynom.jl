@@ -28,10 +28,9 @@ function construct(::Type{R}, blocks) where R<:Ring
     new_class(MultivariatePolynomial{R,N,Id,T,B}, vs)
 end
 
-import Base: copy, convert, promote_rule
+import Base: copy, promote_rule
 import Base: +, -, *, zero, one, ==, hash, isless, iszero, isone
 
-(::Type{P})(a) where {N,T,P<:MultivariatePolynomial{T,N}} = convert(P, a)
 # make new copy
 copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
@@ -41,11 +40,11 @@ _promote_rule(::Type{MultivariatePolynomial{R,N,X,T,B}}, ::Type{MultivariatePoly
 _promote_rule(::Type{P}, ::Type{S}) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
 promote_rule(::Type{P}, ::Type{S}) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
 
-function convert(P::Type{MultivariatePolynomial{R,N,X,T,B}}, a::MultivariatePolynomial{S,N,X,T,B}) where {R,N,X,T,B,S}
-    P(a.ind, convert.(R, a.coeff))
+function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(a::MultivariatePolynomial{S,N,X,T,B}) where {R,N,X,T,B,S}
+    P(a.ind, R.(a.coeff))
 end
-function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePolynomial{S}) where {R,N,X,T,S}
 
+function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::MultivariatePolynomial{S}) where {R,N,X,T,S}
     deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
     va = varnames(a)
@@ -63,7 +62,7 @@ function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::MultivariatePoly
     pc = a.coeff[perm]
     P(pind, pc)
 end
-function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::UnivariatePolynomial{S}) where {R,N,X,T,S}
+function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::UnivariatePolynomial{S}) where {R,N,X,T,S}
 
     deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
@@ -90,11 +89,11 @@ function convert(P::Type{<:MultivariatePolynomial{R,N,X,T}}, a::UnivariatePolyno
     P(pind, ac[perm])
 end
 
-function convert(P::Type{<:MultivariatePolynomial{S}}, a::S) where S
+function (P::Type{<:MultivariatePolynomial{S}})(a::S) where S
     iszero(a) ? zero(P) : P(one(P).ind, [a])
 end
-function convert(P::Type{<:MultivariatePolynomial{S}}, a::T) where {S,T}
-    iszero(a) ? zero(P) : P(one(P).ind, [convert(S, a)])
+function (P::Type{<:MultivariatePolynomial{S}})(a::T) where {S,T}
+    iszero(a) ? zero(P) : P(one(P).ind, [S(a)])
 end
 
 deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(multideg(p))
@@ -576,11 +575,11 @@ divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
 
 function divrem(f::P, g::P) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, [g])
-    isone(d) ? (a[1], s) : (zero(P), f)
+    isunit(d) ? (a[1], s) : (zero(P), f)
 end
 function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, g)
-    isone(d) ? (a, s) : (zeros(P, length(g)), f)
+    isunit(d) ? (a, s) : (zeros(P, length(g)), f)
 end
 
 # division and Gröbner base calculation

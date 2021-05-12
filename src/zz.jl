@@ -11,17 +11,14 @@ iscoprime(a::T, b::T) where T<:ZZ = gcd(a.val, b.val) == 1
 value(a::ZZ) = a.val
 
 copy(a::ZZ) = typeof(a)(a.val)
-ZZ{T}(a::ZZ{T}) where T = a
-ZZ{T}(a::ZZ{S}) where {T,S} = ZZ{T}(a.val)
+ZZ(a::T) where T<:Integer = ZZ{T}(a)
+ZZ{T}(a::ZZ) where T = ZZ{T}(T(a.val))
 
 # promotion and conversion
 _promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
 _promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
 promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = QQ{promote_type(S,T)}
-
-convert(::Type{ZZ{T}}, a::ZZ{S}) where {T,S} = ZZ{T}(T(a.val))
-convert(::Type{ZZ{T}}, a::Integer) where T = ZZ{T}(T(a))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZ{<:R}}

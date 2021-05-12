@@ -9,8 +9,7 @@ function /(::Type{R}, m) where R<:Ring
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
     b = order(basetype(R))
-    o = iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
-    new_class(Quotient{R,typeof(ideal),sintern(m),(p,r,o)}, ideal)
+    new_class(Quotient{R,typeof(ideal),sintern(m),(p,r)}, ideal)
 end
 
 # Constructors
@@ -32,8 +31,7 @@ _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
 _promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Ring,Id} = Quotient{promote_type(R,S),I,X,Id}
 promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} = Quotient{R,I,X,Id}
 
-convert(::Type{Q}, a::Q) where {R,Q<:Quotient{R}} = a
-convert(::Type{Q}, a::S) where {S,R,Q<:Quotient{R}} = Q(convert(R, a))
+(::Type{Q})(a::S) where {S,R,Q<:Quotient{R}} = Q(R(a))
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 
@@ -57,7 +55,11 @@ one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 value(a::QuotientRing) = a.val
 characteristic(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[1]
 dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
-order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
+function order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id}
+    r = Id[2]
+    b = order(basetype(R))
+    iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
+end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
 function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}

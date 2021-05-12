@@ -33,7 +33,17 @@ end
 # generic operations
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = T
-(G::Type{<:Ring})(a) = G !== basetype(G) ? G(basetype(G)(a)) : throw(MethodError(G, a))
+
+convert(::Type{T}, a) where T = T(a)
+function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
+    if !(S <: basetype(T)) && depth(T) > depth(S)
+            b = convert(basetype(T), a)
+            convert(T, b)
+    else
+        T(a)
+    end
+end
+(G::Type{<:Ring})(a) = G !== basetype(G) ? G(convert(basetype(G), a)) : throw(MethodError(G, a))
 @generated function basetypes(a)
     _basetypes(::Type{a}) where a = begin b = basetype(a); a == b ? [a] : [a; _basetypes(b)] end
     bt = tuple(_basetypes(a.parameters[1])...)

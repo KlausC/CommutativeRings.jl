@@ -5,10 +5,14 @@
 /(::Type{ZZ}, m::Integer) = mintype_for(m, 1, false) / m
 
 # construction
-basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{T}
+basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{wsigned(T)}
 depth(::Type{<:ZZmod}) = depth(ZZ) + 1
 _lcunit(a::ZZmod) = one(a)
 issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
+
+wsigned(::Type{T}) where T<:Signed = T
+wsigned(::Type{T}) where T<:Unsigned = widen(signed(T))
+wsigned(a::T) where T<:Integer = convert(wsigned(T), a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
@@ -41,16 +45,31 @@ end
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:ZZ} = ZZmod{m,S}
 
-function convert(ZT::Type{ZZmod{n,T}}, a::ZS) where {n,m,T,S,ZS<:ZZmod{m,S}}
-    if modulus(ZT) == modulus(ZS)
-        R = promote_type(S,T)
-        mn = m == n ? promote(m, n)[1] : n isa Symbol ? n : m
-        ZZmod{mn,R}(a.val)
+function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
+    mzt = modulus(ZT)
+    mzs = modulus(ZS)
+    if mzs % mzt == 0
+        ZT(a.val % mzt)
     else
-        throw(DomainError((ZT,a), "cannot convert "))
+        throw(DomainError((ZT, a), "cannot convert $ZS to $ZT"))
     end
 end
-convert(::Type{ZZmod{m,S}}, a::Integer) where {m,S} = ZZmod{m,S}(a)
+
+(::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
+
+"""
+    value(a::ZZmod{m,T})
+
+Return unique signed(T) integer in the range `[-m/2, m/2)` representing `a`, where `m` is the modulus.
+"""
+function value(a::ZZmod{X,T}) where {X,T}
+    S = signed(T)
+    v = a.val
+    m = modulus(a)
+    m1 = m >> 1
+    m2 = m - m1
+    v < m2 ? S(v) : S(v - m2) - S(m1)
+end
 
 # get type variable
 modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
@@ -116,7 +135,7 @@ end
 
 # improved version of invmod
 function invmod2(n::T, m::T) where T<:Integer
-    m == T(0) && throw(DomainError(m, "`m` must not be 0."))
+    iszero(m) && throw(DomainError(m, "`m` must not be 0."))
     p = _unsigned(abs(m))
     q = n >= 0 ? rem(_unsigned(n), p) : p - rem(_unsigned(-n), p)
     !iszero(q) && p != q || throw(DomainError((n, m), "Greatest common divisor is $m"))
@@ -155,10 +174,17 @@ function Base.show(io::IO, a::ZZmod)
     end
 end
 
+@inline function minlength_for(v::Integer, ::Val{1}, off::Bool)
+    ndigits(v - off, base=2, pad=0)
+end    
+@inline function minlength_for(v::Integer, ::Val{ex}, off::Bool) where ex
+    l2n = log2(v) * ex
+    Int(off ? ceil(l2n) : floor(l2n) + 1)
+end
+
 function mintype_for(v::Integer, ex::Integer, off::Bool)
-    v > typemax(UInt128) && return BigInt
-    l2v = log2(v) * ex
-    len = Integer(off ? ceil(l2v) : floor(l2v) + 1)
+    v isa BigInt && v > typemax(UInt128) && return BigInt
+    len = minlength_for(v, Val(ex), off)
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         n = sizeof(T) * 8
         len <= n && return len < n ? signed(T) : T

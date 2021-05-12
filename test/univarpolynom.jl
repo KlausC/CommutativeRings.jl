@@ -61,9 +61,10 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1,0,30])
     @test 1 + P(1) == P(2)
     @test ZZ(1) + P(1) == P(2)
     @test ZZ(1) - P(1) == z
-    @test P(1) != UnivariatePolynomial{ZZ{Int},:y}([1])
-    @test P(1) == UnivariatePolynomial{ZZ{Int},:x}([1])
-    @test UnivariatePolynomial{ZZ{Int8},:x}([1]) != P([1])
+    @test P(1) == UnivariatePolynomial{ZZ{Int8},:y}(1)
+    @test P([0,1]) != UnivariatePolynomial{ZZ{Int}, :y}([0,1])
+    @test P(1) == UnivariatePolynomial{ZZ{Int},:x}(1)
+    @test UnivariatePolynomial{ZZ{Int8},:x}([1]) == P([1])
     @test hash(UnivariatePolynomial{ZZ{Int8},:x}([1])) == hash(P([1]))
 end
 
@@ -143,7 +144,7 @@ end
     @test lcm([p, q, p]) == p
 
     @test UnivariatePolynomial{ZZ{Int},:x}(p) === p
-    @test UnivariatePolynomial{ZZ{Int32},:x}(p) != p
+    @test UnivariatePolynomial{ZZ{Int32},:x}(p) == p
     @test div(p, q) == q
     @test content(p) == ZZ(1)
     @test primpart(p) == p
@@ -227,7 +228,8 @@ end
     @test_throws DomainError CommutativeRings.invert(x + 1, x^2 + 1)
 
     @test CommutativeRings.issimple(1.0)
-    @test !CommutativeRings.issimple(x)
+    @test CommutativeRings.issimple(x^3)
+    @test !CommutativeRings.issimple(x+1)
 end
 
 @testset "polynomials of other structures" begin
@@ -273,6 +275,21 @@ end
     @test p * q == q * p
     @test p + q - p == q
     @test q / (x + G[28]) |> deg == 2 
+end
+
+x = monom(ZZ{BigInt}[:x])
+@testset "resultant($a,$b)" for (a, b, c) in ((0,0,0), (0,1,0), (0, x,0), (3,0,0),
+                                       (3,2,1), (3,x,3), (3,5x^2+1,3^2), (7,5x^7-1,7^7),
+                                       (2x^32+1, 3*x^11+13, 906811932214969750127235270540901107329),
+                                       (2x^31+1, 3x^11+1,-617673396281899))
+    
+    @test resultant(a, b) == c
+    @test resultant(b, a) == c * (-1)^(deg(a)*deg(b)+2)
+    @test resultant(11a, 13b) == (a*b == 0 ? 0 : c * big(11)^deg(b) * big(13)^deg(a))
+    
+    ref = CommutativeRings.resultant_naive
+    @test a*b == 0 || ref(a*x^0, b*x^0) == c
+    @test a*b == 0 || ref(b*x^0, a*x^0) == c * (-1)^(deg(a)*deg(b)+2)
 end
 
 end
