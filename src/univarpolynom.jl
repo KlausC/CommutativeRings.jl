@@ -598,6 +598,35 @@ function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:Univariat
     b, cc, r * s / det
 end
 
+function resultant0(a::P, b::P) where P<:UnivariatePolynomial
+    da = deg(a)
+    db = deg(b)
+    r = zeros(P, da)
+    d = zeros(Int, da)
+    γ = zeros(basetype(P), da)
+    β = zeros(basetype(P), da)
+    ψ = zeros(basetype(P), da)
+    r0 = a
+    r[1] = b
+    i = 1
+    while !iszero(r[i])
+        d[i] = deg(r0) - deg(r[i])
+        γ[i] = LC(r[i])
+        if i == 1
+            β[i] = (-1)^(d[i]+1)
+            ψ[i] = -1
+        else
+            ψ[i] = (-γ[i-1])^d[i-1] / ψ[i-1]^(d[i-1]-1)
+            β[i] = -γ[i-1]*ψ[i]^d[i]
+        end
+        r[i+1] = rem(γ[i]^(d[i]+1)*r0, r[i]) / β[i]
+
+        r0 = r[i]
+        i += 1
+    end
+    r, β, ψ
+end
+
 """
     g, u, v, f = pgcdx(a, b)
 
@@ -875,4 +904,83 @@ function showelem(io::IO, el, start::Bool)
         start || print(io, "+ ")
         print(io, v1 == '+' ? SubString(v, nextind(v, 1)) : v)
     end
+end
+
+function det0(a::Matrix{D}) where D<:Ring
+    m, n = size(a)
+    m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+    b = copy(a)
+    b00 = one(D)
+    s = 1
+    for k = 0:n-2
+        j0 = 0
+        for j = k+1:n
+            if !iszero(b[k+1,j])
+                j0 = j
+                break
+            end
+        end
+        if j0 == 0
+            return zero(D)
+        end
+        if j0 != k+1
+            for i = k+1:n
+                b[i,j0], b[i,k+1] = b[i,k+1], b[i,j0]
+            end
+            s = -s
+        end
+        bkk = b[k+1,k+1]
+        for i = k+2:n
+            bik = b[i,k+1]
+            b[i,k+1] = 0
+            for j = k+2:n
+                bkj = b[k+1,j]
+                bij = b[i,j]
+                b[i,j] = (bkk * bij - bik * bkj) / b00
+            end
+        end
+        b00 = bkk
+    end
+    return b[n,n] * s
+end
+
+function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
+    m, n = size(a)
+    m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+    b = copy(a)
+    c = zeros(D, n, n)
+    b00 = one(D)
+    s = 1
+    for k = 0:n-2
+        j0 = 0
+        for j = k+1:n
+            if !iszero(b[k+1,j])
+                j0 = j
+                break
+            end
+        end
+        if j0 == 0
+            return zero(D)
+        end
+        if j0 != k+1
+            for i = k+1:n
+                b[i,j0], b[i,k+1] = b[i,k+1], b[i,j0]
+                c[i,j0], c[i,k+1] = c[i,k+1], c[i,j0]
+            end
+            s = -s
+        end
+        bkk = b[k+1,k+1]
+        for i = k+2:n
+            bik = b[i,k+1] 
+            b[i,k+1] = 0
+            for j = k+2:n
+                bkj = b[k+1,j]
+                bij = b[i,j]
+                b[i,j] = bij
+                c[i,j] = -bik * bkj
+            end
+        end
+        b00 = bkk
+    end
+    return b[n,n] * s
 end
