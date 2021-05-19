@@ -44,7 +44,7 @@ function isinvertible(a::T, b::T) where T<:UnivariatePolynomial
     isunit(g) && isunit(f)
 end
 
-function issimpler(a::T, b::T) where T<:UnivariatePolynomial
+function issimpler(a::T, b::T) where T<:Polynomial
     da, db = deg(a), deg(b)
     da < db || da == db && issimpler(LC(a), LC(b))
 end
@@ -598,33 +598,59 @@ function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:Univariat
     b, cc, r * s / det
 end
 
-function resultant0(a::P, b::P) where P<:UnivariatePolynomial
-    da = deg(a)
-    db = deg(b)
-    r = zeros(P, da)
-    d = zeros(Int, da)
-    γ = zeros(basetype(P), da)
-    β = zeros(basetype(P), da)
-    ψ = zeros(basetype(P), da)
-    r0 = a
-    r[1] = b
-    i = 1
-    while !iszero(r[i])
-        d[i] = deg(r0) - deg(r[i])
-        γ[i] = LC(r[i])
-        if i == 1
-            β[i] = (-1)^(d[i]+1)
-            ψ[i] = -1
-        else
-            ψ[i] = (-γ[i-1])^d[i-1] / ψ[i-1]^(d[i-1]-1)
-            β[i] = -γ[i-1]*ψ[i]^d[i]
-        end
-        r[i+1] = rem(γ[i]^(d[i]+1)*r0, r[i]) / β[i]
+"""
+    signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
 
-        r0 = r[i]
-        i += 1
+This code is taken from "Algorithm 8.76 (Signed Subresultant Polynomials)"
+"Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
+Its use is restricted to the case of `S` is an integral domain (there is no non-trivial divisor of zero).
+"""
+function signed_subresultant_polynomials(P::T, Q::T)  where {S,T<:UnivariatePolynomial{S}}
+    # epsi(n) = (-1) ^ (n*(n-1)÷2)
+    epsi(n::Int) = iseven(n >> 1) ? 1 : -1
+    p, q = deg(P), deg(Q)
+    p > q || throw(ArgumentError("degree of polynomials: $p is not > $q"))
+    sresp = zeros(T, p+1)
+    s = zeros(S, p+1)
+    t = zeros(S, p+1)
+    sresp[p+1] = P
+    s[p+1] = t[p+1] = 1
+    sresp[p] = Q
+    bq = LC(Q)
+    t[p] = bq
+    if p > q - 1
+        bqp = bq ^ (p - q - 1)
+        sresp[q+1] = (epsi(p-q) * bqp) * Q
     end
-    r, β, ψ
+    s[q+1] = LC(sresp[q+1])
+    i = p + 1
+    j = p
+    while j > 0 && !iszero(sresp[j])
+        k = deg(sresp[j])
+        if k == j - 1
+            s[j] = t[j]
+            if k > 0
+                sresp[k] = -rem(s[j]^2 * sresp[i], sresp[j]) / (s[j+1] * t[i])
+            end
+            elseif k < j - 1
+            s[j] = 0
+            sig = -1
+            for d = 1:j-k-1
+                t[j-d] = (t[j]*t[j-d+1]) / s[j+1] * sig
+                sig = -sig
+            end
+            s[k+1] = t[k+1]
+            sresp[k+1] = s[k+1] * sresp[j] / t[j]
+            if k > 0
+                sresp[k] = -rem((t[j] * s[k+1]) * sresp[i], sresp[j]) / (s[j+1] * t[i])
+            end
+        end
+        if k > 0
+            t[k] = LC(sresp[k])
+        end
+        i, j = j, k
+    end
+    sresp
 end
 
 """
@@ -903,6 +929,9 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
+# This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
+# "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
+# Its use is restricted to the case of `D` is an integral domain (there is no non-trivial divisor of zero).
 function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))

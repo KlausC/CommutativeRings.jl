@@ -574,6 +574,9 @@ end
 divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
 
 function divrem(f::P, g::P) where P<:MultivariatePolynomial
+    if 0 == deg(f) == deg(g)
+        return P.(divrem(LC(f), LC(g)))
+    end
     a, s, d = pdivrem(f, [g])
     isunit(d) ? (a[1], s) : (zero(P), f)
 end
