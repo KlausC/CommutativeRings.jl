@@ -702,9 +702,6 @@ end
 Reference implementation of resultant (determinant of sylvester matrix)
 """
 function resultant_naive(u::P, v::P) where {Z,P<:UnivariatePolynomial{Z}}
-    Q = Frac(basetype(Z))[:x]
-    u = Q(u)
-    v = Q(v)
     S = sylvester(u, v)
     det(S)
 end
@@ -906,9 +903,10 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-function det0(a::Matrix{D}) where D<:Ring
+function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+    n == 0 && return one(D)
     b = copy(a)
     b00 = one(D)
     s = 1
@@ -944,9 +942,10 @@ function det0(a::Matrix{D}) where D<:Ring
     return b[n,n] * s
 end
 
-function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
+function det1(a::Matrix{D}) where D<:Ring
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+    n == 0 && return one(D)
     b = copy(a)
     c = zeros(D, n, n)
     b00 = one(D)
@@ -983,4 +982,57 @@ function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
         b00 = bkk
     end
     return b[n,n] * s
+end
+
+function hamilton_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
+    m, n = size(a)
+    u = Matrix(R.(I(n)))
+    hamilton_normal_form!(copy(a), u)
+end
+
+function hamilton_normal_form!(a::Matrix, u::Matrix)
+    m, n = size(a)
+
+    for i = 1:min(m,n)-1
+        for j = 1:i
+            ajj = a[j,j]
+            aji = a[j,i+1]
+            r, p, q = gcdx(ajj, aji)
+            pp = -div(aji, r)
+            qq = div(ajj, r)
+            for k = 1:m
+                akj = a[k,j]
+                aki = a[k,i+1]
+                bkj = akj * p + aki * q
+                bki = akj * pp + aki * qq
+                a[k,j] = bkj
+                a[k,i+1] = bki
+            end
+            for k = 1:n
+                akj = u[k,j]
+                aki = u[k,i+1]
+                bkj = akj * p + aki * q
+                bki = akj * pp + aki * qq
+                u[k,j] = bkj
+                u[k,i+1] = bki
+            end
+            reduce_off_diagonal!(a, u, j)
+        end
+        reduce_off_diagonal!(a, u, i + 1)
+    end
+    a, u
+end
+
+function reduce_off_diagonal!(a, u, k)
+    akk = a[k,k]
+    if akk < 0
+        akk = -akk
+        a[:,k] .= -a[:,k]
+        u[:,k] .= -u[:,k]
+    end
+    for z = 1:k-1
+        d = div(-a[k,z], akk)
+        a[:,z] .+= a[:,k] .* d
+        u[:,z] .+= u[:,k] .* d
+    end
 end
