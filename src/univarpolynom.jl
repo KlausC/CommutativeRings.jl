@@ -929,20 +929,24 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
+function LinearAlgebra.det(a::Matrix{D}) where D<:Union{Ring,Number}
+    det1(a)
+end
+
 # This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
 # "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
-# Its use is restricted to the case of `D` is an integral domain (there is no non-trivial divisor of zero).
-function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
+# Its use is restricted to the case of `D` is an integral domain (a != 0 != b => a * b != 0).
+function det1(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
     n == 0 && return one(D)
     b = copy(a)
     b00 = one(D)
     s = 1
-    for k = 0:n-2
+    for k = 1:n-1
         j0 = 0
-        for j = k+1:n
-            if !iszero(b[k+1,j])
+        for j = k:n
+            if !iszero(b[k,j])
                 j0 = j
                 break
             end
@@ -950,20 +954,20 @@ function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
         if j0 == 0
             return zero(D)
         end
-        if j0 != k+1
-            for i = k+1:n
-                b[i,j0], b[i,k+1] = b[i,k+1], b[i,j0]
+        if j0 != k
+            for i = k:n
+                b[i,j0], b[i,k] = b[i,k], b[i,j0]
             end
             s = -s
         end
-        bkk = b[k+1,k+1]
-        for i = k+2:n
-            bik = b[i,k+1]
-            b[i,k+1] = 0
-            for j = k+2:n
-                bkj = b[k+1,j]
+        bkk = b[k,k]
+        for i = k+1:n
+            bik = b[i,k]
+            b[i,k] = 0
+            for j = k+1:n
+                bkj = b[k,j]
                 bij = b[i,j]
-                b[i,j] = (bkk * bij - bik * bkj) / b00
+                b[i,j] = div(bkk * bij - bik * bkj, b00)
             end
         end
         b00 = bkk
@@ -971,46 +975,106 @@ function LinearAlgebra.det(a::Matrix{D}) where D<:Ring
     return b[n,n] * s
 end
 
-function det1(a::Matrix{D}) where D<:Ring
+"""
+    det2(a::Matrix{D}) where D
+
+This is a division-free algorithm to callculate the determinant of `a`.
+There are no conditions on `D` except it is a non-empty commutative ring with one.
+Derived from "Pearls of Functional Algorithm Design, chap. 22" by Richard Bird - 2010
+"""
+function det2(a::AbstractMatrix{D}) where D
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
     n == 0 && return one(D)
-    b = copy(a)
-    c = zeros(D, n, n)
-    b00 = one(D)
-    s = 1
-    for k = 0:n-2
-        j0 = 0
-        for j = k+1:n
-            if !iszero(b[k+1,j])
-                j0 = j
-                break
-            end
-        end
-        if j0 == 0
-            return zero(D)
-        end
-        if j0 != k+1
-            for i = k+1:n
-                b[i,j0], b[i,k+1] = b[i,k+1], b[i,j0]
-                c[i,j0], c[i,k+1] = c[i,k+1], c[i,j0]
-            end
-            s = -s
-        end
-        bkk = b[k+1,k+1]
-        for i = k+2:n
-            bik = b[i,k+1] 
-            b[i,k+1] = 0
-            for j = k+2:n
-                bkj = b[k+1,j]
-                bij = b[i,j]
-                b[i,j] = bij
-                c[i,j] = -bik * bkj
-            end
-        end
-        b00 = bkk
+    x = copy(a)
+    for k = n-1:-1:1
+        mutx!(x, k, a)
     end
-    return b[n,n] * s
+    isodd(n) ? x[1,1] : -x[1,1]
+end
+
+function mutx!(x::Matrix, k::Integer, a::AbstractMatrix{T}) where T
+    # assuming size(x) == size(a) == (n, n) && 0 < k < n
+    n = size(a, 1)
+    s = -x[k+1,k+1]
+    for j = k:-1:1
+        xjj = x[j,j]
+        x[j,j] = s
+        s -= xjj
+    end
+    s = zero(T)
+    for l = k:n
+        s += x[k,l] * a[l,k]
+    end
+    x[k,k] = s
+    for i = k-1:-1:1
+        for j = i:n
+            x[j,1] = x[i,j]
+        end
+        for j = n:-1:1
+            s = zero(T)
+            for l = i:n
+                s += x[l,1] * a[l,j]
+            end
+            x[i,j] = s
+        end
+    end
+    x
+end
+"""
+    det3(a)
+
+Divisionfree combinatoric algorithm to calculate determinant.
+"Determinant: Combinatorics, Algorithms, andComplexity" by Mahajan, Vinay
+in Chicago Journal of Theoretical Computer Science1997-5
+http://cjtcs.cs.uchicago.edu/articles/1997/5/cj97-05.pdf
+"""
+function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
+    n, m = size(a)
+    n == m || throw(ArgumentError("matrix for determinant is not quadratic"))
+    A1 = zeros(D, n, n)
+    A2 = zeros(D, n, n)
+    B1 = zeros(D, n, n)
+    B2 = zeros(D, n, n)
+    p = n & 1 + 1
+    for u = 1:n
+        (p == 1 ? A1 : A2)[u,u,p] = one(D)    
+    end
+    for i = 0:n-2
+        for u = 1:n
+            for v = u:n
+                Auvp = A1[u,v]
+                if !iszero(Auvp)
+                    for w = u+1:n
+                        B1[u,w] += Auvp * a[v,w]
+                        B2[w,w] += Auvp * a[v,u]
+                    end
+                end
+                Auvp = A2[u,v]
+                if !iszero(Auvp)
+                    for w = u+1:n
+                        B2[u,w] += Auvp * a[v,w]
+                        B1[w,w] += Auvp * a[v,u]
+                    end
+                end
+            end
+        end
+        A1, B1 = B1, A1
+        A2, B2 = B2, A2
+        fill!(B1, zero(D))
+        fill!(B2, zero(D))
+    end
+
+    for u = 1:n
+        for v = u:n
+            avu = a[v,u]
+            if !iszero(avu)
+                B1[1,1] += A1[u,v] * avu
+                B2[1,1] += A2[u,v] * avu
+            end
+        end
+    end
+    B2[1,1] - B1[1,1]
 end
 
 function hamilton_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
