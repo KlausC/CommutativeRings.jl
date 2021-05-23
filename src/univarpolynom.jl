@@ -929,13 +929,18 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-function LinearAlgebra.det(a::Matrix{D}) where D<:Union{Ring,Number}
+function LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
     det1(a)
 end
 
-# This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
-# "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
-# Its use is restricted to the case of `D` is an integral domain (a != 0 != b => a * b != 0).
+"""
+    det1(a::Matrix{D}) where D<:Union{Ring,Number}
+
+This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
+"Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
+
+Its use is restricted to the case of `D` an integral domain.
+"""
 function det1(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
     m, n = size(a)
     m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
@@ -989,14 +994,22 @@ function det2(a::AbstractMatrix{D}) where D
     x = copy(a)
     for k = n-1:-1:1
         mutx!(x, k, a)
+        println("k = $k")
+        display(reshape(x, *(size(x)...), 1))
     end
     isodd(n) ? x[1,1] : -x[1,1]
 end
 
-function mutx!(x::Matrix, k::Integer, a::AbstractMatrix{T}) where T
+function mutx!(x::AbstractMatrix, k::Integer, a::AbstractMatrix{T}) where T
     # assuming size(x) == size(a) == (n, n) && 0 < k < n
     n = size(a, 1)
+    for j = 1:n
+        for i = j+1:n
+            x[i,j] = 0
+        end
+    end  
     s = -x[k+1,k+1]
+    x[k+1,k+1] = 0
     for j = k:-1:1
         xjj = x[j,j]
         x[j,j] = s
@@ -1007,6 +1020,9 @@ function mutx!(x::Matrix, k::Integer, a::AbstractMatrix{T}) where T
         s += x[k,l] * a[l,k]
     end
     x[k,k] = s
+    for j = k+1:n
+        x[k,j] = 0
+    end
     for i = k-1:-1:1
         for j = i:n
             x[j,1] = x[i,j]
@@ -1017,6 +1033,9 @@ function mutx!(x::Matrix, k::Integer, a::AbstractMatrix{T}) where T
                 s += x[l,1] * a[l,j]
             end
             x[i,j] = s
+        end
+        for j = i+1:n
+            x[j,1] = 0
         end
     end
     x
@@ -1029,6 +1048,69 @@ Divisionfree combinatoric algorithm to calculate determinant.
 in Chicago Journal of Theoretical Computer Science1997-5
 http://cjtcs.cs.uchicago.edu/articles/1997/5/cj97-05.pdf
 """
+function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
+    n, m = size(a)
+    n == m || throw(ArgumentError("matrix for determinant is not quadratic"))
+    A = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
+    B = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
+    C = Dict{Tuple,Int}()
+
+    function addpush!(B, C, t)
+        #println("addpush!($t)")
+        p, u, v, d = t
+        key = (p, u, v)
+        nx = length(B) + 1
+        ix = get!(C, key, nx)
+        if ix == nx
+            push!(B, t)
+        else
+            _, _, _, b = B[ix]
+            B[ix] = (p, u, v, b + d) 
+        end
+        nothing
+    end
+
+    s = max(min(n * (n+1) ÷ 2, count(!iszero, a)), max(2 * n, 32))
+    sizehint!(A, s)
+    sizehint!(B, s)
+    p = isodd(n)
+    for u = 1:n
+        push!(A, (p, u, u, one(D)))   
+    end
+    for i = 0:n-2
+        empty!(B)
+        empty!(C)
+        for (p, u, v, Auvp) in A
+            avu = a[v,u]
+            for w = u+1:n
+                avw = a[v,w] 
+                if !iszero(avw)
+                    avw *= Auvp
+                    addpush!(B, C, (p, u, w, avw))
+                end
+            end
+            if !iszero(avu)
+                avu *= Auvp
+                for w = u+1:n
+                    addpush!(B, C, (!p, w, w, avu))
+                end
+            end
+        end
+        A, B = B, A
+        #println("i = $i")
+        #display(A)
+    end
+
+    d = zero(D)
+    for (p, u, v, Auvp) in A
+        avu = a[v,u] * (p ? 1 : -1)
+        if !iszero(avu)
+            d += Auvp * avu
+        end
+    end
+    d
+end
+
 function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     n, m = size(a)
     n == m || throw(ArgumentError("matrix for determinant is not quadratic"))
@@ -1038,7 +1120,7 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     B2 = zeros(D, n, n)
     p = n & 1 + 1
     for u = 1:n
-        (p == 1 ? A1 : A2)[u,u,p] = one(D)    
+        (p == 1 ? A1 : A2)[u,u] = one(D)    
     end
     for i = 0:n-2
         for u = 1:n
@@ -1046,14 +1128,18 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
                 Auvp = A1[u,v]
                 if !iszero(Auvp)
                     for w = u+1:n
+                        #println("addpush(0, $u, $w, $(Auvp*a[v,w]))")
                         B1[u,w] += Auvp * a[v,w]
+                        #println("addpush(1, $w, $w, $(Auvp * a[v,u]))")
                         B2[w,w] += Auvp * a[v,u]
                     end
                 end
                 Auvp = A2[u,v]
                 if !iszero(Auvp)
                     for w = u+1:n
+                        #println("addpush(1, $u, $w, $(Auvp*a[v,w]))")
                         B2[u,w] += Auvp * a[v,w]
+                        #println("addpush(0, $w, $w, $(Auvp * a[v,u]))")
                         B1[w,w] += Auvp * a[v,u]
                     end
                 end
@@ -1063,6 +1149,8 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
         A2, B2 = B2, A2
         fill!(B1, zero(D))
         fill!(B2, zero(D))
+        #println("i = $i")
+        #display([A1 A2])
     end
 
     for u = 1:n
