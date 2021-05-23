@@ -4,6 +4,7 @@ Frac(::Type{R}) where R<:Ring = Frac{R}
 Frac(::Type{R}) where R<:Integer = QQ{R}
 
 # construction
+category_trait(Z::Type{<:Frac}) = category_trait_fraction(category_trait(basetype(Z)))
 basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1
 copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)

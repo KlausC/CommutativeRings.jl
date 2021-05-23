@@ -1,6 +1,8 @@
 
 export GF, normalmatrix, allzeros
 
+category_trait(::Type{<:GaloisField}) = FieldTrait
+
 """
     GF(p, r; mod=nothing, nr=0)
 

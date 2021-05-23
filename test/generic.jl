@@ -76,3 +76,35 @@ end
     @test (x + y + z)^2 == x^2 + y^2 + z^2 + 2x*y + 2x*z + 2y*z
     
 end
+
+using CommutativeRings: FieldTrait, EuclidianDomainTrait, UniqueFactorizationDomainTrait, IntegralDomainTrait, CommutativeRingTrait
+
+@testset "category traits $T" for (T,C) in [(ZZ, EuclidianDomainTrait),
+                                            (ZZ/2, FieldTrait),
+                                            (GF(4), FieldTrait),
+                                            (QQ{BigInt}, FieldTrait),
+                                            (ZZ/6, CommutativeRingTrait),
+                                            (ZZ{Int}[:x], UniqueFactorizationDomainTrait),
+                                            (ZZ{Int}[:x][:y], UniqueFactorizationDomainTrait),
+                                            (ZZ{Int}[:x,:y], UniqueFactorizationDomainTrait),
+                                            ((ZZ/3)[:x], EuclidianDomainTrait),
+                                            ((ZZ/3)[:x,:y], UniqueFactorizationDomainTrait)
+                                          ]
+    @test category_trait(T) == C
+end
+
+const X = monom(ZZ{Int}[:x])
+@testset "category traits $T/($p)" for (T, p, C) in [(ZZ/5, X^2 + 2, FieldTrait),
+                                                     (ZZ/5, X^2 + 1, CommutativeRingTrait),
+                                                  ]                     
+    x = monom(T[:x])
+    P = p(x)
+    @test category_trait(T[:x]/P) == C
+end
+
+@testset "category traits Frac{$T}" for (T, C) in [(ZZ{Int}, FieldTrait),
+                                                   (ZZ{Int}[:x], FieldTrait),
+                                                   ((ZZ/6)[:x], CommutativeRingTrait),
+                                                  ]
+    @test category_trait(Frac{T}) == C
+end

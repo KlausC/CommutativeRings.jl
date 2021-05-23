@@ -3,6 +3,7 @@
 ZZ(::Type{T}) where T<:Integer = ZZ{T}
 
 # construction
+category_trait(::Type{<:ZZ}) = EuclidianDomainTrait
 basetype(::Type{<:ZZ{T}}) where T = T
 depth(::Type{<:ZZ}) = 1
 _lcunit(a::ZZ) = sign(a.val)

@@ -5,6 +5,15 @@
 getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
 
 ### Constructors
+category_trait(P::Type{<:Polynomial}) = category_trait_poly(P, category_trait(basetype(P)))
+category_trait_poly(::Type{<:UnivariatePolynomial}, Z::Type{<:FieldTrait}) = EuclidianDomainTrait
+category_trait_poly(::Type{<:Polynomial}, Z::Type{<:UniqueFactorizationDomainTrait}) = UniqueFactorizationDomainTrait
+category_trait_poly(::Type, Z::Type{<:IntegralDomainTrait}) = IntegralDomainTrait
+category_trait_poly(::Type, ::Type) = CommutativeRingTrait
+category_trait_fraction(::Type{<:IntegralDomainTrait}) = FieldTrait
+category_trait_fraction(::Type) = CommutativeRingTrait
+isprimemod(Z::Type{<:Quotient{<:UnivariatePolynomial}}) = isirreducible(modulus(Z))
+
 basetype(::Type{<:Polynomial{T}}) where T = T
 depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
 function lcunit(a::Polynomial)

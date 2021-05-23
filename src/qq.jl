@@ -3,6 +3,8 @@
 QQ(::Type{T}) where T<:Integer = QQ{T}
 QQ(::Type{ZZ{T}}) where T = QQ{T}
 
+category_trait(::Type{<:QQ}) = FieldTrait
+
 # construction
 basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 depth(::Type{<:QQ}) = 1

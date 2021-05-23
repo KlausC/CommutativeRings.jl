@@ -4,6 +4,7 @@ using LinearAlgebra
 using Base.Checked
 using Primes
 
+export category_trait
 export Ring, RingInt, FractionField, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField
@@ -197,6 +198,21 @@ struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
     GaloisField{Id,T,Q}(v::Integer, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
 end
+
+# Categorial traits specify algebraic properties of ring types
+# (cf. https://en.wikipedia.org/wiki/Integral_domain)
+# rings ⊃ commutative rings ⊃ integral domains ⊃ integrally closed domains ⊃ GCD domains ⊃
+# unique factorization domains ⊃ principal ideal domains ⊃ Euclidean domains ⊃ fields ⊃ algebraically closed fields
+abstract type RingTrait end
+abstract type CommutativeRingTrait <: RingTrait end
+abstract type IntegralDomainTrait <: CommutativeRingTrait end
+abstract type IntegrallyClosedDomainTrait <: IntegralDomainTrait end
+abstract type GCDDomainTrait <: IntegrallyClosedDomainTrait end
+abstract type UniqueFactorizationDomainTrait <: GCDDomainTrait end
+abstract type PrincipalIdealDomainTrait <: UniqueFactorizationDomainTrait end
+abstract type EuclidianDomainTrait <: PrincipalIdealDomainTrait end
+abstract type FieldTrait <: EuclidianDomainTrait end
+abstract type AlgebraicallyClosedFieldTrait <: FieldTrait end
 
 ## End of Ring classes
 

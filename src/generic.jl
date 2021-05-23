@@ -1,4 +1,6 @@
 
+category_trait(::Type{<:Ring}) = CommutativeRingTrait
+
 # promotions and conversions
 function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
     dts = depth(T) - depth(S)

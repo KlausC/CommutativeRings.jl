@@ -6,6 +6,7 @@ Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
 function /(::Type{R}, m) where R<:Ring
+
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
     b = order(basetype(R))
@@ -13,6 +14,7 @@ function /(::Type{R}, m) where R<:Ring
 end
 
 # Constructors
+category_trait(Z::Type{<:QuotientRing}) = isprimemod(Z) ? FieldTrait : CommutativeRingTrait
 basetype(::Type{<:Quotient{T}}) where T = T
 depth(::Type{<:Quotient{T}}) where T = depth(T) + 1
 

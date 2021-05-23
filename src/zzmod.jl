@@ -5,6 +5,7 @@
 /(::Type{ZZ}, m::Integer) = mintype_for(m, 1, false) / m
 
 # construction
+isprimemod(Z::Type{<:ZZmod}) = isprime(modulus(Z))
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{wsigned(T)}
 depth(::Type{<:ZZmod}) = depth(ZZ) + 1
 _lcunit(a::ZZmod) = one(a)
