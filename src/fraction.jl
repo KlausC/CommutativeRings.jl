@@ -58,8 +58,6 @@ _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = Frac{promote_type(S,T)}
 
-isfield(::Type{<:FractionField}) = true
-
 lcunit(a::Frac) = inv(lcunit(a.den))
 
 # induced homomorphism

@@ -10,6 +10,15 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
     end
 end
 
+function isirreducible(p::P) where P<:UnivariatePolynomial{<:ZZ}
+    deg(p) > 1 || return false
+    X = varname(P)
+    Z = ZZ{BigInt}[X]
+    q = convert(Z, p)
+    isone(pgcd(q, derive(q))) || return false
+    zassenhaus_irr(q)
+end
+
 function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
@@ -76,18 +85,34 @@ function zassenhaus_unused_tomonic_etc(u)
 end
 
 function zassenhaus(u)
+    zassenhaus(u, Val(false))
+end
 
+function zassenhaus(u, ::Val{BO}) where BO
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
     v, p = best_prime(u)
     fac = combinefactors(u, v, [])
     res = []
     while !all_factors_irreducible!(res, fac, p)
+        if BO && length(res) >= 1 && deg(res[1]) < deg(u)
+            break
+        end
         for i = 1:length(fac)
             fac, p = lift!(fac, i)
         end
     end
     res
+end
+
+"""
+    zassenhaus_irr(u)
+
+Returns true iff the squarefree polynomial `u` is irreducible.
+"""
+function zassenhaus_irr(u)
+    res = zassenhaus(u, Val(true))
+    isempty(res) || deg(res[1]) >= deg(u)
 end
 
 # find small prime number >= p0 for which number of 

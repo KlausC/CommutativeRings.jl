@@ -171,7 +171,7 @@ characteristic(::Type{T}) where {Z,T<:Polynomial{Z}} = characteristic(Z)
 
 Return iff type is a field (all elements except `zero` are invertible).
 """
-isfield(::Type{<:Ring}) = false
+isfield(R::Type{<:Ring}) = category_trait(R) <: FieldTrait
 
 """
     deg(r::Union{Ring,Number})

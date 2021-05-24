@@ -4,14 +4,14 @@ using LinearAlgebra
 using Base.Checked
 using Primes
 
-export category_trait
+export category_trait, isfield
 export Ring, RingInt, FractionField, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField
 
 export Hom, Ideal
 
-export isfield, isunit, deg, content, primpart, isnegative
+export isunit, deg, content, primpart, isnegative
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth

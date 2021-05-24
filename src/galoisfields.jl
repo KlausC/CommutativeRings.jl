@@ -110,7 +110,6 @@ order(G::Type{<:GaloisField}) = order(basetype(G))
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 issimpler(a::G, b::G) where G<:GaloisField = a.val < b.val
-isfield(::Type{<:GaloisField}) = true
 
 # multiplication using lookup tables
 function *(a::G, b::G) where G<:GaloisField
