@@ -5,7 +5,7 @@ using Base.Checked
 using Primes
 
 export category_trait, isfield
-export Ring, RingInt, FractionField, QuotientRing, Polynomial
+export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField
 
@@ -41,9 +41,9 @@ import Base: numerator, denominator
 # RingClass subtypes describe the different categories
 abstract type RingClass end
 struct ZZClass{T<:Integer} <: RingClass end
-abstract type FractionFieldClass <:RingClass end
-struct FractionClass{P} <: FractionFieldClass end
-struct QQClass{S<:Integer} <:FractionFieldClass end
+abstract type FractionRingClass <:RingClass end
+struct FractionClass{P} <: FractionRingClass end
+struct QQClass{S<:Integer} <:FractionRingClass end
 abstract type QuotientRingClass <:RingClass end
 struct QuotientClass{Id,M} <: QuotientRingClass
     modulus::M
@@ -85,11 +85,11 @@ Union of system `Integer` types and any `Ring` subtype.
 const RingInt = Union{Ring,Integer}
 
 """
-    FractionField{S<:RingInt,T<:FractionFieldClass}
+    FractionRing{S<:RingInt,T<:FractionRingClass}
 
 Rational extension of elements of ring `S`. Example the field of rational numbers.
 """
-abstract type FractionField{S<:RingInt,T<:FractionFieldClass} <: Ring{T} end
+abstract type FractionRing{S<:RingInt,T<:FractionRingClass} <: Ring{T} end
 
 """
     QuotientRing{S<:Union{Integer,Ring},T<:QuotientRingClass}
@@ -134,7 +134,7 @@ The ring of fractions of `R`. The elements consist of pairs `num::R,den::R`.
 During creation the values may be canceled to achieve `gcd(num, den) == one(R)`.
 The special case of `R<:Integer` is handled by `QQ{R}`.
 """
-struct Frac{P<:Union{Polynomial,ZZ}} <: FractionField{P,FractionClass{P}}
+struct Frac{P<:Union{Polynomial,ZZ}} <: FractionRing{P,FractionClass{P}}
     num::P
     den::P
     Frac{P}(num::P, den::P, ::NCT) where P = new{P}(num, den)
@@ -161,7 +161,7 @@ end
 
 
 """
-struct QQ{S<:Integer} <: FractionField{S,QQClass{S}}
+struct QQ{S<:Integer} <: FractionRing{S,QQClass{S}}
     num::S
     den::S
     QQ{T}(num::Integer, den::Integer, ::NCT) where T = new{T}(num, den)

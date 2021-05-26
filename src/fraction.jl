@@ -9,8 +9,8 @@ basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1
 copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
 
-numerator(a::FractionField) = a.num
-denominator(a::FractionField) = a.den
+numerator(a::FractionRing) = a.num
+denominator(a::FractionRing) = a.den
 
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
 

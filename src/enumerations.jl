@@ -131,7 +131,7 @@ end
 
 len(::Type, d...) = 0
 len(T::Type{<:ZZmod}, d...) = modulus(T)
-function len(T::Type{<:FractionField{S}}, d...) where S
+function len(T::Type{<:FractionRing{S}}, d...) where S
     n = len(S, d...)
     n == 0 ? 0 : (n-1)^2 + 1
 end
@@ -148,7 +148,7 @@ function ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where {S<:UnivariatePol
     T(ofindex(a, S, d) - monom(S,d))
 end
 
-function ofindex(a::Integer, T::Type{<:FractionField{S}}) where S
+function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     a == 0 && return zero(T)
     s, t = index(a - 1, len(T), len(T))
     T(ofindex(t+1, S), S(ofindex(s + 1, unsigned(S))))

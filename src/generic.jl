@@ -1,5 +1,6 @@
 
 category_trait(::Type{<:Ring}) = CommutativeRingTrait
+category_trait(::Type{<:Number}) = IntegralDomainTrait
 
 # promotions and conversions
 function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
@@ -53,7 +54,7 @@ end
 end
 
 function /(a::T, b::T) where T<:Ring
-    if b isa Union{FractionField,QuotientRing}
+    if b isa Union{FractionRing,QuotientRing}
         a * inv(b)
     else
         d, r = divrem(a, b)
@@ -235,7 +236,7 @@ Base.broadcastable(x::Ring) = Ref(x)
 divrem2(a::T, b::T) where T = divrem(a, b)
 rem2(a::T, b::T) where T = divrem2(a, b)[2]
 
-function divrem2(a::T, b::T) where T<:FractionField
+function divrem2(a::T, b::T) where T<:FractionRing
     c = div(a, b)
     d, r = divrem2(c.num, c.den)
     d, a - d * b
