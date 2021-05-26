@@ -938,9 +938,9 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-function LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
-    det1(a)
-end
+LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = _det(a, category_trait(D))
+_det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det1(a)
+_det(a::AbstractMatrix, ::Type{<:CommutativeRingTrait}) = det2(a)
 
 """
     det1(a::Matrix{D}) where D<:Union{Ring,Number}
@@ -992,7 +992,7 @@ end
 """
     det2(a::Matrix{D}) where D
 
-This is a division-free algorithm to callculate the determinant of `a`.
+This is a division-free algorithm to calculate the determinant of `a`.
 There are no conditions on `D` except it is a non-empty commutative ring with one.
 Derived from "Pearls of Functional Algorithm Design, chap. 22" by Richard Bird - 2010
 """
@@ -1003,8 +1003,6 @@ function det2(a::AbstractMatrix{D}) where D
     x = copy(a)
     for k = n-1:-1:1
         mutx!(x, k, a)
-        println("k = $k")
-        display(reshape(x, *(size(x)...), 1))
     end
     isodd(n) ? x[1,1] : -x[1,1]
 end

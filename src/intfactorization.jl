@@ -126,11 +126,11 @@ function best_prime(u, p0=100000, kmax=5, vmin=10, vmax=15)
     q = p
     k = 0
     vl = length(v)
-    println("find p = $p length(v) = $vl")
+    #println("find p = $p length(v) = $vl")
     while k < kbreak(vl)
         w, q = factormod(u, q)
         wl = length(w)
-        println("find p = $q length(v) = $wl")
+        #println("find p = $q length(v) = $wl")
         if wl < vl
             vl = wl
             v = w
@@ -205,11 +205,12 @@ function all_factors_irreducible!(res, fac, p)
     for i = 1:length(fac)
         u, vv = fac[i]
         n2 = deg(u) ÷ 2
+        domessage = n2 > 10
         B = maximum(coeffbounds(u, n2))
         if length(vv) > 1 && 2 * B > p
-            @warn "irreducibility of $u cannot be proved - p = $p B = $B"
+            domessage && @warn "irreducibility of $u cannot be proved - p = $p B = $B"
         else
-            @info "irreducibility of $u proved - p = $p B = $B"
+            domessage && @info "irreducibility of $u proved - p = $p B = $B"
             push!(del, i)
             push!(res, u)
         end
