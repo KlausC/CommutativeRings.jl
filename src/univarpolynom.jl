@@ -938,7 +938,7 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-LinearAlgebra.det(a::AbstractMatrix) = det!(copy(a))
+LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Ring = det!(copy(a))
 det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number}  = _det(a, category_trait(D))
 _det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB(a)
 _det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB(a)
