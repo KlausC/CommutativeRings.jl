@@ -938,21 +938,23 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = _det(a, category_trait(D))
-_det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det1(a)
-_det(a::AbstractMatrix, ::Type{<:CommutativeRingTrait}) = det2(a)
+LinearAlgebra.det(a::AbstractMatrix) = det!(copy(a))
+det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number}  = _det(a, category_trait(D))
+_det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB(a)
+_det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB(a)
+_det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing = det_QR(a)
+_det(a::AbstractMatrix, ::Type{<:CommutativeRingTrait}) = det_Bird(a)
 
 """
-    det1(a::Matrix{D}) where D<:Union{Ring,Number}
+    det_DJB(a::Matrix{D}) where D<:Union{Ring,Number}
 
 This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
 "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
 
 Its use is restricted to the case of `D` an integral domain.
 """
-function det1(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
-    m, n = size(a)
-    m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+function det_DJB(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
+    n = checksquare(a)
     n == 0 && return one(D)
     b = copy(a)
     b00 = one(D)
@@ -990,15 +992,149 @@ function det1(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
 end
 
 """
-    det2(a::Matrix{D}) where D
+    det_QR(a::Matrix{D}) where D<:QuotientRing
+
+This code is an extension of det_DJB to certain quotient rings which are domains.
+I.e. `ZZ/p` where `p` is not prime and `P[:x]/q` where `q` is the product of polynomials. 
+"""
+det_QR(a::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}} = det_QR!(copy(a))
+
+function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
+    println("det_QR!($D)")
+    n = checksquare(b)
+    n == 0 && return one(D)
+    s = one(D)
+    for k = 1:n-1
+        a = view(b, k:n, k:n)
+        ij = findfirst(isunit, a)
+        # println("k = $k, ij = $ij")
+        # display(a)
+        if ij !== nothing
+            ij += CartesianIndex(k-1, k-1)
+            s = flipall!(b, ij, k, s)
+        else
+            vmin = zero(Z)
+            for i = k:n
+                v, ij, s = rowdivgcd!(b, i, k, ij, s)
+                vmin = max(vmin, v)
+            end
+            if ij !== nothing
+                s = flipall!(b, ij, k, s)
+            else
+                m = modulus(D)
+                v, w = splitmod(vmin, m)
+                # println("splitmod($vmin, $m) = $v, $w")
+                ZV = Z/v
+                dv = det!(ZV.(a))
+                isone(w) && return dv
+                ZW = Z/w
+                dw = det!(ZW.(a))
+                return crt(D(value(dv)), D(value(dw)), v, w) * s
+            end
+        end
+        bkk = one(D)
+        for i = k+1:n
+            bik = b[i,k]
+            for j = k+1:n
+                bkj = b[k,j]
+                bij = b[i,j]
+                b[i,j] = bkk * bij - bik * bkj
+            end
+        end
+    end
+    return b[n,n] * s
+end
+
+function flipall!(a::AbstractMatrix, ij::CartesianIndex, k, s)
+    # println("flipall($ij, $k)")
+    # display(a)
+    i, j = ij[1], ij[2]
+    if i != k
+        s = -s
+        for u = k:size(a, 2)
+            a[i,u], a[k,u] = a[k,u], a[i,u]
+        end
+    end
+    if j != k
+        s = -s
+        for u = k:size(a, 1)
+            a[u,j], a[u,k] = a[u,k], a[u,j]
+        end
+    end
+    akk = a[k,k]
+    if isunit(akk)
+        for u = k:size(a, 2)
+            # println("a[$k,$u] / akk == $(a[k,u]) / $akk = $(a[k,u] / akk)")
+            a[k,u] /= akk
+        end
+        s *= akk
+    end
+    # println("k = $k:")
+    # display(a)
+    s
+end
+
+function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{Z}}
+    n = size(b, 2)
+    g0 = zero(Z)
+    g1 = one(Z)
+    for j = k:n
+        g1 = gcd(g0, value(b[i,j]))
+        isone(g1) && break
+        g0 = g1
+    end
+    if !isone(g1)
+        s *= g1
+        for j = k:n
+            bij = D(value(b[i,j]) ÷ g1)
+            b[i,j] = bij
+            if ij === nothing && isunit(bij)
+                ij = CartesianIndex(i, j)
+            end
+        end
+    end
+    g0, ij, s
+end
+
+function crt(x, y, p, q)
+    g, u, v = gcdx(p, q)
+    y * u * p + x * v * q
+end
+"""
+    v = splitmod(a, m)
+
+Assume `gcd(a, m) != 1`.
+Find `v` in a way that `gcd(v, m/v) == 1`.
+"""
+function splitmod(v, m)
+    a = gcd(v, m)
+    b = m ÷ a
+    x = 1
+    
+    while !isone(b)
+        g = gcd(a, b)
+        if !isone(g)
+            b ÷= g
+            x += 1
+        else
+            break
+        end
+        v = g
+    end
+    a = v ^ x
+    b = m ÷ a
+    a, b
+end
+
+"""
+    det_Bird(a::Matrix{D}) where D
 
 This is a division-free algorithm to calculate the determinant of `a`.
 There are no conditions on `D` except it is a non-empty commutative ring with one.
 Derived from "Pearls of Functional Algorithm Design, chap. 22" by Richard Bird - 2010
 """
-function det2(a::AbstractMatrix{D}) where D
-    m, n = size(a)
-    m == n || throw(ArgumentError("matrix for determinant is not quadratic"))
+function det_Bird(a::AbstractMatrix{D}) where D
+    n = checksquare(a)
     n == 0 && return one(D)
     x = copy(a)
     for k = n-1:-1:1
@@ -1056,8 +1192,7 @@ in Chicago Journal of Theoretical Computer Science1997-5
 http://cjtcs.cs.uchicago.edu/articles/1997/5/cj97-05.pdf
 """
 function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
-    n, m = size(a)
-    n == m || throw(ArgumentError("matrix for determinant is not quadratic"))
+    n = checksquare(a)
     A = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
     B = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
     C = Dict{Tuple,Int}()
@@ -1119,8 +1254,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
 end
 
 function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
-    n, m = size(a)
-    n == m || throw(ArgumentError("matrix for determinant is not quadratic"))
+    n = checksquare(a)
     A1 = zeros(D, n, n)
     A2 = zeros(D, n, n)
     B1 = zeros(D, n, n)

@@ -37,6 +37,14 @@ promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} 
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 
+"""
+    iszerodiv(q::R) where R<:Ring
+
+Return true iff q is not a zero divisor in `R`
+"""
+iszerodiv(q::Q) where Q<:QuotientRing = !isone(gcd(value(q), modulus(Q)))
+iszerodiv(q::R) where R<:Union{Ring,Number} = iszero(q)
+
 ## Arithmetic
 
 ==(a::T, b::T) where T<:Quotient =  a.val == b.val

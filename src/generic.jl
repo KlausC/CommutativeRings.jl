@@ -262,10 +262,9 @@ end
 # extension to array
 function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     n = length(aa)
-    n == 0 && return zero(T)
-    n == 1 && return aa[1]
-    g = gcd(aa[1], aa[2])
-    for i = 3:n
+    g = zero(T)
+    n == 0 && return g
+    for i = 1:n
         isone(g) && break
         g = gcd(aa[i], g)
     end

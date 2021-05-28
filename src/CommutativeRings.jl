@@ -14,7 +14,7 @@ export Hom, Ideal
 export isunit, deg, content, primpart, isnegative
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
-export basetype, basetypes, depth
+export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
 export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
@@ -37,6 +37,7 @@ import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lc
 import Base: copy, show, promote_rule, convert, abs, isless
 import Primes: factor
 import Base: numerator, denominator
+import LinearAlgebra: checksquare, det
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
