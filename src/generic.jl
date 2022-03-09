@@ -25,7 +25,7 @@ _promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = promote_rule(R
 
 depth(::Type{<:Number}) = 0
 
-for op in (:+, :-, :*, :/, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx, :isless)
+for op in (:+, :-, :*, :/, :\, :(==), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx, :isless)
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
         ($op)(a::Ring, b::Union{Integer,Rational}) = ($op)(promote(a, b)...)
@@ -62,7 +62,7 @@ function /(a::T, b::T) where T<:Ring
         T(d)
     end
 end
-\(a::Ring, b::Ring) = b / a
+\(a::T, b::T) where T<:Ring = b / a
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
