@@ -110,3 +110,11 @@ end
                                                   ]
     @test category_trait(Frac{T}) == C
 end
+
+@testset "number promotions for $op" for op in (+, -, *, /, \, (==), divrem, div, rem)
+    Z = ZZ / 7
+    x = 9
+    y = Z(2)
+    @test op(x, y) == op(Z(x), y)
+    @test op(y, x) == op(y, Z(x))
+end
