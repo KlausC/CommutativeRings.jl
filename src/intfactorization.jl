@@ -11,7 +11,7 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
 end
 
 function isirreducible(p::P) where P<:UnivariatePolynomial{<:ZZ}
-    deg(p) > 1 || return false
+    deg(p) > 1 || return true
     X = varname(P)
     Z = ZZ{BigInt}[X]
     q = convert(Z, p)
@@ -53,9 +53,11 @@ function yun(u::UnivariatePolynomial{<:ZZ})
     if isone(t)
         push!(res, u)
     else
-        while ( wv = w - derive(v) )  |> !iszero
+        wv = w - derive(v) 
+        while !iszero(wv)
             u, v, w = GCD(v, wv)
             push!(res, u)
+            wv = w - derive(v)
         end
         push!(res, v)
     end
@@ -161,12 +163,12 @@ function factormod(u, p::Integer)
 end
 
 """
-    factor1(u::UnivariatePolynomial, a::Integer)
+    factor(u::UnivariatePolynomial, a::Integer)
 
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
-function factor1(u::UnivariatePolynomial, a::Integer)
-    println("factor1($u, $a)")
+function factor(u::UnivariatePolynomial, a::Integer)
+    #println("factor1($u, $a)")
     r = factor(u)
     a == 1 && return r
     b = a
@@ -177,7 +179,7 @@ function factor1(u::UnivariatePolynomial, a::Integer)
     for (v, e) ∈ r
         for ab in reverse(afactors)
             b = a ÷ ab
-            s = factor1(v(x^ab), b)
+            s = factor(v(x^ab), b)
             append!(res, s)
             break
         end
