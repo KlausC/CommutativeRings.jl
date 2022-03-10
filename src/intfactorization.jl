@@ -54,9 +54,11 @@ function yun(u::UnivariatePolynomial{<:ZZ})
     if isone(t)
         push!(res, u)
     else
-        while ( wv = w - derive(v) )  |> !iszero
+        wv = w - derive(v) 
+        while !iszero(wv)
             u, v, w = GCD(v, wv)
             push!(res, u)
+            wv = w - derive(v)
         end
         push!(res, v)
     end
@@ -181,7 +183,7 @@ function factormod(u, p::Integer)
 end
 
 """
-    factor1(u::UnivariatePolynomial, a::Integer)
+    factor(u::UnivariatePolynomial, a::Integer)
 
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
