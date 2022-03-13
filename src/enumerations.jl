@@ -197,3 +197,237 @@ factors(f::Primes.Factorization) = Factors(f.pe)
 factors(f::AbstractVector) = Factors(f)
 factors(n::Integer) = factors(factor(n).pe)
 
+"""
+    select_k_from_n(x, n, k)
+
+For `x` in the range `1:binomial(n,k)` find subset of size `k` from `1:n` with number `x`.
+The order given to the subsets is no way canonically.
+"""
+function select_k_from_n(x::T, n::Integer, k::Integer) where T<:Integer
+    @assert 0 < x <= binomial(n, k) && 0 <= k <= n && 0 <= n
+    if n <= 0 || k <= 0
+        T[]
+    elseif k == 1
+        [x]
+    elseif n == 1
+        T[1]
+    else
+        t = binomial(T(n-1), T(k))
+        if x <= t
+            select_k_from_n(x, n - 1, k)
+        else
+            push!(select_k_from_n(x - t, n - 1, k - 1), n)
+        end
+    end
+end
+
+"""
+    select_n_tuple(x, n)
+
+Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 1.
+The tuples `1:x` are contained in cube `[-k:k]^n` with `k = ceil((x ^ (1/n) - 1) / 2)`.
+Also tuple number `(2k+1)^n` is always `-k*ones(n)`.
+The implied order is no way canonical. 
+"""
+function select_n_tuple(x::T, n::Integer, oneside::Bool = false) where T<:Integer
+    if n <= 0 || x <= 1
+        return zeros(T, n)
+    end
+    sides = ifelse(oneside, 1, 2)
+    #=
+    k = one(T)
+    while k ^ n < x
+        k += 2
+    end
+    k -= 2
+    =#
+    #@assert k == ((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1 "$k == $(((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1)"
+    km = (iroot(x - 1, n) + 1 ) ÷ sides
+    k = sides * (km - 1) + 1
+    kn = k ^ n
+    x -= kn
+    ti = T(1)
+    bi = T(1)
+    ki = kn
+    for i = 1:n
+        ti *= sides # sides^i
+        bi = bi * (n - i + 1) ÷ i # binomial(n, i)
+        ki ÷= k # k ^ (n - i)
+        @assert ti == sides ^ i
+        @assert bi == binomial(n, i)
+        @assert ki == k ^ (n - i)
+
+        t = ti * ki * bi
+        if x <= t
+            x, m = fldmod(x - 1, ti)
+            x, e = fldmod(x, bi)
+            return selecttuple(x + 1, e + 1, m, n, km, i)
+        else
+            x -= t
+        end
+    end
+end
+function selecttuple(x, e, m, n, km, i)
+    # on a n - i dimensional edge (i > 0)
+    ne = select_k_from_n(e, n, i)
+    p = perm(n, ne)
+    q = select_n_tuple(x, n-i)
+    r = similar(q, n)
+    for j = 1:i
+        r[p[j]] = bincoord(m, j-1) * km
+    end
+    for j = i+1:n
+        r[p[j]] = q[j-i]
+    end
+    r
+end 
+
+function perm(n::Integer, ne::AbstractVector{<:Integer})
+    @assert all(0 .< ne .<= n)
+    p = copyto!(similar(ne, n), 1:n)
+    q = copy(p)
+    for i = 1:length(ne)
+        nei = ne[i]
+        b = p[i]
+        a = q[nei]
+        p[i], p[a] = p[a], b
+        q[nei] = i
+        q[b] = a  
+    end
+    p
+end
+
+function bincoord(x::Integer, k::Integer)
+    ifelse(iseven(x >> k), 1, -1)
+end
+
+"""
+    iroot(a::Integer, n::Integer)
+
+Integer root: the largest integer `m` such that `m^n <= a`.
+"""
+function iroot(s::Integer, n::Integer)
+    iszero(s) && return s
+	x0 = oftype(s, ceil(s ^ (1/n)))
+    up(x) = ( s ÷ x ^ (n - 1) + x * (n - 1) ) ÷ n
+    x1 = up(x0)		
+	while x1 < x0
+	    x0 = x1
+		x1 = up(x0)
+    end
+    x0
+end
+ 
+""" 
+    ilog2(a::Integer)::Int 
+ 
+For nonzero integers `a` return Int(floor(log2(abs(a)))) exact arithmethic.
+For zero return `-1` 
+""" 
+function ilog2(a::Integer) 
+    ndigits(a, base=2, pad=0) - 1 
+end
+function ilog2(a::Base.BitInteger) 
+    bpl = sizeof(a) * 8 
+    bpl - 1 - leading_zeros(abs(a)) 
+end 
+
+#=
+Assuming there is a zero-based enumeration of all elements of degree `d`
+for all degrees `>= 0`,
+provide an enumeration of elements of any degree.
+:w
+The elements may be thought positioned in a sequence of rows of increasing length.
+All elements of degree `d` are in position `d` of a row.
+The enumeration is by travelling one row after the other.
+
+The row lengths are set to `ilog2(r+1) + 1`. This way higher degree elements are
+pushed back in the enumeration.
+=#
+"""
+    index2indexdegree(x) -> (dx, degree)
+
+Return the degree-relative index and the degree of the element
+at position `x`.
+"""
+function index2indexdegree(x::Integer)
+    n = index2row(x)
+    d = x - row2index(n)
+    n - degree2row(d), d
+end
+
+"""
+    indexdegree2index(dx, d) -> index
+
+Return the index of the element , which is identified by
+its degree-relative index and its degree.
+"""
+function indexdegree2index(x::Integer, d::Integer)
+    row2index(degree2row(d) + x) + d
+end
+
+"""
+    row2index(r)
+
+For row id `r` return index of degree `0` element of that row.
+Rows are zero-based.
+"""
+function row2index(r)
+    xl = row2degree(r) + 1
+    xl * widen(r) + xl - one(widen(r))<<xl + 1
+end
+
+"""
+    index2row(x)
+
+For the zero based index `x` return the row id, in which the
+element number `x` is located.
+"""
+function index2row(y)
+    function _index2row(x, y0, y1)
+        xl = row2degree(x)
+        d, r = fldmod(y0 + one(x)<<(xl-1), xl + 1)
+        (r<<2 + y1 + xl) ÷ (xl + one(x)) + d<<2 - 2one(x)
+    end
+    iszero(y) && return y
+    y0, y1 = fldmod(y, 1<<2)
+    x0 = y
+    x1 = _index2row(x0, y0, y1)
+    while x0 > x1
+        x0 = x1
+        x1 = _index2row(x0, y0, y1)
+    end
+    x0
+end
+
+"""
+    degree2index(d)
+
+For degree `d` return the index of the first element
+of that degree.
+"""
+function degree2index(n)
+    big(2)^n  * (n - 1) + n + 1
+end
+
+"""
+    row2degree(r)
+
+Return the maximal degree of elements in row number `r`.
+This is the fundamantal definition of the shape of the table.
+"""
+function row2degree(r)
+    r <= 0 && return zero(r) 
+    ilog2((r - 1) >> 1 + 1) + 1
+end
+
+"""
+    degree2row(d)
+
+For degree `d` return the row of the first element
+of that degree.
+Inverse of `row2degree`.
+"""
+function degree2row(n)
+    big(2)^n - 1
+end
