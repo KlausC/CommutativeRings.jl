@@ -201,10 +201,11 @@ factors(n::Integer) = factors(factor(n).pe)
     select_k_from_n(x, n, k)
 
 For `x` in the range `1:binomial(n,k)` find subset of size `k` from `1:n` with number `x`.
-The order given to the subsets is no way canonically.
+Each suset is represented by an ordered vector of integers.
+The order given to the subsets is by reverse tuple order (last element most significant).
 """
 function select_k_from_n(x::T, n::Integer, k::Integer) where T<:Integer
-    @assert 0 < x <= binomial(n, k) && 0 <= k <= n && 0 <= n
+    # @assert 0 < x <= binomial(n, k) && 0 <= k <= n && 0 <= n
     if n <= 0 || k <= 0
         T[]
     elseif k == 1
@@ -222,18 +223,18 @@ function select_k_from_n(x::T, n::Integer, k::Integer) where T<:Integer
 end
 
 """
-    select_n_tuple(x, n)
+    hypercube(x, n)
 
-Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 1.
-The tuples `1:x` are contained in cube `[-k:k]^n` with `k = ceil((x ^ (1/n) - 1) / 2)`.
-Also tuple number `(2k+1)^n` is always `-k*ones(n)`.
+Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 0.
+The tuples `0:(2k+1)^n-1` are contained in n-dimensional hypercube `[-k:k]^n`.
+Tuple number `(2k+1)^n-1` is always `-k*ones(n)`.
 The implied order is no way canonical. 
 """
-function select_n_tuple(x::T, n::Integer, oneside::Bool = false) where T<:Integer
-    if n <= 0 || x <= 1
+function hypercube(x::T, n::Integer, half::Val{P} = Val(false)) where {T<:Integer,P}
+    if n <= 0 || x <= 0
         return zeros(T, n)
     end
-    sides = ifelse(oneside, 1, 2)
+    sides = ifelse(P, 1, 2)
     #=
     k = one(T)
     while k ^ n < x
@@ -242,36 +243,39 @@ function select_n_tuple(x::T, n::Integer, oneside::Bool = false) where T<:Intege
     k -= 2
     =#
     #@assert k == ((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1 "$k == $(((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1)"
-    km = (iroot(x - 1, n) + 1 ) ÷ sides
+    km = (iroot(x, n) + sides - 1) ÷ sides
     k = sides * (km - 1) + 1
     kn = k ^ n
     x -= kn
-    ti = T(1)
-    bi = T(1)
+    mi = T(1)
+    ei = T(1)
     ki = kn
     for i = 1:n
-        ti *= sides # sides^i
-        bi = bi * (n - i + 1) ÷ i # binomial(n, i)
+        mi *= sides # sides^i
+        ei = ei * (n - i + 1) ÷ i # binomial(n, i)
         ki ÷= k # k ^ (n - i)
-        @assert ti == sides ^ i
-        @assert bi == binomial(n, i)
-        @assert ki == k ^ (n - i)
-
-        t = ti * ki * bi
-        if x <= t
-            x, m = fldmod(x - 1, ti)
-            x, e = fldmod(x, bi)
-            return selecttuple(x + 1, e + 1, m, n, km, i)
+        t = mi * ei * ki
+        if x < t
+            m, e, x = linear2triple(x, mi, ei, ki)
+            return selecttuple(x, e, m, n, km, i, half)
         else
             x -= t
         end
     end
+    throw(ErrorException("should not be reachable"))
 end
-function selecttuple(x, e, m, n, km, i)
-    # on a n - i dimensional edge (i > 0)
-    ne = select_k_from_n(e, n, i)
-    p = perm(n, ne)
-    q = select_n_tuple(x, n-i)
+function linear2triple(x, aa, bb, cc)
+    x, a = fldmod(x, aa)
+    x, b = fldmod(x, bb)
+    c = x
+    @assert c < cc
+    (a, b, c)
+end
+function selecttuple(x, e, m, n, km, i, half)
+    # on a n - i dimensional edge (i ∈ 1:n)
+    ne = select_k_from_n(e + 1, n, i) # i edge coordinate numbers
+    p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
+    q = hypercube(x, n-i, half) # values for n-i inner coordinates
     r = similar(q, n)
     for j = 1:i
         r[p[j]] = bincoord(m, j-1) * km
@@ -308,9 +312,10 @@ Integer root: the largest integer `m` such that `m^n <= a`.
 """
 function iroot(s::Integer, n::Integer)
     iszero(s) && return s
-	x0 = oftype(s, ceil(s ^ (1/n)))
+	x0 = oftype(s, ceil(s ^ (1/(n))))
     up(x) = ( s ÷ x ^ (n - 1) + x * (n - 1) ) ÷ n
-    x1 = up(x0)		
+    x0 = up(x0)
+    x1 = up(x0)
 	while x1 < x0
 	    x0 = x1
 		x1 = up(x0)
