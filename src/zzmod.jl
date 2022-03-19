@@ -96,7 +96,7 @@ end
 *(a::Integer, b::T) where T<:ZZmod = T(mult_ZZmod(a, b.val, modulus(T)), NOCHECK)
 
 inv(a::T) where T<:ZZmod = T(invmod2(a.val, modulus(T)), NOCHECK)
-(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
+^(a::T, n::Integer) where T<:ZZmod = T(powermod(a.val, n, modulus(T)), NOCHECK)
 
 isunit(x::T) where T<:ZZmod = gcd(modulus(T), x.val) == 1
 iszero(x::ZZmod) = iszero(x.val)

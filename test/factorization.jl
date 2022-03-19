@@ -39,3 +39,11 @@ end
     @test factor(p) == [-one(x) => 1, x + 1 => 3]
 end
 
+@testset "factor non-monomic univar polynomial" begin
+    P = ZZ{BigInt}[:x]
+    x = monom(P)
+    p = 2x^3 + 7x^2 + x + 1
+    @test factor(p)[1][1] == p
+    @test factor(p, 30)[1][1] == p(x^30)
+    @test_broken factor(p, 40)[1][1] == p(x^40)
+end
