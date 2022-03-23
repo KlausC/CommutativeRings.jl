@@ -1,6 +1,7 @@
 using Test
 using CommutativeRings
 
+#=
 @testset "generic" begin include("generic.jl") end
 @testset "typevars" begin include("typevars.jl") end
 @testset "ZZ" begin include("zz.jl") end
@@ -15,6 +16,7 @@ using CommutativeRings
 @testset "intfactors" begin include("intfactorization.jl") end
 @testset "galoisfields" begin include("galoisfields.jl") end
 @testset "numbertheory" begin include("numbertheoretical.jl") end
+=#
 @testset "enumerations" begin include("enumerations.jl") end
 @testset "linearalgebra" begin include("linearalgebra.jl") end
 #@testset "gcd" begin include("gcd.jl") end

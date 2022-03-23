@@ -38,6 +38,7 @@ end
 
 using CommutativeRings: hypercube
 using CommutativeRings: row2index, index2row, index2indexdegree, indexdegree2index, row2degree, degree2row, iroot
+using CommutativeRings: EnumHalf, EnumFull, EnumCube, EnumPolynomial
 
 function fullset(n, j, k)
     n == 0 && return [Int[]]
@@ -54,13 +55,13 @@ end
 
 @testset "enumerate Z^$n - $k" for n = 1:5, k = 1:2
     @test Set(hypercube.(0:(2k+1)^n-1, n)) == fullset(n, -k, k)
-    @test Set(hypercube.(0:(k+1)^n-1, n, Val(true))) == fullset(n, 0, k)
+    @test Set(hypercube.(0:(k+1)^n-1, n, EnumCube(), EnumHalf())) == fullset(n, 0, k)
 end
 @testset "enumerate big" begin
     x = big(2)^2400
     @test iroot(x, 6) == big(2)^400
     @test hypercube(big(3)^2400, 6) == [(big(3)^400 + 1) ÷ 2,0,0,0,0,0]
-    @test hypercube(big(2)^2400, 6, Val(true)) == [big(2)^400,0,0,0,0,0]
+    @test hypercube(big(2)^2400, 6, EnumCube(), EnumHalf()) == [big(2)^400,0,0,0,0,0]
 end
 
 @testset "enumerate polynomials" begin
