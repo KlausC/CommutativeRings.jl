@@ -222,28 +222,34 @@ function select_k_from_n(x::T, n::Integer, k::Integer) where T<:Integer
     end
 end
 
+abstract type EnumKind end
+abstract type EnumWidth <: EnumKind end
+struct EnumFull <: EnumWidth end
+struct EnumHalf <: EnumWidth end
+abstract type EnumZero <: EnumKind end
+struct EnumCube <: EnumZero end
+struct EnumPolynomial <: EnumZero end
+Base.BroadcastStyle(::Type{<:EnumKind}) = Base.Broadcast.DefaultArrayStyle{0}()
+Base.length(::EnumKind) = 1
+Base.iterate(a::EnumKind, s...) = isempty(s) ? (a, nothing) : nothing
+
+numsides(::EnumHalf) = 1
+numsides(::EnumFull) = 2
+
 """
-    hypercube(x, n)
+    hypercube(x, n, EnumCube(), [EnumFull(), EnumHalf()])
 
 Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 0.
 The tuples `0:(2k+1)^n-1` are contained in n-dimensional hypercube `[-k:k]^n`.
 Tuple number `(2k+1)^n-1` is always `-k*ones(n)`.
 The implied order is no way canonical. 
 """
-function hypercube(x::T, n::Integer, half::Val{P} = Val(false)) where {T<:Integer,P}
-    if n <= 0 || x <= 0
+function hypercube(x::T, n::Integer, ez::EnumCube=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,P}
+    if n <= 0 || ez isa EnumCube && x == 0
         return zeros(T, n)
     end
-    sides = ifelse(P, 1, 2)
-    #=
-    k = one(T)
-    while k ^ n < x
-        k += 2
-    end
-    k -= 2
-    =#
-    #@assert k == ((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1 "$k == $(((iroot(x - 1, n) + 1 ) ÷ 2) * 2 - 1)"
-    km = (iroot(x, n) + sides - 1) ÷ sides
+    sides = numsides(ew)
+    km = (diameter(ez, x, n) + sides - 1) ÷ sides
     k = sides * (km - 1) + 1
     kn = k ^ n
     x -= kn
@@ -257,13 +263,69 @@ function hypercube(x::T, n::Integer, half::Val{P} = Val(false)) where {T<:Intege
         t = mi * ei * ki
         if x < t
             m, e, x = linear2triple(x, mi, ei, ki)
-            return selecttuple(x, e, m, n, km, i, half)
+            return selecttuple1(x, e, m, n, km, i, ez, ew)
         else
             x -= t
         end
     end
     throw(ErrorException("should not be reachable"))
 end
+"""
+    hypercube(x, n, EnumPolynomial(), [EnumFull(), EnumHalf()])
+
+Return the `x`-th `n`-tuple of integers where the last element is not zero.
+The implied order is no way canonical. 
+"""
+function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull()) where {T<:Integer,P}
+    if n <= 0
+        return zeros(T, n)
+    end
+    sides = numsides(ew)
+    km = (diameter(ez, sides * x, n) + sides - 1) ÷ sides
+    k = sides * (km - 1) + 1
+    kn = k ^ (n - 1)
+    kn1 = kn * (k - 1) ÷ sides
+    kn *= k
+    println("x=$x km = $km k = $k kn = $kn kn1 = $kn1")
+    x -= kn1
+    mi = T(1)
+    ei1 = T(1)
+    ki = kn
+    ki1 = kn1
+    for i = 1:n
+        mi1 = mi
+        mi *= sides # sides^i
+        ei = ei1 # binomial(n-1, i-1)
+        ei1 = ei1 * (n - i) ÷ i # binomial(n-1, i)
+        ki ÷= k # k ^ (n - i)
+        ki1 ÷= k
+        @assert mi1 == sides ^ (i-1)
+        @assert ei == binomial(T(n-1), i-1)
+        @assert ki == T(k) ^ (n - i)
+        t = mi1 * ei * ki
+        println("i=$i x = $x $t = t = mi1*ei*ki = $mi1 * $ei * $ki")
+        if x < t
+            m, e, x = linear2triple(x, mi1, ei, ki)
+            return selecttuple2a(x, e, m, n, km, i, EnumCube(), ew)
+        else
+            x -= t
+        end
+        @assert mi == sides ^ i
+        @assert ei1 == binomial(T(n-1), i)
+        @assert ei1 == 0 || ki1 == (T(k)^(n-i) - T(k)^(n-i-1) ) ÷ 2
+        t = mi * ei1 * ki1
+        println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
+        if x < t
+            m, e, x = linear2triple(x, mi, ei1, ki1)
+            return selecttuple2b(x, e, m, n, km, i, ez, ew)
+        else
+            x -= t
+        end
+    end
+
+    throw(ErrorException("should not be reachable"))
+end
+
 function linear2triple(x, aa, bb, cc)
     x, a = fldmod(x, aa)
     x, b = fldmod(x, bb)
@@ -271,11 +333,11 @@ function linear2triple(x, aa, bb, cc)
     @assert c < cc
     (a, b, c)
 end
-function selecttuple(x, e, m, n, km, i, half)
+function selecttuple1(x, e, m, n, km, i, ez::EnumCube, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
     ne = select_k_from_n(e + 1, n, i) # i edge coordinate numbers
     p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
-    q = hypercube(x, n-i, half) # values for n-i inner coordinates
+    q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
     r = similar(q, n)
     for j = 1:i
         r[p[j]] = bincoord(m, j-1) * km
@@ -284,26 +346,59 @@ function selecttuple(x, e, m, n, km, i, half)
         r[p[j]] = q[j-i]
     end
     r
-end 
+end
+function selecttuple2a(x, e, m, n, km, i, ez::EnumCube, ew)
+    # on a n - i dimensional edge (i ∈ 1:n)
+    ne = select_k_from_n(e + 1, n - 1, i - 1) # i - 1 edge coordinate numbers
+    ne = [ne; n]
+    p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
+    q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
+    r = similar(q, n)
+    for j = 1:i
+        r[p[j]] = bincoord(m, j-1) * km
+    end
+    for j = i+1:n
+        r[p[j]] = q[j-i]
+    end
+    r
+end  
+function selecttuple2b(x, e, m, n, km, i, ez::EnumPolynomial, ew)
+    # on a n - i dimensional edge (i ∈ 1:n)
+    ne = select_k_from_n(e + 1, n - 1, i) # i edge coordinate numbers
+    p = [perm(n - 1, ne); n] # permutation of the coordinate numbers - edge coordinates first
+    select_tail(x, n, i, m, km, ez, ew, p)
+end
+
+function select_tail(x, n, i, m, km, ez, ew, p)
+    q = hypercube(x, n - i, ez, ew) # values for n-i-1 inner coordinates
+    r = similar(q, n)
+    for j = 1:i
+        r[p[j]] = bincoord(m, j-1) * km
+    end
+    for j = i+1:n
+        r[p[j]] = q[j-i]
+    end
+    r
+end
 
 function perm(n::Integer, ne::AbstractVector{<:Integer})
-    @assert all(0 .< ne .<= n)
-    p = copyto!(similar(ne, n), 1:n)
-    q = copy(p)
-    for i = 1:length(ne)
-        nei = ne[i]
-        b = p[i]
-        a = q[nei]
-        p[i], p[a] = p[a], b
-        q[nei] = i
-        q[b] = a  
-    end
-    p
+    # @assert all(0 .< ne .<= n)
+    [ne; setdiff(1:n, ne)]
 end
 
 function bincoord(x::Integer, k::Integer)
     ifelse(iseven(x >> k), 1, -1)
 end
+
+function diameter(::EnumCube, x, n)
+    iroot(x, n)
+end
+function diameter(::EnumPolynomial, x, n)
+    r = iroot(x, n)
+    (r + 1)^(n-1) * r > x ? r : r + 1
+end
+
+Base.binomial(x::Int128, y::Integer) = binomial(big(x), y)
 
 """
     iroot(a::Integer, n::Integer)
@@ -312,17 +407,58 @@ Integer root: the largest integer `m` such that `m^n <= a`.
 """
 function iroot(s::Integer, n::Integer)
     iszero(s) && return s
-	x0 = oftype(s, ceil(s ^ (1/(n))))
-    up(x) = ( s ÷ x ^ (n - 1) + x * (n - 1) ) ÷ n
-    x0 = up(x0)
-    x1 = up(x0)
+	x0 = oftype(s, ceil(s ^ (1/n)))
+    x0 = up(x0, s, n)
+    x1 = up(x0, s, n)
 	while x1 < x0
 	    x0 = x1
-		x1 = up(x0)
+		x1 = up(x0, s, n)
     end
     x0
 end
- 
+function up(x,s, n)
+    pd = powerdiv(s, x, n - 1)
+    pd >= x ? fld(pd - x, n) + x : fld(pd + (n - 1) * x, n)
+end
+
+"""
+    powerdiv(s::Integer, x::Integer, p::Integer)
+
+Calculate `fld(s, x^p)`` without overflow for `s, x, p >= 0`
+"""
+function powerdiv(s::Integer, x::Integer, p::Integer)
+    s, x = promote(s, x)
+    if p == 1
+        return fld(s, x)
+    elseif p == 0
+        return s
+    elseif p == 2
+        return fld(fld(s, x), x)
+    elseif p < 0
+        throw(ArgumentError("powerdiv negative exponents not supported"))
+    end
+    sx = fld(s, x)
+    (iszero(sx) || isone(abs(x)) ) && return sx
+    t = trailing_zeros(p) + 1
+    p >>= t
+    while (t -= 1) > 0
+        sx = fld(sx, x)
+        x *= x
+    end
+    sy = sx
+    while p > 0 && !iszero(sy)
+        t = trailing_zeros(p) + 1
+        p >>= t
+        while (t -= 1) >= 0
+            sx = fld(sx, x)
+            iszero(sx) && return sx 
+            x *= x 
+        end
+        sy = fld(sy, x) 
+    end  
+    return sy
+end
+
 """ 
     ilog2(a::Integer)::Int 
  

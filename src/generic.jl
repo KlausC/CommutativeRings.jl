@@ -203,7 +203,7 @@ isdiv(a::T, b::T) where T <: Ring = iszero(rem(a, b))
 """
     iscoprime(a, b)
 
-Return if there is a non-unit common divisor of `a` and `b`.
+Return if there is no non-unit common divisor of `a` and `b`.
 """
 iscoprime(a::T, b::T) where T<:Ring = isunit(a) || isunit(b)
 
@@ -279,6 +279,7 @@ function gcdx(a::T, b::T) where T<:Ring
     t0, t1 = s1, s0
     # invariant: a * s0 + b * t0 == gcd(a, b)
     while !iszero(b)
+        ##println("gcdx($a, $b) T = $T")
         q, r = divrem2(a, b)
         a, b = b, r
         issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
