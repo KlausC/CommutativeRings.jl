@@ -403,12 +403,17 @@ Base.binomial(x::Int128, y::Integer) = binomial(big(x), y)
 """
     iroot(a::Integer, n::Integer)
 
-Integer root: the largest integer `m` such that `m^n <= a`.
+Integer root: the largest integer `m` such that `m^n <= a`. Assumes `a >= 0` and `n > 0`.
 """
 function iroot(s::Integer, n::Integer)
-    iszero(s) && return s
-	x0 = oftype(s, ceil(s ^ (1/n)))
-    x0 = up(x0, s, n)
+    if iszero(s) || isone(n)
+        return s
+    elseif n == 2
+        return isqrt(s)
+    end
+	x1 = aroot(s, n)
+    x0 = up(x1, s, n)
+    x0 == x1 && return x0
     x1 = up(x0, s, n)
 	while x1 < x0
 	    x0 = x1
@@ -457,6 +462,18 @@ function powerdiv(s::Integer, x::Integer, p::Integer)
         sy = fld(sy, x) 
     end  
     return sy
+end
+
+"""
+    aroot(s, n)
+
+Calculate approximately (53 bits) `s^(1/n)`
+"""
+function aroot(s, n)
+    p = ilog2(s)
+    i, j = divrem(p, n)
+    t = log2(float(Int64(s >> (p - 54))))
+    oftype(s, ceil(ldexp(exp2((t + (j - 54)) / n), 54))) << (i - 54)
 end
 
 """ 
