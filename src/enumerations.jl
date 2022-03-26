@@ -200,26 +200,51 @@ factors(n::Integer) = factors(factor(n).pe)
 """
     select_k_from_n(x, n, k)
 
-For `x` in the range `1:binomial(n,k)` find subset of size `k` from `1:n` with number `x`.
-Each suset is represented by an ordered vector of integers.
+For `x` in the range `0:binomial(n,k)-1` find subset of size `k` of `1:n` with number `x`.
+Each subset is represented by an ordered vector of integers from `1:n`.
 The order given to the subsets is by reverse tuple order (last element most significant).
 """
-function select_k_from_n(x::T, n::Integer, k::Integer) where T<:Integer
+function select_k_from_n(x::T, n::S, k::Integer) where {S<:Integer,T<:Integer}
+    r = zeros(S, k)
+    select_k_from_n!(r, x, n, k)
+end
+function select_k_from_n!(r::AbstractVector{<:Integer}, x::T, n::Integer, k::Integer) where T<:Integer
     # @assert 0 < x <= binomial(n, k) && 0 <= k <= n && 0 <= n
-    if n <= 0 || k <= 0
-        T[]
-    elseif k == 1
-        [x]
-    elseif n == 1
-        T[1]
-    else
-        t = binomial(T(n-1), T(k))
-        if x <= t
-            select_k_from_n(x, n - 1, k)
+    t = binomial(T(n), k)
+    while k > 0
+        if k == 1
+            r[1] = x + 1
+            k -= 1
         else
-            push!(select_k_from_n(x - t, n - 1, k - 1), n)
+            m = n
+            n -= 1
+            s = t
+            t = (t * (m - k)) ÷ m
+            #@assert binomial(n, k) == t
+            if x >= t
+                x -= t
+                r[k] = m
+                t = s * k ÷ m
+                k -= 1
+                #@assert binomial(n, k) == t
+            end
         end
     end
+    r
+end
+"""
+    index_of_select(v::AbstractVector{<:Integer}[, Type{<:Integer}])
+
+Gives the one-based index of integer vector `v` in the canonical sequence of `select_k_from_n`.
+Reverse of `select_k_from_n`. Assuming `v` is strictly sorted and positive.
+"""
+function index_of_select(v::AbstractVector{<:Integer}, ::Type{T}=Int) where T <: Integer
+    n = length(v)
+    s = zero(T)
+    for i = 1:n
+        s += binomial(T(v[i]) - 1, i)
+    end
+    s
 end
 
 abstract type EnumKind end
@@ -262,7 +287,7 @@ function hypercube(x::T, n::Integer, ez::EnumCube=EnumCube(), ew::EnumWidth=Enum
         ki ÷= k # k ^ (n - i)
         t = mi * ei * ki
         if x < t
-            m, e, x = linear2triple(x, mi, ei, ki)
+            m, e, x = linear2tuple(x, (mi, ei, ki))
             return selecttuple1(x, e, m, n, km, i, ez, ew)
         else
             x -= t
@@ -305,7 +330,7 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
         t = mi1 * ei * ki
         println("i=$i x = $x $t = t = mi1*ei*ki = $mi1 * $ei * $ki")
         if x < t
-            m, e, x = linear2triple(x, mi1, ei, ki)
+            m, e, x = linear2tuple(x, (mi1, ei, ki))
             return selecttuple2a(x, e, m, n, km, i, EnumCube(), ew)
         else
             x -= t
@@ -316,7 +341,7 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
         t = mi * ei1 * ki1
         println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
         if x < t
-            m, e, x = linear2triple(x, mi, ei1, ki1)
+            m, e, x = linear2tuple(x, (mi, ei1, ki1))
             return selecttuple2b(x, e, m, n, km, i, ez, ew)
         else
             x -= t
@@ -326,16 +351,27 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
     throw(ErrorException("should not be reachable"))
 end
 
-function linear2triple(x, aa, bb, cc)
-    x, a = fldmod(x, aa)
-    x, b = fldmod(x, bb)
-    c = x
-    @assert c < cc
-    (a, b, c)
+function linear2tuple(x::Integer, b::NTuple{N,T}) where {N,T<:Integer}
+    r = Vector{T}(undef,N)
+    for i = 1:N-1
+        x, r[i] = fldmod(x, b[i])
+    end
+    r[N] = x
+    @assert r[N] < b[N]
+    tuple(r...)
 end
+
+function tuple2linear(t::NTuple{N,Integer}, b::NTuple{N,Integer}, ::Type{R}=BigInt) where {N,R<:Integer}
+    x = R(t[N])
+    for i = N-1:-1:1
+        x = x * b[i] + t[i]
+    end
+    x
+end
+
 function selecttuple1(x, e, m, n, km, i, ez::EnumCube, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
-    ne = select_k_from_n(e + 1, n, i) # i edge coordinate numbers
+    ne = select_k_from_n(e, n, i) # i edge coordinate numbers
     p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
     q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
     r = similar(q, n)
@@ -349,7 +385,7 @@ function selecttuple1(x, e, m, n, km, i, ez::EnumCube, ew)
 end
 function selecttuple2a(x, e, m, n, km, i, ez::EnumCube, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
-    ne = select_k_from_n(e + 1, n - 1, i - 1) # i - 1 edge coordinate numbers
+    ne = select_k_from_n(e, n - 1, i - 1) # i - 1 edge coordinate numbers
     ne = [ne; n]
     p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
     q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
@@ -364,7 +400,7 @@ function selecttuple2a(x, e, m, n, km, i, ez::EnumCube, ew)
 end  
 function selecttuple2b(x, e, m, n, km, i, ez::EnumPolynomial, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
-    ne = select_k_from_n(e + 1, n - 1, i) # i edge coordinate numbers
+    ne = select_k_from_n(e, n - 1, i) # i edge coordinate numbers
     p = [perm(n - 1, ne); n] # permutation of the coordinate numbers - edge coordinates first
     select_tail(x, n, i, m, km, ez, ew, p)
 end
@@ -488,7 +524,47 @@ end
 function ilog2(a::Base.BitInteger) 
     bpl = sizeof(a) * 8 
     bpl - 1 - leading_zeros(abs(a)) 
-end 
+end
+
+"""
+    inv_hypercube(v::AbstractVector{<:Integer}, EnumCube(), [EnumFull(), EnumHalf()])
+
+For a given integer vector `v` return the index `x`, which reconstructs `v` via `hypecube`.
+
+    x = inv_hypercube(v)
+implies
+
+    v = hypercube(x, length(v))
+"""
+function inv_hypercube(v::AbstractVector{T}, ::Type{R}=BigInt,
+                        ez::EnumCube=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,R<:Integer,S<:Integer}
+    n = length(v)
+    n == 0 && return zero(R)
+    km = maximum(abs, v)
+    km == 0 && return zero(R)
+    sides = numsides(ew)
+    k = sides * (km - 1) + 1
+    ne = findall(v) do x; abs(x) == km end
+    i = length(ne)
+    e = index_of_select(ne, R)
+    m = zero(R)
+    for j = 1:i
+        m |= ( v[ne[j]] < 0 ) << (j - 1)
+    end
+    p = findall(v) do x; abs(x) != km end
+    y = inv_hypercube(view(v, p), R, ez, ew)
+    x = zero(R)
+    bi = one(R)
+    si = one(R)
+    ki = R(k)^n
+    for j = 0:i-1
+        x += si * bi * ki
+        bi = (bi * (n - j)) ÷ (j+1)
+        si *= sides
+        ki ÷= k
+    end
+    x += tuple2linear((m, e, y), (si, bi, ki))
+end
 
 #=
 Assuming there is a zero-based enumeration of all elements of degree `d`

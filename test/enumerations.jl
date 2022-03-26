@@ -36,7 +36,7 @@ end
     @test factors(12) |> collect |> sort == [1, 2, 3, 4, 6, 12]
 end
 
-using CommutativeRings: hypercube
+using CommutativeRings: hypercube, inv_hypercube
 using CommutativeRings: row2index, index2row, index2indexdegree, indexdegree2index, row2degree, degree2row, iroot
 using CommutativeRings: EnumHalf, EnumFull, EnumCube, EnumPolynomial
 
@@ -81,4 +81,10 @@ end
     if T != BigInt
         @test row2degree(typemax(T)) == row2degree(big(typemax(T)))
     end
+end
+
+@testset "inv_hypercube" begin
+    r = 0:11^3-1
+    v = hypercube.(r, 3)
+    @test inv_hypercube.(v) == r
 end
