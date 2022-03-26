@@ -36,7 +36,7 @@ end
     @test factors(12) |> collect |> sort == [1, 2, 3, 4, 6, 12]
 end
 
-using CommutativeRings: hypercube, inv_hypercube
+using CommutativeRings: hypercube, inv_hypercube, diameter
 using CommutativeRings: row2index, index2row, index2indexdegree, indexdegree2index, row2degree, degree2row, iroot
 using CommutativeRings: EnumHalf, EnumFull, EnumCube, EnumPolynomial
 
@@ -87,4 +87,10 @@ end
     r = 0:11^3-1
     v = hypercube.(r, 3)
     @test inv_hypercube.(v) == r
+    v = hypercube(196, 65)
+    @test inv_hypercube(v) == 196
+end
+
+@testset "issue dimeter division error" begin
+    @test iroot(196, 65) == 1
 end

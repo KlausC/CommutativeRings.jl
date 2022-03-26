@@ -457,7 +457,8 @@ function iroot(s::Integer, n::Integer)
     end
     x0
 end
-function up(x,s, n)
+function up(x, s, n)
+    x = x < 2 ? 2 : x
     pd = powerdiv(s, x, n - 1)
     pd >= x ? fld(pd - x, n) + x : fld(pd + (n - 1) * x, n)
 end
@@ -484,6 +485,7 @@ function powerdiv(s::Integer, x::Integer, p::Integer)
     p >>= t
     while (t -= 1) > 0
         sx = fld(sx, x)
+        iszero(sx) && return sx
         x *= x
     end
     sy = sx
