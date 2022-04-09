@@ -444,21 +444,30 @@ Integer root: the largest integer `m` such that `m^n <= a`. Assumes `a >= 0` and
 function iroot(s::Integer, n::Integer)
     if iszero(s) || isone(n)
         return s
-    elseif n == 2
-        return isqrt(s)
     end
+    t = trailing_zeros(n)
+    n = n >> t
+    while (t -= 1) >= 0
+        s = isqrt(s)
+        isone(s) && return s
+    end
+    isone(n) && return s
 	x1 = aroot(s, n)
+    if isone(x1)
+        n > ilog2(s) && return x1
+        x1 += x1
+    end
     x0 = up(x1, s, n)
     x0 == x1 && return x0
     x1 = up(x0, s, n)
 	while x1 < x0
+        println(x1)
 	    x0 = x1
 		x1 = up(x0, s, n)
     end
     x0
 end
 function up(x, s, n)
-    x = x < 2 ? 2 : x
     pd = powerdiv(s, x, n - 1)
     pd >= x ? fld(pd - x, n) + x : fld(pd + (n - 1) * x, n)
 end
@@ -466,40 +475,44 @@ end
 """
     powerdiv(s::Integer, x::Integer, p::Integer)
 
-Calculate `fld(s, x^p)`` without overflow for `s, x, p >= 0`
+Calculate `div(s, x^p)`` without overflow for `s, x, p >= 0`.
+Terminate calculation as soon as it is evident that the result will be zero.
 """
-function powerdiv(s::Integer, x::Integer, p::Integer)
-    s, x = promote(s, x)
-    if p == 1
-        return fld(s, x)
-    elseif p == 0
+function powerdiv(s::S, x::Integer, p::Integer) where S<:Integer
+    sig = sign(s) * (x >= 0 || iseven(p) ? one(s) : -one(s))
+    s, x = promote_unsigned(abs(s), abs(x))
+    _signed(S, _powerdiv(s, x, p)) * sig 
+end
+promote_unsigned(a::Integer, b::Integer) = promote(_unsigned(a), _unsigned(b))
+_signed(::Type{<:Unsigned}, x) = x
+_signed(::Type{<:Integer}, x) = signed(x)
+
+function _powerdiv(s::T, x::T, p::Integer) where T<:Union{Unsigned,BigInt}
+    if p == 0 || isone(x)
         return s
-    elseif p == 2
-        return fld(fld(s, x), x)
     elseif p < 0
         throw(ArgumentError("powerdiv negative exponents not supported"))
     end
-    sx = fld(s, x)
-    (iszero(sx) || isone(abs(x)) ) && return sx
+    z = zero(s)
+    s < x && return z
     t = trailing_zeros(p) + 1
     p >>= t
     while (t -= 1) > 0
-        sx = fld(sx, x)
-        iszero(sx) && return sx
-        x *= x
+        x, f = mul_with_overflow(x, x)
+        (f || s < x) && return z
     end
-    sy = sx
-    while p > 0 && !iszero(sy)
+    y = x
+    while p > 0
         t = trailing_zeros(p) + 1
         p >>= t
         while (t -= 1) >= 0
-            sx = fld(sx, x)
-            iszero(sx) && return sx 
-            x *= x 
+            x, f = mul_with_overflow(x, x)
+            (f || s < x) && return z
         end
-        sy = fld(sy, x) 
-    end  
-    return sy
+        y, f = mul_with_overflow(y, x)
+        (f || s < y) && return z
+    end
+    return div(s, y)
 end
 
 """
