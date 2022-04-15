@@ -65,4 +65,41 @@ end
     @test vv == [10, 20, 30]
 end
 
+@testset "factor in ZZ[x]" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    p = (x^2 + 3)^4 * (x^3 + 1)^3
+    f = factor(p)
+    @test length(f) == 3
+    @test f[1] == Pair(x + 1, 3)
+    @test f[2] == Pair(x^2 - x + 1, 3)
+    @test f[3] == Pair(x^2 + 3, 4)
+
+    p = x^100 - 1
+    f = factor(p)
+    @test length(f) == 9
+    for i = 1:9
+        u = first(f[i])
+        @test isirreducible(u)
+    end
+    f = factor(p, 2)
+    @test length(f) == 12
+
+    P = ZZ{BigInt}[:x]
+    x = monom(P)
+    p = 2x^3 + 7x^2 + x + 1
+    q = 3x^2 + 2
+
+    fac = factor(p * q)
+    @test prod(fac) == p * q
+    @test length(fac) == 2
+    @test isreducible(p * q)
+
+    fac = factor(p(x^40))
+    @test prod(fac) == p(x^40)
+    @test length(fac) == 1
+    @test isirreducible(p(x^40))
+    
+end
+
 end
