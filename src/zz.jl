@@ -60,7 +60,7 @@ lcm(a::T, b::T) where T<:ZZ = T(lcm(a.val, b.val))
 
 factor(a::Z) where Z <:ZZ = [Z(first(x)) => last(x) for x in Primes.factor(value(a))]
 isirreducible(a::ZZ) = isirreducible(a.val)
-isirreducible(a::Integer) = Primes.isprime(a)
+isirreducible(a::Integer) = abs(a) <= 1 || Primes.isprime(abs(a))
 
 Base.show(io::IO, z::ZZ) = print(io, z.val)
     
