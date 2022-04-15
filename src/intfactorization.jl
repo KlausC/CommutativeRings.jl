@@ -11,7 +11,7 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
 end
 
 function isirreducible(p::P) where P<:UnivariatePolynomial{<:ZZ}
-    deg(p) > 1 || return false
+    deg(p) > 1 || return true
     iszero(p[0]) && return false
     X = varname(P)
     Z = ZZ{BigInt}[X]
@@ -193,7 +193,7 @@ end
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
 function factor1(u::UnivariatePolynomial, a::Integer)
-    println("factor1($u, $a)")
+    #println("factor1($u, $a)")
     r = factor(u)
     a == 1 && return r
     b = a
@@ -254,10 +254,6 @@ This list `fac` contains one entry for each factor of `u`, which could be found,
 """
 function lift!(fac, i)
     u, v, a = fac[i]
-    println("lift!(fac, $i):")
-    println(u)
-    display(v)
-    display(a)
 
     bs = bezout_sum(v, a)
     @assert bs == 1

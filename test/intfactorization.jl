@@ -82,8 +82,8 @@ end
         u = first(f[i])
         @test isirreducible(u)
     end
-    f = factor(p, 2)
-    @test length(f) == 12
+    @test_broken factor(x^26 - 1)
+    # @test length(f) == 12
 
     P = ZZ{BigInt}[:x]
     x = monom(P)
@@ -95,11 +95,23 @@ end
     @test length(fac) == 2
     @test isreducible(p * q)
 
+    fac2 = factor(p^3 * q^2)
+    @test prod(fac2) == p^3 * q^2
+    @test length(fac2) == length(fac)
+
     fac = factor(p(x^40))
     @test prod(fac) == p(x^40)
     @test length(fac) == 1
     @test isirreducible(p(x^40))
+
+    p = x^10 - 1
+    facp = factor(p)
+    @test prod(facp) == p
     
+    q = 2^10 * x^10 - 3^10
+    facq = factor(q)
+    @test prod(facq) == q
+    @test length(facp) == length(facq)    
 end
 
 end
