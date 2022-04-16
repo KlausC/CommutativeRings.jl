@@ -10,17 +10,17 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
     end
 end
 
-function isirreducible(p::P) where P<:UnivariatePolynomial{<:ZZ}
+function isirreducible(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     deg(p) > 1 || return true
     iszero(p[0]) && return false
     X = varname(P)
     Z = ZZ{BigInt}[X]
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
-    zassenhaus_irr(q)
+    zassenhaus_irr(q; p0)
 end
 
-function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
@@ -34,7 +34,7 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
         r = yun(q)
         for (e, u) in enumerate(r)
             if !isone(u)
-                s = zassenhaus(u)
+                s = zassenhaus(u; p0)
                 append!(res, s .=> e)
             end
         end
@@ -85,51 +85,44 @@ function zassenhaus_unused_tomonic_etc(u)
     end
 end
 
-function zassenhaus(u)
-    zassenhaus(u, Val(false))
+function zassenhaus(u; p0)
+    zassenhaus2(u, Val(false); p0)
 end
 
-function zassenhaus(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}) where BO
+function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}; p0) where BO
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
-    zassenhaus(u, val)
-end
-function zassenhaus(u::UnivariatePolynomial{ZZ{BigInt}}, val::Val{BO}) where BO
-    p, res = zassenhaus2(u, 3, val)
-    while isempty(res)
-        p, res = zassenhaus2(u, p * 2, val)
-    end
-    res
+    zassenhaus2(u, val; p0)
 end
 
-D = []
+# D = []
 
-function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, p0, ::Val{BO}) where BO
-    v, p = best_prime(u, p0 + 1)
+function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where BO
+    v, p = best_prime(u, p0)
     a = allgcdx(v)
     #println(" initial v/$p = "); display([v a])
-    push!(D, u)
-    push!(D, v)
-    push!(D, a)
-    try
-        fac = combinefactors(u, v, a)
-        res = []
-        q = p
-        while !all_factors_irreducible!(res, fac, q)
-            if BO && length(res) >= 1 && deg(res[1]) < deg(u)
-                break
-            end
-            for i = 1:length(fac)
-                fac, q = lift!(fac, i)
-                push!(D, copy(fac))
-            end
+    #empty!(D)
+    #push!(D, u)
+    #push!(D, deepcopy(v))
+    #push!(D, deepcopy(a))
+    fac = combinefactors(u, v, a)
+    #push!(D, "combinefactors called")
+    #push!(D, deepcopy(fac))
+    res = typeof(u)[]
+    q = p
+    while !all_factors_irreducible!(res, fac, q)
+        #push!(D, "all_factors_irreducible! called")
+        #push!(D, deepcopy(fac))
+        if BO && length(res) >= 1 && deg(res[1]) < deg(u)
+            break
         end
-        (q, res)
-    catch
-        rethrow()
-        push!(D, "rethrown exception")
-        (p, [])
+        for i = 1:length(fac)
+            fac, q = lift!(fac, i)
+            #push!(D, "lifted $i")
+            #push!(D, deepcopy(fac))
+        end
     end
+    res
 end
 
 """
@@ -137,8 +130,8 @@ end
 
 Returns true iff the squarefree polynomial `u` is irreducible.
 """
-function zassenhaus_irr(u)
-    res = zassenhaus(u, Val(true))
+function zassenhaus_irr(u; p0=3)
+    res = zassenhaus2(u, Val(true); p0)
     isempty(res) || deg(res[1]) >= deg(u)
 end
 
@@ -265,16 +258,16 @@ function lift!(fac, i)
 end
 
 """
-    factormod
+    factormod(u::Polynomial[; p0])
 
 The procedure may be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
 """ 
-function factormod(u::P) where P<:UnivariatePolynomial{<:ZZ}
+function factormod(u::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = zassenhaus(u)
+    res = zassenhaus(u, p0)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
@@ -318,7 +311,12 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
                 if iszero(rd)
                     co = content(v)
                     v = v / co
-                    !isone(v) && push!(res, (v, subset_with_a(vv, d, aa)...))
+                    if !isone(v)
+                        vs, as = subset_with_a(vv, d, aa)
+                        ww = pprod(vv, ~d)
+                        as .= rem.(as .* ww, vs)
+                        push!(res, (v, vs, as))
+                    end
                     unc = un / co
                     un = LC(qd) / unc
                     unp = Zp(un)
@@ -327,8 +325,11 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
                     remove_subset!(vv, d)
                     remove_subset!(aa, d)
                     aa .= rem.(aa .* w, vv)
+                    #push!(D, "removed $v")
+                    #push!(D, deepcopy(vv))
+                    #push!(D, deepcopy(aa))
                     # println("reset levels: n = $n nv = $nv")
-                    break
+                    break # restart loop for new uu
                 end
             end
         end
@@ -340,14 +341,9 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
 end
 
 function subset_with_a(v, d, a)
-    s = subset(v, d)
-    b = if isempty(a)
-        allgcdx(s)
-    else
-        #allgcdx(s) # ??? should be derived (lifted) from a
-        subset(a, d)
-    end
-    s, b
+    vs = subset(v, d)
+    as = isempty(a) ? allgcdx(vs) : subset(a, d)
+    vs, as
 end
 
 function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
@@ -934,9 +930,13 @@ function bezout_sum(u::AbstractVector{T}, a::AbstractVector{T}) where T
     for i = n:-1:2
         right[i-1] = right[i] * u[i]
     end
-    sum = zero(T)
-    for i = 1:n
-        sum += left[i] * right[i] * a[i]
+    if n > 1
+        sum = zero(T)
+        for i = 1:n
+            sum += left[i] * right[i] * a[i]
+        end
+        sum
+    else
+        one(T)
     end
-    sum
 end

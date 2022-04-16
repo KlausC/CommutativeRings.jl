@@ -82,11 +82,15 @@ end
         u = first(f[i])
         @test isirreducible(u)
     end
-    @test_broken factor(x^26 - 1)
-    # @test length(f) == 12
 
     P = ZZ{BigInt}[:x]
     x = monom(P)
+
+    f = factor(x^22 - 1; p0 = 100)
+    @test length(f) == 4
+    f = factor(x^44 - 1; p0 = 100)
+    @test length(f) == 6
+
     p = 2x^3 + 7x^2 + x + 1
     q = 3x^2 + 2
 
