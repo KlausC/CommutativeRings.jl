@@ -414,13 +414,13 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
 
     V = liftmod.(Pqp, v)
     f = liftmod(Pqp, u) - prod(V) * Pqp(lc)
-    fp = map(x -> Zp(value(x) ÷ p), f) * lci
+    fp = downmod(Zp, f, p) * lci
     fi = rem.(a .* fp , v)
     V .+= liftmod.(Pqp, fi) * p
 
     A = liftmod.(Pqp, a)
     f = bezout_sum(V, A) - 1
-    fp = map(x -> Zp(value(x) ÷ q), f)
+    fp = downmod(Zp, f, q)
     fi = rem.(a .* fp, v)
     A .-= liftmod.(Pqp, fi) * q
 
@@ -429,6 +429,12 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
     @assert prod(V) * Pqp(lc) == Pqp(u)
     V, A, qp
 end
+
+function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolynomial{T,X}}
+    c = map(x->Zp(value(x) ÷ q), f.coeff)
+    UnivariatePolynomial{Zp,X}(c)
+end
+
 
 function liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
     Z(signed(T)(value(a)))
@@ -478,17 +484,6 @@ function Base.reverse!(p::P) where P<:UnivariatePolynomial
     end
     resize!(c, n)
     p
-end
-
-"""
-    map(f, p::Polynomial)
-
-Apply `f` to all coefficients of `p` and form new polynomial.
-The dgree is adapted.    
-"""
-function Base.map(f, p::P) where {X,T,P<:UnivariatePolynomial{T,X}}
-    c = map(f, p.coeff)
-    UnivariatePolynomial{eltype(c),X}(c)
 end
 
 """
