@@ -87,9 +87,11 @@ end
     x = monom(P)
 
     f = factor(x^22 - 1; p0 = 100)
+    @test prod(f) == x^22 - 1
     @test length(f) == 4
     f = factor(x^44 - 1; p0 = 100)
-    @test length(f) == 
+    @test prod(f) == x^44 - 1
+    @test length(f) == 6
 
     p = 2x^3 + 7x^2 + x + 1
     q = 3x^2 + 2
@@ -99,14 +101,14 @@ end
     @test length(fac) == 2
     @test isreducible(p * q)
 
-    fac2 = factor(p^3 * q^2)
-    @test prod(fac2) == p^3 * q^2
-    @test length(fac2) == length(fac)
+    fac2 = factor(p^3 * q^2 * x^100 * 2)
+    @test prod(fac2) == p^3 * q^2 * x^100 * 2
+    @test length(fac2) == length(fac) + 2
 
     fac = factor(p(x^40))
     @test prod(fac) == p(x^40)
     @test length(fac) == 1
-    @test isirreducible(p(x^40))
+    @test isirreducible(p(x^10))
 
     p = x^10 - 1
     facp = factor(p)
