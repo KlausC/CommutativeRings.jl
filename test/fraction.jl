@@ -25,7 +25,7 @@
     @test convert(F, 42) == F(84, 2)
     @test convert(F, 42 // 8) == 21 // 4
 
-    @test Frac(p, q) != nothing
+    @test Frac(p, q) !== nothing
     @test p // q == Frac(p, q)
     @test p // p == 1
     @test pq * pq == F(p * p, P([1, -2, 1]))

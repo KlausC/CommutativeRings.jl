@@ -9,7 +9,7 @@ struct LU_total{T,MT}
 end
 
 # find maximal element in A[i:end,j]
-function pivot(A::Matrix, i::Integer, j::Integer)
+function pivot(A::Matrix{T}, i::Integer, j::Integer) where T
     amax = abs(A[i,j])
     imax = i
     m = last(axes(A,1))
@@ -23,13 +23,13 @@ function pivot(A::Matrix, i::Integer, j::Integer)
     amax, imax
 end
 
-function swaprows(A::Matrix, pr::Vector, i::Integer, j::Integer)
+function swaprows(A::Matrix{T}, pr::Vector, i::Integer, j::Integer) where T
     pr[i], pr[j] = pr[j], pr[i]
     for k = axes(A, 2)
         A[i,k], A[j,k] = A[j,k], A[i,k]
     end
 end
-function swapcols(A::Matrix, pc::Vector, i::Integer, j::Integer)
+function swapcols(A::Matrix{T}, pc::Vector, i::Integer, j::Integer) where T
     pc[i], pc[j] = pc[j], pc[i]
     for k = axes(A, 1)
         A[k,i], A[k,j] = A[k,j], A[k,i]

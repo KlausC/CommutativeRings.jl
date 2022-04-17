@@ -24,7 +24,7 @@ function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
-    q = convert(Z, isone(c) ? p : p / c)
+    q = Z(isone(c) ? copy(p) : p / c)
     x = monom(Z)
     q, e = stripzeros!(q)
     res = Pair{Z,Int}[]
@@ -187,20 +187,21 @@ end
 
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
-function factor1(u::UnivariatePolynomial, a::Integer)
+function factor(u::P, a::Integer) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
-    r = factor(u)
-    a == 1 && return r
-    b = a
-    res = []
-    x = monom(typeof(u))
-    #afactors = drop(sort(collect(factors(a))), 1)
-    afactors = first.(factor(a).pe)
-    for (v, e) ∈ r
-        for ab in reverse(afactors)
-            b = a ÷ ab
-            s = factor1(v(x^ab), b)
-            append!(res, s)
+    res = Pair{P,Int}[]
+    x = monom(P)
+    for ab in sort(collect(factors(a)))
+        r = factor(u(x^ab))
+        ab == a && return r
+        if length(r) > 1        
+            for (v, e) ∈ r
+                b = a ÷ ab
+                s = factor(v, b)
+                for (p, x) in s
+                    push!(res, p => x * e)
+                end
+            end
             break
         end
     end
@@ -227,7 +228,7 @@ function all_factors_irreducible!(res, fac, p)
     for i = 1:length(fac)
         u, vv = fac[i]
         n2 = deg(u) ÷ 2
-        domessage = n2 > 10
+        domessage = n2 >= 50
         B = maximum(coeffbounds(u, n2))
         if length(vv) > 1 && 2 * B > p
             domessage && @warn "irreducibility of $u cannot be proved - p = $p B = $B"
@@ -269,7 +270,7 @@ function factormod(u::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = zassenhaus(u, p0)
+    res = zassenhaus(u; p0)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
@@ -305,7 +306,7 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
                 nv = n - nv
                 #println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
             end
-            if true || dividecheck(uu, unp, vv, d)
+            if dividecheck(uu, unp, vv, d)
                 w = pprod(vv, d)
                 v = Z(w * unp)
                 # println("pprod = $v  inv = $(Z(pprod(vv, ~d) * unp))")

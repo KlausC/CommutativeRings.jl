@@ -708,6 +708,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     a / (f / cc), s2 / cs, t2 / cs, f
 end
 
+import LinearAlgebra: sylvester
 """
     sylvester(u::P, v::P) where P<:UnivariatePolynomial
 
@@ -1312,7 +1313,7 @@ function hamilton_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
     hamilton_normal_form!(copy(a), u)
 end
 
-function hamilton_normal_form!(a::Matrix, u::Matrix)
+function hamilton_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
     m, n = size(a)
 
     for i = 1:min(m,n)-1

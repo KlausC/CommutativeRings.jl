@@ -2,7 +2,7 @@
 using CommutativeRings
 import CommutativeRings: ord2expo, expo2ord, cbin, varnames
 
-const Z = ZZ{Int}
+Z = ZZ{Int}
 
 @testset "index calculations" begin
     

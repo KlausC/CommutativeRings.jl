@@ -18,7 +18,7 @@ Frac{T}(a::Frac{T}) where T = a
 Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
 
 Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
-Frac{T}(a::Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
+Frac{T}(a::Base.Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
 Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
 Frac(a::T) where T<:Ring  = Frac{T}(a)
 Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
@@ -65,7 +65,8 @@ function (h::Hom{F,R,S})(a::Frac{<:R}) where {F,R,S}
     Frac(h.f(a.num), h.f(a.den))
 end
 
-Base.isless(p::T, q::T) where T<:Frac = isless(p.num * q.den, q.num * p.den)
+import Base: isless
+isless(p::T, q::T) where T<:Frac = isless(p.num * q.den, q.num * p.den)
 
 # operations for Frac
 

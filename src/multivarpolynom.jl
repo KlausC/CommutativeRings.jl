@@ -869,7 +869,7 @@ function reindex2(xa::AbstractVector, pos::AbstractVector{<:Integer}, n::Integer
 end
 
 function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
-    findfirst(iszero, pos) == nothing && return pos
+    findfirst(iszero, pos) === nothing && return pos
     i = findfirst(i->iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
     if i !== nothing
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))

@@ -14,7 +14,7 @@ copy(a::QQ) = typeof(a)(a.num,a.den)
 QQ{T}(a::QQ) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
 QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
-QQ{T}(a::Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
+QQ{T}(a::Base.Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 
 QQ(a::QQ{T}) where T = a
 QQ(a::ZZ{T}) where T = QQ{T}(a)
@@ -39,7 +39,7 @@ function QQ(a::S, b::T) where {S<:Integer,T<:Integer}
     QQ{R}(R(a), R(b))
 end
 QQ(num::T, den::T) where T = QQ{T}(num, den)
-Rational(a::QQ{T}) where T = Rational(a.num, a.den)
+Base.Rational(a::QQ{T}) where T = Base.Rational(a.num, a.den)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
 
 # promotion and conversion
