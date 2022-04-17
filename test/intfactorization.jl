@@ -65,4 +65,59 @@ end
     @test vv == [10, 20, 30]
 end
 
+@testset "factor in ZZ[x]" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    p = (x^2 + 3)^4 * (x^3 + 1)^3
+    f = factor(p)
+    @test length(f) == 3
+    @test f[1] == Pair(x + 1, 3)
+    @test f[2] == Pair(x^2 - x + 1, 3)
+    @test f[3] == Pair(x^2 + 3, 4)
+
+    p = x^100 - 1
+    f = factor(p)
+    @test length(f) == 9
+    for i = 1:9
+        u = first(f[i])
+        @test isirreducible(u)
+    end
+
+    P = ZZ{BigInt}[:x]
+    x = monom(P)
+
+    f = factor(x^22 - 1; p0 = 100)
+    @test prod(f) == x^22 - 1
+    @test length(f) == 4
+    f = factor(x^44 - 1; p0 = 100)
+    @test prod(f) == x^44 - 1
+    @test length(f) == 6
+
+    p = 2x^3 + 7x^2 + x + 1
+    q = 3x^2 + 2
+
+    fac = factor(p * q)
+    @test prod(fac) == p * q
+    @test length(fac) == 2
+    @test isreducible(p * q)
+
+    fac2 = factor(p^3 * q^2 * x^100 * 2)
+    @test prod(fac2) == p^3 * q^2 * x^100 * 2
+    @test length(fac2) == length(fac) + 2
+
+    fac = factor(p(x^40))
+    @test prod(fac) == p(x^40)
+    @test length(fac) == 1
+    @test isirreducible(p(x^10))
+
+    p = x^10 - 1
+    facp = factor(p)
+    @test prod(facp) == p
+    
+    q = 2^10 * x^10 - 3^10
+    facq = factor(q)
+    @test prod(facq) == q
+    @test length(facp) == length(facq)    
+end
+
 end

@@ -36,7 +36,7 @@ end
 
 Returns iff `p` is a reducible (prime) polynomial over field `F`. See also `factor`.
 """
-isreducible(p::UnivariatePolynomial{<:QuotientRing}) = !isirreducible(p)
+isreducible(p::UnivariatePolynomial) = !isirreducible(p)
 
 import Base.Iterators: Filter, take, drop
 """::UnivariatePolynomial{<:QuotientRing}

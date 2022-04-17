@@ -1000,7 +1000,7 @@ I.e. `ZZ/p` where `p` is not prime and `P[:x]/q` where `q` is the product of pol
 det_QR(a::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}} = det_QR!(copy(a))
 
 function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
-    println("det_QR!($D)")
+    #println("det_QR!($D)")
     n = checksquare(b)
     n == 0 && return one(D)
     s = one(D)

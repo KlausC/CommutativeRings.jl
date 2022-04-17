@@ -10,16 +10,17 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
     end
 end
 
-function isirreducible(p::P) where P<:UnivariatePolynomial{<:ZZ}
-    deg(p) > 1 || return false
+function isirreducible(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
+    deg(p) > 1 || return true
+    iszero(p[0]) && return false
     X = varname(P)
     Z = ZZ{BigInt}[X]
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
-    zassenhaus_irr(q)
+    zassenhaus_irr(q; p0)
 end
 
-function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
@@ -33,7 +34,7 @@ function factor(p::P) where P<:UnivariatePolynomial{<:ZZ}
         r = yun(q)
         for (e, u) in enumerate(r)
             if !isone(u)
-                s = zassenhaus(u)
+                s = zassenhaus(u; p0)
                 append!(res, s .=> e)
             end
         end
@@ -84,22 +85,41 @@ function zassenhaus_unused_tomonic_etc(u)
     end
 end
 
-function zassenhaus(u)
-    zassenhaus(u, Val(false))
+function zassenhaus(u; p0)
+    zassenhaus2(u, Val(false); p0)
 end
 
-function zassenhaus(u, ::Val{BO}) where BO
+function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}; p0) where BO
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
-    v, p = best_prime(u)
-    fac = combinefactors(u, v, [])
-    res = []
-    while !all_factors_irreducible!(res, fac, p)
+    zassenhaus2(u, val; p0)
+end
+
+# D = []
+
+function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where BO
+    v, p = best_prime(u, p0)
+    a = allgcdx(v)
+    #println(" initial v/$p = "); display([v a])
+    #empty!(D)
+    #push!(D, u)
+    #push!(D, deepcopy(v))
+    #push!(D, deepcopy(a))
+    fac = combinefactors(u, v, a)
+    #push!(D, "combinefactors called")
+    #push!(D, deepcopy(fac))
+    res = typeof(u)[]
+    q = p
+    while !all_factors_irreducible!(res, fac, q)
+        #push!(D, "all_factors_irreducible! called")
+        #push!(D, deepcopy(fac))
         if BO && length(res) >= 1 && deg(res[1]) < deg(u)
             break
         end
         for i = 1:length(fac)
-            fac, p = lift!(fac, i)
+            fac, q = lift!(fac, i)
+            #push!(D, "lifted $i")
+            #push!(D, deepcopy(fac))
         end
     end
     res
@@ -110,14 +130,14 @@ end
 
 Returns true iff the squarefree polynomial `u` is irreducible.
 """
-function zassenhaus_irr(u)
-    res = zassenhaus(u, Val(true))
+function zassenhaus_irr(u; p0=3)
+    res = zassenhaus2(u, Val(true); p0)
     isempty(res) || deg(res[1]) >= deg(u)
 end
 
 # find small prime number >= p0 for which number of 
 # factors modulo p is smallest
-function best_prime(u, p0=100000, kmax=5, vmin=10, vmax=15)
+function best_prime(u, p0=3, kmax=5, vmin=10, vmax=15)
 
     kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
 
@@ -166,7 +186,7 @@ end
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
 function factor1(u::UnivariatePolynomial, a::Integer)
-    println("factor1($u, $a)")
+    #println("factor1($u, $a)")
     r = factor(u)
     a == 1 && return r
     b = a
@@ -197,7 +217,7 @@ end
 Move factors, that are proved irreducible, from `fac` to `res`.
 Factors ar proved irreducible with respect to integer `p`, if either
 they cannot be reduced modulo `p`, or the absolute values of the coefficients
-are less than `B / 2`. `B` is an upper bound on the coefficients.
+are less than `p / 2`. `B` is an upper bound on the coefficients.
 Return `true` iff `fac` becomes empty.
 """
 function all_factors_irreducible!(res, fac, p)
@@ -223,31 +243,31 @@ end
     lift!(fac, i)
 
 Replace `(u, v, a) = fac[i]` with a list of lifted `(U, V, A)`.
-This list constains one entry for each factor of `u`, which could be found, but none of the U needs to be irreducible.
+This list `fac` contains one entry for each factor of `u`, which could be found, but none of the U needs to be irreducible.
 """
 function lift!(fac, i)
     u, v, a = fac[i]
-    lc = value(LC(u))
-    v[1] *= lc
-    # a = allgcdx(v)
-    V, p = hensel_lift(u, v, a)
-    V[1] = V[1] / lc
-    fac2 = combinefactors(u, V, [])
+
+    bs = bezout_sum(v, a)
+    @assert bs == 1
+    # @assert a == allgcdx(v)
+    V, A, p = hensel_lift(u, v, a)
+    fac2 = combinefactors(u, V, A)
     splice!(fac, i, fac2)
     fac, p
 end
 
 """
-    factormod
+    factormod(u::Polynomial[; p0])
 
 The procedure may be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
 """ 
-function factormod(u::P) where P<:UnivariatePolynomial{<:ZZ}
+function factormod(u::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = zassenhaus(u)
+    res = zassenhaus(u, p0)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
@@ -255,11 +275,12 @@ function factormod(u::P) where P<:UnivariatePolynomial{<:ZZ}
 end
 
 """
-    combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}})
+    combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}}, a::Vector{<:UnivariatePolynomial{ZZ/q}})
 
-Given integer polynomial `u` and `v` a squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).  
-Return vector of tuple containing integer polynomial factors `v`, vector with corresponding factorization.
-If their degree sums up to the degree of `u`, the factorization was successfull.
+Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).  
+Return vector of tuples containing integer polynomial factors `U`, `V` vector with corresponding factorization, and
+`A` corresponding factors.
+If degrees of `V` sums up to the degree of `U`, that indicates the factorization was successful.
 It is also possible, that only one factor is found.
 The factors are not proved to be irreducible.
 """
@@ -283,20 +304,32 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
                 #println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
             end
             if true || dividecheck(uu, unp, vv, d)
-                v = Z(pprod(vv, d) * unp)
+                w = pprod(vv, d)
+                v = Z(w * unp)
+                # println("pprod = $v  inv = $(Z(pprod(vv, ~d) * unp))")
                 qd, rd = divrem(uu, v)
                 if iszero(rd)
                     co = content(v)
                     v = v / co
-                    !isone(v) && push!(res, (v, subset_with_a(vv, d, aa)...))
+                    if !isone(v)
+                        vs, as = subset_with_a(vv, d, aa)
+                        ww = pprod(vv, ~d)
+                        as .= rem.(as .* ww, vs)
+                        push!(res, (v, vs, as))
+                    end
                     unc = un / co
                     un = LC(qd) / unc
                     unp = Zp(un)
                     # println("($qd) * $un / $unc")
                     uu = qd * un / unc
                     remove_subset!(vv, d)
+                    remove_subset!(aa, d)
+                    aa .= rem.(aa .* w, vv)
+                    #push!(D, "removed $v")
+                    #push!(D, deepcopy(vv))
+                    #push!(D, deepcopy(aa))
                     # println("reset levels: n = $n nv = $nv")
-                    break
+                    break # restart loop for new uu
                 end
             end
         end
@@ -308,13 +341,9 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
 end
 
 function subset_with_a(v, d, a)
-    s = subset(v, d)
-    b = if isempty(a)
-        allgcdx(s)
-    else
-        allgcdx(s)
-    end
-    s, b
+    vs = subset(v, d)
+    as = isempty(a) ? allgcdx(vs) : subset(a, d)
+    vs, as
 end
 
 function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
@@ -327,7 +356,7 @@ end
 """
     coeffbounds(u::Polygon, m)::Vector{<:Integer}
 
-Assuming `u` is a univariate polygon with integer coefficients and `LC(u) != 0 != u(0)`.
+Assuming `u` is a univariate polynomial with integer coefficients and `LC(u) != 0 != u(0)`.
 If `u` has a integer factor polynom `v` with `deg(v) == m`,
 calculate array of bounds `b` with `abs(v[i]) <= b[i+1] for i = 0:m`.
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 20.
@@ -336,7 +365,7 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
     I = widen(T)
     n = deg(u)
     0 <= m <= n || throw(ArgumentError("required m ∈ [0,deg(u)] but $m ∉ [0,$n]"))
-    accuracy = 100
+    accuracy = 100 # use fixed point decimal arithmetic with accuracy 0.01 for the norm
     un = abs(value(LC(u)))
     u0 = abs(value(u[0]))
     iszero(u0) && throw(ArgumentError("required u(0) != 0"))
@@ -377,17 +406,35 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
     Zq = basetype(Pq)
     p = modulus(Zp)
     q = modulus(Zq)
-    Zqp = ZZ/(widen(q)*widen(p))
+    Zqp = ZZ/(widemul(q, p))
     qp = modulus(Zqp)
     Pqp = Zqp[X]
+    lc = LC(u)
+    lci = inv(Zq(lc))
+
     V = liftmod.(Pqp, v)
-    V[1].coeff[end] = value(LC(u))
-    f = liftmod(Pqp, u) - prod(V)
-    fp = map(x -> Zp(value(x) ÷ q), f)
+    f = liftmod(Pqp, u) - prod(V) * Pqp(lc)
+    fp = downmod(Zp, f, p) * lci
+    fi = rem.(a .* fp , v)
+    V .+= liftmod.(Pqp, fi) * p
+
+    A = liftmod.(Pqp, a)
+    f = bezout_sum(V, A) - 1
+    fp = downmod(Zp, f, q)
     fi = rem.(a .* fp, v)
-    V .+= liftmod.(Pqp, fi) * q
-    V, qp
+    A .-= liftmod.(Pqp, fi) * q
+
+    @assert bezout_sum(V, A) == 1
+    #println("lifted V ="); display([V A])
+    @assert prod(V) * Pqp(lc) == Pqp(u)
+    V, A, qp
 end
+
+function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolynomial{T,X}}
+    c = map(x->Zp(value(x) ÷ q), f.coeff)
+    UnivariatePolynomial{Zp,X}(c)
+end
+
 
 function liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
     Z(signed(T)(value(a)))
@@ -437,17 +484,6 @@ function Base.reverse!(p::P) where P<:UnivariatePolynomial
     end
     resize!(c, n)
     p
-end
-
-"""
-    map(f, p::Polynomial)
-
-Apply `f` to all coefficients of `p` and form new polynomial.
-The dgree is adapted.    
-"""
-function Base.map(f, p::P) where {X,T,P<:UnivariatePolynomial{T,X}}
-    c = map(f, p.coeff)
-    UnivariatePolynomial{eltype(c),X}(c)
 end
 
 """
@@ -517,6 +553,11 @@ function subset(vv::AbstractVector, d)
     vv[preduce(push!, Int[], 1:length(vv), d)]
 end
 
+"""
+    remove_subset(v::Vector, bitmask::BitVector)
+
+Delete vector element `v[i]` for all `i` with `bitmask[i] == 1`.
+"""
 function remove_subset!(vv::AbstractVector, d)
     deleteat!(vv, preduce(push!, Int[], 1:length(vv), d))
 end
@@ -664,7 +705,7 @@ function enumx_slow(n::Integer, bits::Int)
     nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
     bits == 0 && return zero(n)
     if n >> (bits - 1) == 1
-        return nm - enumx(nm - n, bits)
+        return nm - enumx_slow(nm - n, bits)
     end
     s = zero(n)
     d = s
@@ -673,7 +714,7 @@ function enumx_slow(n::Integer, bits::Int)
         mm = binomial(bits - 1, k-1)
         if n < t || t <= 0
             m = n - s
-            return (enumx(m + d, bits - 1) << 1) + (m < mm)
+            return (enumx_slow(m + d, bits - 1) << 1) + (m < mm)
         end
         s = t
         d += mm
@@ -686,7 +727,8 @@ end
 
 For each `bits >= 0, n -> enumx(n, bits)` is a bijection of `0:2^bits-1`
 in a way that `enumx.(0:2^bits-1, bits)` is sorted by number of ones
-in two's complement representation. 
+in two's complement representation.
+In other words, `enumx.(0:n, bits)` is sorted by the bitcount.
 """
 function enumx(n::Integer, bits::Int)
     mask = (oftype(n, 1)<<bits) - 1
@@ -844,10 +886,10 @@ function allgcdx(v::AbstractVector{T}) where T
         s = div(s, vk)
         g, a, aa = gcdx(s, vk)
         @assert isone(g)
-#       println("g = $g, a = $a, c = $c, f = $f, p = $p, vk = $vk")
+        #println("g = $g, a = $a, aa = $aa, c = $c, s = $s, vk = $vk f = $f")
 #       isone(g) || throw(ArgumentError("factors must be coprime"))
-        r, w[k] = divrem(a * c, vk)
-        c = aa * c + r * s
+        r, w[k] = divrem(a * c / g, vk)
+        c = aa * c / g + r * s
     end
     w
 end
@@ -863,4 +905,33 @@ function check_mutual_coprime(v)
         end
     end
     nothing
+end
+
+"""
+    bezout_sum(u, a)
+
+Calculate the sum of products `a[i] * (prod(u) / u[i])`. Should be 1 if `a` are bezout factors of `u`.
+"""
+function bezout_sum(u::AbstractVector{T}, a::AbstractVector{T}) where T
+    n = length(a)
+    @assert n == length(u)
+    left = Vector{T}(undef, n)
+    right = Vector{T}(undef, n)
+    left[1] = one(T)
+    for i = 1:n-1
+        left[i+1] = left[i] * u[i]
+    end
+    right[n] = one(T)
+    for i = n:-1:2
+        right[i-1] = right[i] * u[i]
+    end
+    if n > 1
+        sum = zero(T)
+        for i = 1:n
+            sum += left[i] * right[i] * a[i]
+        end
+        sum
+    else
+        one(T)
+    end
 end

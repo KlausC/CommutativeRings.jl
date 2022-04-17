@@ -54,13 +54,12 @@ end
 end
 
 function /(a::T, b::T) where T<:Ring
-    if b isa Union{FractionRing,QuotientRing}
-        a * inv(b)
-    else
-        d, r = divrem(a, b)
-        iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
-        T(d)
-    end
+    d, r = divrem(a, b)
+    iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
+    T(d)
+end
+function /(a::T, b::T) where T<:Union{FractionRing,QuotientRing}
+    a * inv(b)
 end
 \(a::T, b::T) where T<:Ring = b / a
 ^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
