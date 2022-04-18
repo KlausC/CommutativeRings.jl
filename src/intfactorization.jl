@@ -360,7 +360,7 @@ end
     coeffbounds(u::Polygon, m)::Vector{<:Integer}
 
 Assuming `u` is a univariate polynomial with integer coefficients and `LC(u) != 0 != u(0)`.
-If `u` has a integer factor polynom `v` with `deg(v) == m`,
+If `u` has an integer factor polynom `v` with `deg(v) == m`,
 calculate array of bounds `b` with `abs(v[i]) <= b[i+1] for i = 0:m`.
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 20.
 """

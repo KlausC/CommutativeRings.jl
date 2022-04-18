@@ -3,6 +3,7 @@ module CommutativeRings
 using LinearAlgebra
 using Base.Checked
 using Primes
+using Random
 
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
@@ -34,9 +35,9 @@ export coeffbounds
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule, convert, abs, isless
+import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype
 import Primes: factor
-import Base: numerator, denominator
+import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
 
 # RingClass subtypes describe the different categories

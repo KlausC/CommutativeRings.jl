@@ -83,14 +83,14 @@ end
     end
 end
 
-@testset "inv_hypercube" begin
+@testset "inv_hypercube($E, $F)" for E in (EnumCube(), EnumPolynomial()), F in (EnumFull(), EnumHalf())
     r = 0:11^3-1
-    v = hypercube.(r, 3)
-    @test inv_hypercube.(v) == r
-    v = hypercube(196, 65)
-    @test inv_hypercube(v) == 196
+    v = hypercube.(r, 3, E, F)
+    E isa EnumCube && @test inv_hypercube.(v, Int, E, F) == r
+    v = hypercube(196, 65, E, F)
+    E isa EnumCube && @test inv_hypercube(v, Int, E, F) == 196
 end
 
-@testset "issue dimeter division error" begin
+@testset "issue diameter division error" begin
     @test iroot(196, 65) == 1
 end

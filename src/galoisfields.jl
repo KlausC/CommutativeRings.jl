@@ -11,7 +11,7 @@ Create a class of element type `GaloisField` of order `p^r`.
 If `nr != 0` is given, it triggers the use of an alternate modulus
 for the `GFImpl` class.
 
-Optionally either the modulus polynomial `mod` or a integer search modifier `nr` may be given
+Optionally either the modulus polynomial `mod` or an integer search modifier `nr` may be given
 to control the selection of the modulus polynomial.
 """
 function GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing)

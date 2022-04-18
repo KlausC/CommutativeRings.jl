@@ -153,13 +153,15 @@ function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     s, t = index(a - 1, len(T), len(T))
     T(ofindex(t+1, S), S(ofindex(s + 1, unsigned(S))))
 end
-function ofindex(a::Integer, P::Type{<:UnivariatePolynomial{S}}, d::Integer) where S
+function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
     P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
 end
 function ofindex(a::Integer, G::Type{<:GaloisField})
     G[mod(a, order(G))]
 end
-
+function ofindex(a::Integer, ::Type{P}, d::Integer) where {S<:ZZ,P<:UnivariatePolynomial{S}}
+    P(hypercube(a, d, EnumPolynomial()))
+end
 struct Factors{T<:Integer,P}
    f::P
    Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)
@@ -311,7 +313,7 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
     kn = k ^ (n - 1)
     kn1 = kn * (k - 1) ÷ sides
     kn *= k
-    println("x=$x km = $km k = $k kn = $kn kn1 = $kn1")
+    #println("x=$x km = $km k = $k kn = $kn kn1 = $kn1")
     x -= kn1
     mi = T(1)
     ei1 = T(1)
@@ -328,18 +330,18 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
         @assert ei == binomial(T(n-1), i-1)
         @assert ki == T(k) ^ (n - i)
         t = mi1 * ei * ki
-        println("i=$i x = $x $t = t = mi1*ei*ki = $mi1 * $ei * $ki")
+        #println("i=$i x = $x $t = t = mi1*ei*ki = $mi1 * $ei * $ki")
         if x < t
             m, e, x = linear2tuple(x, (mi1, ei, ki))
             return selecttuple2a(x, e, m, n, km, i, EnumCube(), ew)
         else
             x -= t
         end
+        println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
         @assert mi == sides ^ i
         @assert ei1 == binomial(T(n-1), i)
         @assert ei1 == 0 || ki1 == (T(k)^(n-i) - T(k)^(n-i-1) ) ÷ 2
         t = mi * ei1 * ki1
-        println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
         if x < t
             m, e, x = linear2tuple(x, (mi, ei1, ki1))
             return selecttuple2b(x, e, m, n, km, i, ez, ew)
@@ -461,7 +463,6 @@ function iroot(s::Integer, n::Integer)
     x0 == x1 && return x0
     x1 = up(x0, s, n)
 	while x1 < x0
-        println(x1)
 	    x0 = x1
 		x1 = up(x0, s, n)
     end
@@ -552,7 +553,7 @@ implies
     v = hypercube(x, length(v))
 """
 function inv_hypercube(v::AbstractVector{T}, ::Type{R}=BigInt,
-                        ez::EnumCube=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,R<:Integer,S<:Integer}
+                        ez::EnumZero=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,R<:Integer}
     n = length(v)
     n == 0 && return zero(R)
     km = maximum(abs, v)
