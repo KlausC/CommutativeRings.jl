@@ -337,7 +337,7 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
         else
             x -= t
         end
-        println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
+        #println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
         @assert mi == sides ^ i
         @assert ei1 == binomial(T(n-1), i)
         @assert ei1 == 0 || ki1 == (T(k)^(n-i) - T(k)^(n-i-1) ) ÷ 2

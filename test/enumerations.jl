@@ -83,7 +83,7 @@ end
     end
 end
 
-@testset "inv_hypercube($E, $F)" for E in (EnumCube(), EnumPolynomial()), F in (EnumFull(), EnumHalf())
+@testset "inv_hypercube($E, $F)" for (E, F) in ((EnumCube(), EnumFull()), (EnumCube() ,EnumHalf()), (EnumPolynomial(), EnumFull()))
     r = 0:11^3-1
     v = hypercube.(r, 3, E, F)
     E isa EnumCube && @test inv_hypercube.(v, Int, E, F) == r
