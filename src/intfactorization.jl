@@ -108,6 +108,7 @@ function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where B
     #push!(D, deepcopy(v))
     #push!(D, deepcopy(a))
     fac = combinefactors(u, v, a)
+    printfac(fac)
     #push!(D, "combinefactors called")
     #push!(D, deepcopy(fac))
     res = typeof(u)[]
@@ -120,6 +121,8 @@ function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where B
         end
         for i = 1:length(fac)
             fac, q = lift!(fac, i)
+            
+            printfac(fac)
             #push!(D, "lifted $i")
             #push!(D, deepcopy(fac))
         end
@@ -139,20 +142,20 @@ end
 
 # find small prime number >= p0 for which number of 
 # factors modulo p is smallest
-function best_prime(u, p0=3, kmax=5, vmin=10, vmax=15)
+function best_prime(u, p0=3, kmax=10, vmin=1, vmax=15)
 
-    kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
+    kbreak(vl) = min(vl <= vmin ? 0 : vl > vmax ? vmax : vl, kmax)
 
     un = LC(u)
     v, p = factormod(u, p0)
     q = p
     k = 0
     vl = length(v)
-    #println("find p = $p length(v) = $vl")
+    println("find p = $p length(v) = $vl $(deg.(v))")
     while k < kbreak(vl)
         w, q = factormod(u, q)
         wl = length(w)
-        #println("find p = $q length(v) = $wl")
+        println("find p = $q length(v) = $wl $(deg.(w))")
         if wl < vl
             vl = wl
             v = w
@@ -937,4 +940,12 @@ function bezout_sum(u::AbstractVector{T}, a::AbstractVector{T}) where T
     else
         one(T)
     end
+end
+
+function printfac(fac)
+    function comp(t::Tuple{U,V,A}) where {U<:Polynomial,Z<:ZZmod,P<:UnivariatePolynomial{Z},V<:AbstractVector{P},A}
+        (LT(t[1]), length(t[2]), modulus(Z))
+    end
+    println(length(fac))
+    display(comp.(fac))
 end

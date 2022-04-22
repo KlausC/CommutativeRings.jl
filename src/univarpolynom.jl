@@ -868,8 +868,8 @@ function Base.isless(p::T, q::T) where T<:UnivariatePolynomial
     lp < lq && return true
     lq < lp && return false 
     for k = lp:-1:1
-        isless(cp[k], cq[k]) && return true
-        isless(cq[k], cp[k]) && return false
+        Base.isless(cp[k], cq[k]) && return true
+        Base.isless(cq[k], cp[k]) && return false
     end
     false
 end
