@@ -50,7 +50,9 @@ function Frac(a::T, b::T) where T<:ZZ
     a /= s
     Frac{T}(a, b, NOCHECK)
 end
+//(a::T, b::T) where T<:QQ = a / b
 //(a::T, b::T) where T<:Ring = Frac(a, b)
+//(a::T, b::T) where T<:FractionRing = (a.num * b.den) // (b.num * a.den)
 Frac{T}(a, b) where T = Frac(T(a), T(b))
 
 _promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
@@ -109,14 +111,14 @@ zero(::Type{Frac{T}}) where T = Frac(zero(T), one(T))
 one(::Type{Frac{T}}) where T = Frac(one(T), one(T))
 hash(a::Frac, h::UInt) = hash(a.den, hash(a.num, h))
 
-evaluate(p::Frac, a) = Frac(evaluate(p.num, a), evaluate(p.den, a))
+evaluate(p::Frac, a) = evaluate(p.num, a) // evaluate(p.den, a)
 (p::Frac)(a, b...) = evaluate(p, a, b...)
 
 function show(io::IO, a::Frac)
     if isone(a.den)
         show(io, a.num)
     else
-        print(io, '(', a.num, ")/(", a.den, ')')
+        print(io, '(', a.num, ") \u2044(", a.den, ')')
     end
 end
     

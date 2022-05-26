@@ -137,6 +137,11 @@ end
     x = monom(P)
     p = x^3 + x + 1
     @test GF(5, mod = p) <: GaloisField
+    GF125 = GF(5, mod = p)
+    gen = generator(GF125)
+    @test order(gen) == order(GF125) - 1
+    @test monom(Quotient(GF125)) + 4 == Quotient(gen)
+    @test monom(Quotient(GF125)) == Quotient(GF125[characteristic(GF125)])
     @test_throws ArgumentError GF(11, mod = p) # p not irreducible in ZZ/11
 end
 

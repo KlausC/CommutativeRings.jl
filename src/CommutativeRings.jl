@@ -60,7 +60,9 @@ struct MultiPolyRingClass{X,R,N} <: PolyRingClass
 end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
+    factors::Primes.Factorization # of order of multiplicative group
     exptable::Vector{T}
+    logtable::Vector{T}
     zechtable::Vector{T}
 end
 
@@ -198,7 +200,7 @@ end
 
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
-    GaloisField{Id,T,Q}(v::Integer, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
+    GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
 end
 
 # Categorial traits specify algebraic properties of ring types
