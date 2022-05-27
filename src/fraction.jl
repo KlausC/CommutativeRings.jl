@@ -114,6 +114,74 @@ hash(a::Frac, h::UInt) = hash(a.den, hash(a.num, h))
 evaluate(p::Frac, a) = evaluate(p.num, a) // evaluate(p.den, a)
 (p::Frac)(a, b...) = evaluate(p, a, b...)
 
+derive(p::Frac) = (derive(p.num) * p.den - p.num * derive(p.den)) // p.den // p.den
+function derive(p::Ring, n::Integer)
+    n < 0 && throw(ArgumentError("degree of derivative must not be negative"))
+    n == 0 ? p : derive(derive(p, n-1))
+end
+
+"""
+    pade(m, n, p)
+
+Calculate Padé approximation of order `n / m` for polynomial `p`.
+
+If `deg(p)` is greater than `m + n`, the higher terms of `p` are ignored.
+
+The Padé approximant is a rational function `R(x) = P(x) / Q(x)` with polynomials
+with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
+
+It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than or equal `m + n` at `0`.
+"""
+function pade(m::Integer, n::Integer, p::P) where P<:UnivariatePolynomial
+    (m >= 0 && n >= 0) || throw(ArgumentError("numerator and denumerator degrees not negative"))
+    x = deg(p)
+    if x > m + n
+        p = P(p.coeff[1:m+n+1])
+    end
+    d = m + n + 1
+    r0 = monom(P, d)
+    r1 = p
+    s1 = t0 = 0
+    s0 = t1 = 1
+    k = 2
+    while deg(r1) > m && k <= d
+        q, r2 = divrem(r0, r1)
+        s2 = s0 - q * s1
+        t2 = t0 - q * t1
+        s0 = s1
+        s1 = s2
+        t0 = t1
+        t1 = t2
+        r0 = r1
+        r1 = r2
+        k += 1
+    end
+    pade = r1 // t1
+    pade_normal!(pade)
+end
+
+"""
+    pade_normal!(p::Frac)
+
+Normalize rational function by multiplying denominator and numerator polynom
+in order to change least significant term of denominator to one.
+"""
+function pade_normal!(p::Frac{<:UnivariatePolynomial})
+    den = p.den
+    num = p.num
+    k = findfirst(isunit, den.coeff)
+    if k !== nothing
+        u = den.coeff[k]
+        num.coeff ./= u
+        den.coeff ./= u
+    end
+    p
+end
+
+function evaluate(p::Union{Frac{<:UnivariatePolynomial},UnivariatePolynomial}, x::AbstractFloat)
+    float(Rational(evaluate(p, rationalize(x))))
+end
+
 function show(io::IO, a::Frac)
     if isone(a.den)
         show(io, a.num)

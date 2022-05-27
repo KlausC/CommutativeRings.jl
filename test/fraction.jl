@@ -67,3 +67,22 @@ end
     @test p // q == p / q
     @test p // q^2 == (x^2 + G[3]*x) // q
 end
+
+@testset "Padé approximation" begin
+    P = QQ{BigInt}[:x]
+    x = monom(P)
+    p = sum( x^n / factorial(n) for n = 0:10)
+
+    @test pade(0, 0, p) == 1
+
+    pa = pade(3, 3, p)
+    @test all(evaluate.(derive.(pa, 0:5), 0) .== 1)
+    @test derive(pa, 7) != 1
+
+    pa = pade(6, 6, p)
+    @test all(evaluate.(derive.(pa, 0:10), 0) .== 1)
+    @test all(evaluate.(derive.(pa, 11:12), 0) .== 0)
+
+    @test abs(pa(1.0) - exp(1.0)) < 1e-7
+    @test abs(pa(1.0) - p(1.0)) < 1e-10
+end

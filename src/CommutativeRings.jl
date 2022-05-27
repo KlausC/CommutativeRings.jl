@@ -16,7 +16,8 @@ export isunit, deg, content, primpart, isnegative
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv
-export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
+export monom, ismonom, ismonic, issimpler, iscoprime
+export evaluate, derive, pade, pade_normal!
 export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
