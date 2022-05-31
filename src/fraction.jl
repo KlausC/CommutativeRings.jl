@@ -11,6 +11,7 @@ copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
 
 numerator(a::FractionRing) = a.num
 denominator(a::FractionRing) = a.den
+deg(a::Frac{<:Polynomial}) = (deg(a.num), deg(a.den))
 
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
 
@@ -79,7 +80,7 @@ function +(x::T, y::T) where T<:Frac
     d /= h
     n = a * d + b * c
     g = pgcd(n, h)
-    T(n / g, h / g * b * d, NOCHECK)
+    T(n / g, h / g * b * d)
 end
 
 function *(x::T, y::T) where T<:Frac
@@ -120,10 +121,15 @@ function derive(p::Ring, n::Integer)
     n == 0 ? p : derive(derive(p, n-1))
 end
 
+Base.getindex(s::Series{T}, i::Integer) where T = T(s.f(i))
+deg(::Series) = typemax(Int)
+basetype(::Type{<:Series{T}}) where T = T
+varname(::Type{<:Series}) = :x
+
 """
     pade(m, n, p)
 
-Calculate Padé approximation of order `n / m` for polynomial `p`.
+Calculate Padé approximation of order `n / m` for polynomial or series `p`.
 
 If `deg(p)` is greater than `m + n`, the higher terms of `p` are ignored.
 
@@ -132,12 +138,10 @@ with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
 
 It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than or equal `m + n` at `0`.
 """
-function pade(m::Integer, n::Integer, p::P) where P<:UnivariatePolynomial
-    (m >= 0 && n >= 0) || throw(ArgumentError("numerator and denumerator degrees not negative"))
-    x = deg(p)
-    if x > m + n
-        p = P(p.coeff[1:m+n+1])
-    end
+function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,Series}
+    (m >= 0 && n >= 0) || throw(ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"))
+    P = UnivariatePolynomial{basetype(S),varname(S)}
+    p = P([s[i] for i in 0:m+n])
     d = m + n + 1
     r0 = monom(P, d)
     r1 = p

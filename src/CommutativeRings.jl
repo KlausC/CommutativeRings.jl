@@ -246,6 +246,12 @@ struct VectorSpace{T}
     pivr::Vector{Int} # row permutation vector
 end
 
+struct Series{T,F}
+    f::F
+    Series{T}(f::F) where {T,F<:Function} = new{T,F}(f)
+    Series(f::F) where {F<:Function} = Series{typeof(f(0))}(f)
+end
+
 # implementation
 
 include("typevars.jl")

@@ -72,6 +72,7 @@ isone(a::QQ) = a.num == a.den
 iszero(a::QQ) = iszero(a.num)
 zero(::Type{QQ{T}}) where T = QQ{T}(zero(T), one(T), NOCHECK)
 one(::Type{QQ{T}}) where T = QQ{T}(one(T), one(T), NOCHECK)
+abs(a::QQ{T}) where T = QQ{T}(abs(a.num), abs(a.den), NOCHECK)
 hash(a::QQ, h::UInt) = hash(Rational(a), h)
 
 function show(io::IO, a::QQ)
