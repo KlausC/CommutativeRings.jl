@@ -73,13 +73,13 @@ end
     x = monom(P)
     p = sum( x^n / factorial(n) for n = 0:10)
 
-    @test pade(0, 0, p) == 1
+    @test pade(p, 0, 0) == 1
 
-    pa = pade(3, 3, p)
+    pa = pade(p, 3, 3)
     @test all(evaluate.(derive.(pa, 0:5), 0) .== 1)
     @test derive(pa, 7) != 1
 
-    pa = pade(6, 6, p)
+    pa = pade(p, 6, 6)
     @test all(evaluate.(derive.(pa, 0:10), 0) .== 1)
     @test all(evaluate.(derive.(pa, 11:12), 0) .== 0)
 
