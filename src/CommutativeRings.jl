@@ -34,9 +34,12 @@ export characteristic_polynomial, adjugate, companion
 
 export coeffbounds
 
+export minimal_polynomial
+export rational_canonical_form
+
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
-import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype
+import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
+import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor
 import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
@@ -85,7 +88,7 @@ abstract type Ring{T<:RingClass} end
 """
     RingInt
 
-Union of system `Integer` types and any `Ring` subtype. 
+Union of system `Integer` types and any `Ring` subtype.
 """
 const RingInt = Union{Ring,Integer}
 
@@ -99,7 +102,7 @@ abstract type FractionRing{S<:RingInt,T<:FractionRingClass} <: Ring{T} end
 """
     QuotientRing{S<:Union{Integer,Ring},T<:QuotientRingClass}
 
-Quotient ring of ring `S` by some ideal. If S = Z, the ring of integer numbers, and p 
+Quotient ring of ring `S` by some ideal. If S = Z, the ring of integer numbers, and p
 a positive number Z/p is calculation modulo p.
 """
 abstract type QuotientRing{S<:RingInt,T<:QuotientRingClass} <: Ring{T} end
@@ -146,7 +149,7 @@ struct Frac{P<:Union{Polynomial,ZZ}} <: FractionRing{P,FractionClass{P}}
 end
 
 """
-    Quotient{R,I,m} 
+    Quotient{R,I,m}
 
 The quotient ring of `R` modulo `m` of type `I`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
@@ -201,7 +204,7 @@ end
 
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
-    GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
+    GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))
 end
 
 # Categorial traits specify algebraic properties of ring types
@@ -270,5 +273,6 @@ include("intfactorization.jl")
 include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
+include("rationalcanonical.jl")
 
 end # module

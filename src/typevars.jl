@@ -39,7 +39,7 @@ The return value can be used to create ring elements of the new class.
 Example:
 ```
     ZZp = new_class(ZZmod{:p,BigInt}, 1000000000000000000000000000057)
-    element = ZZp(123456)^10000000 
+    element = ZZp(123456)^10000000
 ```
 """
 function new_class(t::Type{<:Ring{T}}, args...) where T
@@ -65,5 +65,4 @@ sintern(m::BigInt) = Symbol(m)
 sintern(a::IdentSymbols...) = Symbol(tuple(a...))
 sintern(a::AbstractVector{<:IdentSymbols}) = Symbol(a)
 sintern(a::Tuple{Vararg{<:IdentSymbols}}) = Symbol(a)
-sintern(a) = Symbol(hash(a))
-
+sintern(a::Any) = Symbol(Base.hash(a))

@@ -23,7 +23,7 @@ end
 
 ### access to polynomial coefficients
 function getindex(u::UnivariatePolynomial, i::Integer)
-    0 <= i <= deg(u) ? u.coeff[i+1] : zero(basetype(u)) 
+    0 <= i <= deg(u) ? u.coeff[i+1] : zero(basetype(u))
 end
 
 """
@@ -81,7 +81,7 @@ function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
     end
     UnivariatePolynomial{S,x}(v, NOCHECK)
 end
-# convert coefficient vector to polynomial, element type of vector determines class 
+# convert coefficient vector to polynomial, element type of vector determines class
 UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S} = UnivariatePolynomial{S,x}(v)
 UnivariatePolynomial(x::Symbol, v::S) where {S} = UnivariatePolynomial{S,x}([v])
 # convert polynomial with same symbol and type aliasing original
@@ -96,7 +96,7 @@ function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
         UnivariatePolynomial{S,X}(co)
     else
         throw(DomainError((X,Y), "cannot convert polynomials with differing variable names"))
-    end 
+    end
 end
 
 function monom(P::Type{<:UnivariatePolynomial}, xv::Vector{<:Integer})
@@ -289,7 +289,7 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
         for i = np:-1:nq
             vri = vr[i]
             multi, r = divrem(vri, divi)
-            if fac && !iszero(r) 
+            if fac && !iszero(r)
                 g = divi / gcd(divi, r)
                 f *= g
                 vri *= g
@@ -395,7 +395,7 @@ end
 
 A variant of divrem, if leading term of divisor is not a unit.
 The polynomial `a` is multiplied by a minimal factor `f ∈ R` with
-`f * a = q * b + r`.  
+`f * a = q * b + r`.
 """
 function pdivrem(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     cp = p.coeff; cq = q.coeff
@@ -407,7 +407,7 @@ end
     content(p::Polynomial)
 
 Return the content of the polynomial p, i.e. the `gcd` of its coefficients,
-negated if leading coefficient is negative.
+negated if leading coefficient is negative. See also `primpart`.
 """
 function content(p::Polynomial)
     g = gcd(p.coeff)
@@ -431,7 +431,7 @@ end
 """
     primpart(p::Polynomial)
 
-The primitive part of the polynomial p, that means the `gcd` of its coefficients is `1`,
+The primitive part of the polynomial `p`, equals `p / content(p)`.
 """
 primpart(p::Polynomial) = p / content(p)
 
@@ -461,7 +461,7 @@ end
 ==(p::Polynomial, q::Polynomial) = false
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    n == 0 ? hash(0, h) : n == 1 ? hash(p[0]) : hash(X, hash(p.coeff, h))
+    n == 0 ? hash(zero(S), h) : n == 1 ? hash(p[0], h) : hash(X, hash(p.coeff, h))
 end
 
 """
@@ -473,7 +473,7 @@ ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
 """
     ismonic(p::Polynomial)
 
-Return iff leading coefficient of polynomial `p` is one. 
+Return iff leading coefficient of polynomial `p` is one.
 """
 ismonic(p::Polynomial) = isone(LC(p))
 
@@ -546,7 +546,7 @@ resultant(a, b) = resultant(promote(a,b)...)
 """
     discriminant(a)
 
-Calculate discriminant of a univariate polynomial `a`. 
+Calculate discriminant of a univariate polynomial `a`.
 """
 function discriminant(a::UnivariatePolynomial)
     la = LC(a)
@@ -559,7 +559,7 @@ end
 
 Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
 The next to last calculated remainder is a scalar multiple of the gcd.
-Another interpretation of this remainder yields the resultant of `a` and `b`. 
+Another interpretation of this remainder yields the resultant of `a` and `b`.
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 and TAoCP 2nd Ed. 4.6.1.
 """
@@ -592,7 +592,7 @@ function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:Univariat
         # prepare for next turn
         if Usedet
             det = det * δ ^ db / γ ^ (da - dc) / β ^ db
-        
+
         end
         if isodd(db) && isodd(dc)
             det = -det
@@ -693,8 +693,8 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
         c /= β
         a, b = b, c
         iszero(b) && break
-        s1, s2 = s2, (s1 * γd - s2 * q) / β    
-        t1, t2 = t2, (t1 * γd - t2 * q) / β    
+        s1, s2 = s2, (s1 * γd - s2 * q) / β
+        t1, t2 = t2, (t1 * γd - t2 * q) / β
         # prepare for next turn
         da = db
         db = deg(c)
@@ -807,9 +807,9 @@ end
 function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     c = p.coeff
     n = length(c)
-    R = promote_type(S,T)
-    n == 0 && return zero(R)
-    n == 1 && return R(c[1])
+    R = promote_type(S, eltype(T))
+    n == 0 && return x * zero(S)
+    n == 1 && return x ^ 0 * c[1]
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x
@@ -841,7 +841,7 @@ function derive(p::P) where P<:UnivariatePolynomial
     P(c, NOCHECK)
 end
 
-# efficient implementation of `p(x^m)`. 
+# efficient implementation of `p(x^m)`.
 function spread(p::P, m::Integer) where {T,P<:UnivariatePolynomial{T}}
     P(_spread(p.coeff, m, T))
 end
@@ -860,13 +860,13 @@ function _spread(c::Vector{T}, m::Integer, ::Type{S}) where {T,S}
     v
 end
 
-function Base.isless(p::T, q::T) where T<:UnivariatePolynomial
+function isless(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff
     cq = q.coeff
     lp = length(cp)
     lq = length(cq)
     lp < lq && return true
-    lq < lp && return false 
+    lq < lp && return false
     for k = lp:-1:1
         isless(cp[k], cq[k]) && return true
         isless(cq[k], cp[k]) && return false
@@ -996,7 +996,7 @@ end
     det_QR(a::Matrix{D}) where D<:QuotientRing
 
 This code is an extension of det_DJB to certain quotient rings which are domains.
-I.e. `ZZ/p` where `p` is not prime and `P[:x]/q` where `q` is the product of polynomials. 
+I.e. `ZZ/p` where `p` is not prime and `P[:x]/q` where `q` is the product of polynomials.
 """
 det_QR(a::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}} = det_QR!(copy(a))
 
@@ -1111,7 +1111,7 @@ function splitmod(v, m)
     a = gcd(v, m)
     b = m ÷ a
     x = 1
-    
+
     while !isone(b)
         g = gcd(a, b)
         if !isone(g)
@@ -1151,7 +1151,7 @@ function mutx!(x::AbstractMatrix, k::Integer, a::AbstractMatrix{T}) where T
         for i = j+1:n
             x[i,j] = 0
         end
-    end  
+    end
     s = -x[k+1,k+1]
     x[k+1,k+1] = 0
     for j = k:-1:1
@@ -1208,7 +1208,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
             push!(B, t)
         else
             _, _, _, b = B[ix]
-            B[ix] = (p, u, v, b + d) 
+            B[ix] = (p, u, v, b + d)
         end
         nothing
     end
@@ -1218,7 +1218,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     sizehint!(B, s)
     p = isodd(n)
     for u = 1:n
-        push!(A, (p, u, u, one(D)))   
+        push!(A, (p, u, u, one(D)))
     end
     for i = 0:n-2
         empty!(B)
@@ -1226,7 +1226,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
         for (p, u, v, Auvp) in A
             avu = a[v,u]
             for w = u+1:n
-                avw = a[v,w] 
+                avw = a[v,w]
                 if !iszero(avw)
                     avw *= Auvp
                     addpush!(B, C, (p, u, w, avw))
@@ -1262,7 +1262,7 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     B2 = zeros(D, n, n)
     p = n & 1 + 1
     for u = 1:n
-        (p == 1 ? A1 : A2)[u,u] = one(D)    
+        (p == 1 ? A1 : A2)[u,u] = one(D)
     end
     for i = 0:n-2
         for u = 1:n
