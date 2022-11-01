@@ -69,6 +69,7 @@ inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-un
 # enable generic matrix factorization
 abs(a::Ring) = isunit(a) ? 1 : 0
 value(a::Ring) = a
+isfinite(a::Ring) = true
 
 import Base: literal_pow
 @inline literal_pow(::typeof(^), x::Ring, ::Val{0}) = one(x)

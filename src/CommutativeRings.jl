@@ -37,7 +37,7 @@ export coeffbounds
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 
-import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
+import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log, isfinite
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor
