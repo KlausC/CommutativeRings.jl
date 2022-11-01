@@ -1,4 +1,7 @@
+module LinearAlgebraTests
 
+using Test
+using CommutativeRings
 using LinearAlgebra
 
 const companion = CommutativeRings.companion
@@ -53,6 +56,11 @@ const companion = CommutativeRings.companion
     @test intersect(xall, xsum) == xsum
     @test sum(xnull, xsum) == xsum
     @test sum(xall, xsum) == xall
+
+    @test xall - xa == -xa == complement(xa)
+    @test xa + xb == xsum
+    @test xa ∩ xb == intersect(xa, xb)
+    @test xa ⊆ xa + xb
 end
 
 @testset "determinant" begin
@@ -68,9 +76,5 @@ end
     @test iszero(p(B))
     @test characteristic_polynomial(companion(p)) == p
 end
-
-@testset "lu_total" begin
-
-
 
 end

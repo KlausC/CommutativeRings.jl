@@ -269,7 +269,7 @@ function VectorSpace(A::AbstractArray{R}...) where R<:Ring
     r = fac.rank
     M = fac.factors
     M = M[r+1:m, 1:r] * UnitLowerTriangular(M[1:r, 1:r])^-1
-    VectorSpace(M, fac.pivr)
+    VectorSpace{R}(M, fac.pivr)
 end
 
 function Matrix(v::VectorSpace)
@@ -297,7 +297,7 @@ function intersect(v::V, w::V) where {T,V<:VectorSpace{T}}
     if rv == 0 || rw == m
         return v
     end
-    BT = eltype(T)
+    BT = T
     vpiv = v.pivr
     wpiv = invperm(w.pivr)
     AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv], :]
@@ -321,7 +321,7 @@ function Base.sum(v::V, w::V) where {T,V<:VectorSpace{T}}
     if rw == 0 || rv == m
         return v
     end
-    BT = eltype(T)
+    BT = T
     vbase = v.base
     vpiv = copy(v.pivr)
     wpiv = invperm(w.pivr)
@@ -334,19 +334,19 @@ function Base.sum(v::V, w::V) where {T,V<:VectorSpace{T}}
     vpiv[rv+1:n] = vpiv[spiv.+rv]
     v1 = vbase[spiv[rr+1:n-rv], :]
     v2 = sbase * vbase[spiv[1:rr], :]
-    VectorSpace(hcat(v1 - v2, sbase), vpiv)
+    VectorSpace{T}(hcat(v1 - v2, sbase), vpiv)
 end
 
 """
     complement(v::V)::V where V<:VectorSpace
 
-Complementary space of vector space.
+Return a complementary space of vector space.
 """
 function complement(v::VectorSpace{T}) where T
     m, r = size(v)
     piv = vcat(v.pivr[r+1:m], v.pivr[1:r])
     base = reshape(zero(v.base), r, m - r)
-    VectorSpace(base, piv)
+    VectorSpace{T}(base, piv)
 end
 
 import Base: ==, issubset, -, +, *
@@ -354,29 +354,29 @@ import Base: ==, issubset, -, +, *
 issubset(v::V, w::V) where V<:VectorSpace =
     size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w))
 
-function check_square(A::AbstractMatrix)
-    m, n = size(A)
-    m == n || throw(ArgumentError("matrix must be square but is ($m,$n)"))
-    m
-end
++(v::V, w::V) where V<:VectorSpace = sum(v, w)
+-(v::VectorSpace) = complement(v)
+-(v::V, w::V) where V<:VectorSpace = intersect(v, -w)
+
+*(A::AbstractMatrix, v::VectorSpace) = VectorSpace(A * Matrix(v))
 
 *(r::Ring, A::AbstractMatrix) = r .* A
 *(A::AbstractMatrix, r::Ring) = A .* r
 
 function +(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
-    n = check_square(A)
+    n = checksquare(A)
     I(n) .* x + A
 end
 function +(A::AbstractMatrix{<:Ring}, x::Ring)
-    n = check_square(A)
+    n = checksquare(A)
     A .+ I(n) .* x
 end
 function -(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
-    n = check_square(A)
+    n = checksquare(A)
     I(n) .* x - A
 end
 function -(A::AbstractMatrix{<:Ring}, x::P) where P<:Ring
-    n = check_square(A)
+    n = checksquare(A)
     I(n) .* x - A
 end
 

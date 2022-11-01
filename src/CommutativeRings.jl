@@ -248,13 +248,17 @@ struct Hom{F,R<:RingInt,S<:RingInt}
 end
 
 """
-    VectorSpace{T}
+    VectorSpace{R,V}
 
-Represent a vector space over a ring(field)
+Represent a vector space over a Vfield `R`.
 """
-struct VectorSpace{T}
-    base::T
+struct VectorSpace{R,V}
+    base::V
     pivr::Vector{Int} # row permutation vector
+    function VectorSpace{R}(b::B, pivr) where {R,B<:AbstractMatrix}
+        pivr = *(size(b)...) == 0 ? collect(1:length(pivr)) : pivr
+        new{R,B}(b, pivr)
+    end
 end
 
 """
