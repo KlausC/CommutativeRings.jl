@@ -13,7 +13,7 @@ end
 
 Find maximal element in `A[i:end,j]`
 """
-function pivot(A::Union{AbstractMatrix,AbstractVector}, i::Integer, j::Integer=1)
+function pivot(A::Union{AbstractMatrix,AbstractVector}, i::Integer, j::Integer = 1)
     m = size(A, 1)
     amax = pivabs(A[i+(j-1)*m])
     imax = i
@@ -36,10 +36,16 @@ pivabs(a::Ring) = isunit(a) ? 1 : 0
 
 Swap rows `A[i,cols]` with `A[j,cols]` and `pr[i]` with `pr[j]`
 """
-function swaprows(A::Matrix{T}, pr::Vector, i::Integer, j::Integer, cols=axes(A,2)) where T
+function swaprows(
+    A::Matrix{T},
+    pr::Vector,
+    i::Integer,
+    j::Integer,
+    cols = axes(A, 2),
+) where T
     pr[i], pr[j] = pr[j], pr[i]
-    for k = cols
-        A[i,k], A[j,k] = A[j,k], A[i,k]
+    for k in cols
+        A[i, k], A[j, k] = A[j, k], A[i, k]
     end
 end
 """
@@ -49,8 +55,8 @@ Swap columns `A[:,i]` with `A[:,j]` and `pc[i]` with `pc[j]`
 """
 function swapcols(A::Matrix{T}, pc::Vector, i::Integer, j::Integer) where T
     pc[i], pc[j] = pc[j], pc[i]
-    for k = axes(A, 1)
-        A[k,i], A[k,j] = A[k,j], A[k,i]
+    for k in axes(A, 1)
+        A[k, i], A[k, j] = A[k, j], A[k, i]
     end
 end
 
@@ -90,10 +96,10 @@ function lu_total!(A::Matrix{T}) where T
         jmax = j
         aa = A[j, j]
         for i = j+1:m
-            ab = A[i,j] / aa
-            A[i,j] = ab
+            ab = A[i, j] / aa
+            A[i, j] = ab
             for k = j+1:n
-                A[i,k] -= A[j,k] * ab
+                A[i, k] -= A[j, k] * ab
             end
         end
     end
@@ -107,7 +113,7 @@ function lu_total!(A::D) where {T,D<:Diagonal{T}}
     jmax = 0
     for i = 1:n
         j = i
-        while j <= n && iszero(abs(A[j,j]))
+        while j <= n && iszero(abs(A[j, j]))
             j += 1
         end
         j > n && break
@@ -122,7 +128,12 @@ end
 
 # assuming A[:,1:k-1] contain partial L-U decomposition of A[pr,:]
 # add b as additional column.
-function lu_incremental!(A::Matrix{T}, pr::Vector{<:Integer}, k::Integer, b::AbstractVector{T}) where T
+function lu_incremental!(
+    A::Matrix{T},
+    pr::Vector{<:Integer},
+    k::Integer,
+    b::AbstractVector{T},
+) where T
     m, n = size(A)
     if length(b) != m
         throw(ArgumentError("vector length must be equal to first dimension of matrix"))
@@ -133,8 +144,8 @@ function lu_incremental!(A::Matrix{T}, pr::Vector{<:Integer}, k::Integer, b::Abs
     permute!(b, pr)
     for j = 2:m
         s = b[j]
-        for i = 1:min(j-1,k-1)
-            s -= A[j,i] * b[i]
+        for i = 1:min(j - 1, k - 1)
+            s -= A[j, i] * b[i]
         end
         b[j] = s
     end
@@ -162,7 +173,7 @@ function lu_rowpivot!(A::Matrix{T}) where T
     for j = 1:n
         lu_incremental!(A, pr, j, view(A, :, j))
         if j <= m
-            if !iszero(A[j,j])
+            if !iszero(A[j, j])
                 rank = j
             else
                 break
@@ -190,11 +201,11 @@ function lu_axu(A::AbstractMatrix{R}, u::AbstractVector{R}) where R
         lu_incremental!(B, pr, j, v)
         iszero(v[j]) && break
         rank = j
-        B[:,j] .= v
+        B[:, j] .= v
         u = A * u
     end
     for j = rank+1:n
-        B[pr[j],j] = one(R)
+        B[pr[j], j] = one(R)
     end
     pc = collect(1:n)
     LU_total{R,Matrix{R}}(B, pr, pc, rank), u
@@ -212,13 +223,13 @@ function Base.getproperty(lut::LU_total, s::Symbol)
     elseif s === :L_1
         [lut.L11; lut.L21]
     elseif s === :L
-        [lut.L_1 [zeros(Int, r, m-r); I(m-r)]]
+        [lut.L_1 [zeros(Int, r, m - r); I(m - r)]]
     elseif s === :L21
-        view(factors, r+1:m,1:r)
+        view(factors, r+1:m, 1:r)
     elseif s === :R11
         UpperTriangular(view(factors, 1:r, 1:r))
     elseif s === :R
-        [lut.R11 zeros(Int, r, n-r); zeros(Int, m-r, r) I(n-r)]
+        [lut.R11 zeros(Int, r, n - r); zeros(Int, m - r, r) I(n - r)]
     else
         getfield(lut, s)
     end
@@ -233,13 +244,13 @@ function nullbase(fac::LU_total{T}) where T
     m = size(A, 2)
     r == 0 && return Diagonal(ones(T, m))
     r == m && return Matrix{T}(undef, m, 0)
-    M = [-UpperTriangular(view(A, 1:r, 1:r)) \ view(A, 1:r, r+1:m); diagm(ones(T, m-r))]
+    M = [-UpperTriangular(view(A, 1:r, 1:r)) \ view(A, 1:r, r+1:m); diagm(ones(T, m - r))]
     pc = fac.pivc
-    M[invperm(pc),:]
+    M[invperm(pc), :]
 end
 nullbase(A::AbstractMatrix{<:Ring}) = nullbase(lu_total!(copy(A)))
 
-function LinearAlgebra.rank(fac::LU_total) where T
+function LinearAlgebra.rank(fac::LU_total)
     fac.rank
 end
 
@@ -257,12 +268,12 @@ function VectorSpace(A::AbstractArray{R}...) where R<:Ring
     fac = lu_total!(B)
     r = fac.rank
     M = fac.factors
-    M = M[r+1:m,1:r] * UnitLowerTriangular(M[1:r,1:r])^-1
+    M = M[r+1:m, 1:r] * UnitLowerTriangular(M[1:r, 1:r])^-1
     VectorSpace(M, fac.pivr)
 end
 
 function Matrix(v::VectorSpace)
-    vcat(diagm(ones(Int,rank(v))), v.base)[invperm(v.pivr),:]
+    vcat(diagm(ones(Int, rank(v))), v.base)[invperm(v.pivr), :]
 end
 
 function size(v::VectorSpace)
@@ -289,12 +300,12 @@ function intersect(v::V, w::V) where {T,V<:VectorSpace{T}}
     BT = eltype(T)
     vpiv = v.pivr
     wpiv = invperm(w.pivr)
-    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv],:]
-    LAB = v.base * AB[1:rv,:] - AB[rv+1:m,:]
+    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv], :]
+    LAB = v.base * AB[1:rv, :] - AB[rv+1:m, :]
     N = nullspace(LAB)
     rr = rank(N)
-    N = vcat(diagm(ones(BT,rr)), N.base)[invperm(N.pivr),:]
-    VectorSpace(AB[invperm(vpiv),:] * N)
+    N = vcat(diagm(ones(BT, rr)), N.base)[invperm(N.pivr), :]
+    VectorSpace(AB[invperm(vpiv), :] * N)
 end
 
 """
@@ -314,15 +325,15 @@ function Base.sum(v::V, w::V) where {T,V<:VectorSpace{T}}
     vbase = v.base
     vpiv = copy(v.pivr)
     wpiv = invperm(w.pivr)
-    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv],:]
-    LAB = AB[rv+1:n,:] - vbase * AB[1:rv,:]
+    AB = vcat(diagm(ones(BT, rw)), w.base)[wpiv[vpiv], :]
+    LAB = AB[rv+1:n, :] - vbase * AB[1:rv, :]
     N = VectorSpace(LAB)
     rr = rank(N)
     spiv = N.pivr
     sbase = N.base
-    vpiv[rv+1:n] = vpiv[spiv .+ rv]
-    v1 = vbase[spiv[rr+1:n-rv],:]
-    v2 = sbase * vbase[spiv[1:rr],:]
+    vpiv[rv+1:n] = vpiv[spiv.+rv]
+    v1 = vbase[spiv[rr+1:n-rv], :]
+    v2 = sbase * vbase[spiv[1:rr], :]
     VectorSpace(hcat(v1 - v2, sbase), vpiv)
 end
 
@@ -334,13 +345,14 @@ Complementary space of vector space.
 function complement(v::VectorSpace{T}) where T
     m, r = size(v)
     piv = vcat(v.pivr[r+1:m], v.pivr[1:r])
-    base = reshape(zero(v.base), r, m-r)
+    base = reshape(zero(v.base), r, m - r)
     VectorSpace(base, piv)
 end
 
 import Base: ==, issubset, -, +, *
 ==(v::V, w::V) where V<:VectorSpace = size(v) == size(w) && rank(v) == rank(intersect(v, w))
-issubset(v::V, w::V) where V<:VectorSpace = size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w))
+issubset(v::V, w::V) where V<:VectorSpace =
+    size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w))
 
 function check_square(A::AbstractMatrix)
     m, n = size(A)
@@ -355,7 +367,7 @@ function +(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
     n = check_square(A)
     I(n) .* x + A
 end
-function +(A::AbstractMatrix{<:Ring}, x::Ring) where P<:Ring
+function +(A::AbstractMatrix{<:Ring}, x::Ring)
     n = check_square(A)
     A .+ I(n) .* x
 end
@@ -374,7 +386,7 @@ end
 Characteristic polynomial of matrix `A`. `P` is an optional
 univariate polynomial type, defaulting to `eltype(A)[:x]`
 """
-function characteristic_polynomial(A, P=eltype(A)[:x])
+function characteristic_polynomial(A, P = eltype(A)[:x])
     x = Frac(P)(monom(P))
     numerator(det(x - A))
 end
@@ -404,7 +416,7 @@ Its characteristic polynomial is identical to `p`.
 function companion(p::UnivariatePolynomial{T}) where T
     ismonic(p) || throw(ArgumentError("polynomial is not monic"))
     n = deg(p)
-    A = diagm(-1 => ones(T, n-1))
-    A[:,n] = -p.coeff[1:n]
+    A = diagm(-1 => ones(T, n - 1))
+    A[:, n] = -p.coeff[1:n]
     A
- end
+end

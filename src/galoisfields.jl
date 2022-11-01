@@ -15,19 +15,19 @@ for the `GFImpl` class.
 If `mod` is given, that polynomial is used as the modulus.
 
 `maxord` defines the maximal order, for which logarithm tables are stored.
-Otherwise a representation by quotient space of polynomials over ZZmod{p} is used. 
+Otherwise a representation by quotient space of polynomials over ZZmod{p} is used.
 
 Optionally either the modulus polynomial `mod` or an integer search modifier `nr` may be given
 to control the selection of the modulus polynomial.
 """
 
-function GF(n::Integer, k::Integer=1; mod=nothing, nr=0, maxord=2^20)
+function GF(n::Integer, k::Integer = 1; mod = nothing, nr = 0, maxord = 2^20)
     f = Primes.factor(n)
     length(f) == 1 || throw(ArgumentError("$n is not p^r with p prime and r >= 1"))
     p, r = f.pe[1]
     _GF(p, r * k; mod, nr, maxord)
 end
-function _GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing, maxord=2^20)
+function _GF(p::Integer, r::Integer; nr::Integer = 0, mod = nothing, maxord = 2^20)
     r == 1 || mod === nothing || throw(ArgumentError("given modulus requires prime base"))
     mm = intpower(p, mod === nothing ? r : deg(mod)) - 1
     fact = Primes.factor(mm)
@@ -50,13 +50,13 @@ function _GF(p::Integer, r::Integer; nr::Integer=0, mod=nothing, maxord=2^20)
         c[1] = 0
         exptable = [T(tonumber(x, p)) for x in c]
         logtable = invperm(exptable .+ 1) .- 1
-        zechtable = logtable[[T(tonumber(x + 1, p)) for x in c] .+ 1] 
+        zechtable = logtable[[T(tonumber(x + 1, p)) for x in c].+1]
         fact, exptable, logtable, zechtable
     end
 
     function gfclass1(fact, p, ord, gen, T)
         fact, T[], T[], T[]
-    end 
+    end
 
     gfclass, Id, V = if ord <= maxord
         gfclass0, (sintern(p), r, sintern(ord), sintern(g)), T
@@ -88,7 +88,8 @@ function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
     GaloisField{Id,T,Q}(a.val, NOCHECK)
 end
 function (::Type{G})(a::H) where {Id,T,Q,G<:GaloisField{Id,T,Q},P,H<:ZZmod{P,T}}
-    characteristic(G) == characteristic(H) || throw(ArgumentError("characteristic mismatch"))
+    characteristic(G) == characteristic(H) ||
+        throw(ArgumentError("characteristic mismatch"))
     G(a.val)
 end
 (::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G[tonumber(q, characteristic(Q))]
@@ -102,14 +103,23 @@ monom(::Type{G}) where G<:GaloisField = G(monom(Quotient(G)))
 
 promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G
-_promote_rule(G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}}, ::Type{Q}) where {Id,T,Q} = G
+_promote_rule(
+    G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}},
+    ::Type{Q},
+) where {Id,T,Q} = G
 
-function quotient(::Type{Q}, g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
+function quotient(
+    ::Type{Q},
+    g::G,
+) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
 end
 
-(::Type{Q})(g::G) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}} = quotient(Q, g)
+(::Type{Q})(
+    g::G,
+) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}} =
+    quotient(Q, g)
 
 import Base.Broadcast: broadcastable
 broadcastable(x::Type{<:GaloisField}) = collect(x)
@@ -133,7 +143,7 @@ function *(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
     iszero(b) && return b
     ord = order(G)
     # beware of overflows
-    G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK) 
+    G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK)
 end
 function *(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
     iszero(a) && return a
@@ -147,7 +157,7 @@ function /(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
     iszero(b) && division_error()
     ord = order(G)
     # beware of overflows
-    G(mod(a.val - 1 + ord - b.val, ord - 1) + 1, NOCHECK) 
+    G(mod(a.val - 1 + ord - b.val, ord - 1) + 1, NOCHECK)
 end
 function /(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
     iszero(a) && return a
@@ -217,7 +227,7 @@ function log_zech(k::Integer, G::Type{<:GaloisField})
 end
 function log_zech(k::Integer, ord::Integer, zt::AbstractVector)
     k < 0 && return 0
-    zt[mod(k, ord - 1) + 2] - 1
+    zt[mod(k, ord - 1)+2] - 1
 end
 
 """
@@ -242,7 +252,7 @@ logmonom(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}} = Id[4]
 division_error() = throw(ArgumentError("cannot invert zero"))
 
 *(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
-*(b::Integer, a::G) where G<:GaloisField =  a * b
+*(b::Integer, a::G) where G<:GaloisField = a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
 
 function typedep(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
@@ -315,7 +325,12 @@ function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
 end
 
 function Base.show(io::IO, g::Type{<:GaloisField})
-    sc(f, g) = try f(g) catch; "?" end
+    sc(f, g) =
+        try
+            f(g)
+        catch
+            "?"
+        end
     print(io, :GaloisField, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
 end
 
@@ -328,7 +343,7 @@ end
 
 function tonumber(a::Quotient, p::Integer)
     s = 0
-    for c = reverse(a.val.coeff)
+    for c in reverse(a.val.coeff)
         s = s * p + c.val
     end
     s
@@ -343,7 +358,10 @@ function toquotient(g::G) where {Id,T<:Quotient,Q,G<:GaloisField{Id,T,Q}}
     g.val
 end
 
-function toquotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function toquotient(
+    a::Integer,
+    ::Type{Q},
+) where {Z,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     ord = order(Q)
@@ -381,7 +399,13 @@ Elements of the field can be created like
     GF53([1,2,3])
 ```
 """
-function GFImpl(p::Integer, m::Integer=1, factors=nothing; nr::Integer=0, mod=nothing)
+function GFImpl(
+    p::Integer,
+    m::Integer = 1,
+    factors = nothing;
+    nr::Integer = 0,
+    mod = nothing,
+)
     isprime(p) || throw(ArgumentError("base $p must be prime"))
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
     Z = ZZ / p
@@ -393,13 +417,17 @@ function GFImpl(p::Integer, m::Integer=1, factors=nothing; nr::Integer=0, mod=no
         x = monom(P)
         nx = max(nr, 0)
         # find the next irreducible, for which x is primitive (drop first nr-1)
-        for gen = irreducibles(P, m)
+        for gen in irreducibles(P, m)
             if _isprimitive((x, gen), mm, fact)
                 nx == 0 && return P / gen
                 nx -= 1
             end
         end
-        throw(ArgumentError("no irreducible polynomial of degree $m found with generator p(γ) = γ (nr = $nr)"))
+        throw(
+            ArgumentError(
+                "no irreducible polynomial of degree $m found with generator p(γ) = γ (nr = $nr)",
+            ),
+        )
     else
         m == 1 || throw(ArgumentError("given mod requires prime base"))
         # do not check if x is primitive here
@@ -438,7 +466,10 @@ Here Q is a galois field of characteristic `p` and order `p^r`.
 If `normalmatrix(a))` is regular, the field elements `a^(p^i) for i = 0:r-1` form a
 base of `Q` as a vector space over `ZZ/p` (a normal base).
 """
-function normalmatrix(a::Q, m::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function normalmatrix(
+    a::Q,
+    m::Integer = 0,
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     m = m <= 0 ? r : m
@@ -447,7 +478,7 @@ function normalmatrix(a::Q, m::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomia
         c = a.val.coeff
         k = length(c)
         for j = 1:r
-            M[j,i+1] = j <= k ? c[j] : 0
+            M[j, i+1] = j <= k ? c[j] : 0
         end
         a ^= p
     end
@@ -457,15 +488,20 @@ end
 """
     normalmatrix(::Type{Q}[, m])
 
-Return `normalmatrix(a, m)` for the first `a` in `Q` for which this ihas maximal rank. 
+Return `normalmatrix(a, m)` for the first `a` in `Q` for which this ihas maximal rank.
 """
-function normalmatrix(::Type{Q}, m::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function normalmatrix(
+    ::Type{Q},
+    m::Integer = 0,
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     normalmatrix(normalbase(Q), m)
 end
 
-function normalbases(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function normalbases(
+    ::Type{Q},
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     r = dimension(Q)
-    Base.Iterators.filter(x->rank(normalmatrix(x, r)) == r, Q)
+    Base.Iterators.filter(x -> rank(normalmatrix(x, r)) == r, Q)
 end
 """
     normalbase(::Type{Q})
@@ -474,7 +510,11 @@ Find the first `a in Q` for which `normalmatrix(a)` is regular.
 """
 function normalbase(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     bases = normalbases(Q)
-    isempty(bases) && throw(ArgumentError("quotient type with modulus $(modulus(Q)) has no normal bases - probably modulus is not an irreducible polynomial"))
+    isempty(bases) && throw(
+        ArgumentError(
+            "quotient type with modulus $(modulus(Q)) has no normal bases - probably modulus is not an irreducible polynomial",
+        ),
+    )
     first(bases)
 end
 
@@ -492,7 +532,10 @@ end
 
 mulsized(M::AbstractMatrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
-function *(M::AbstractMatrix{Z}, a::Q) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function *(
+    M::AbstractMatrix{Z},
+    a::Q,
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     mulsized(M, a.val.coeff)
 end
 
@@ -515,7 +558,10 @@ function homomorphism end
 function homomorphism(f::Function, ::Type{G}, ::Type{H}) where {G,H}
     Hom{G,H}(f)
 end
-function _homomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
+function _homomorphism(
+    ::Type{Q},
+    ::Type{R},
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
 
     r = dimension(Q)
     s = dimension(R)
@@ -532,7 +578,7 @@ function _homomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolyno
     L = ((xr^k)^pr for k = 0:s-1)
     S = hcat(collect(sized(x.val.coeff, s) for x in L)...)
     for i = 1:s
-        S[i,i] -= one(Z)
+        S[i, i] -= one(Z)
     end
     K = Matrix(nullspace(S))
 
@@ -555,11 +601,14 @@ function _homomorphism(::Type{Q}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolyno
     throw(ErrorException("no homomorphism found - not reachable"))
 end
 
-function _homomorphism(::Type{Z}, ::Type{R}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},R<:Quotient{P}}
+function _homomorphism(
+    ::Type{Z},
+    ::Type{R},
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},R<:Quotient{P}}
     1, 1
 end
 
-function homomorphism(iso::Function, nr::Integer=0)
+function homomorphism(iso::Function, nr::Integer = 0)
     N = iso.A.N
     M1 = iso.A.M1
     Q = iso.A.Q
@@ -567,16 +616,24 @@ function homomorphism(iso::Function, nr::Integer=0)
     _homomorphism(Q, R, N, M1, nr)
 end
 
-function homomorphism(::Type{Z}, ::Type{H}, nr::Integer=0) where {Z<:ZZmod,H<:GaloisField}
+function homomorphism(::Type{Z}, ::Type{H}, nr::Integer = 0) where {Z<:ZZmod,H<:GaloisField}
     Hom{Z,H}(x -> H(x))
-end 
+end
 
-function homomorphism(::Type{G}, ::Type{H}, nr::Integer=0) where {G<:GaloisField,H<:GaloisField}
+function homomorphism(
+    ::Type{G},
+    ::Type{H},
+    nr::Integer = 0,
+) where {G<:GaloisField,H<:GaloisField}
     N, M1 = _homomorphism(basetype(G), basetype(H))
     Hom{G,H}(_homomorphism(G, H, N, M1, nr))
 end
 
-function homomorphism(::Type{Q}, ::Type{R}, nr::Integer=0) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q,R<:Quotient{P}}
+function homomorphism(
+    ::Type{Q},
+    ::Type{R},
+    nr::Integer = 0,
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q,R<:Quotient{P}}
     N, M1 = _homomorphism(Q, R)
     _homomorphism(Q, R, N, M1, nr)
 end
@@ -586,7 +643,7 @@ function _homomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
     nr = mod(nr, r)
     # cyclic permutation of columns of N
     if nr != 0
-        N = hcat(N[:,nr+1:r], N[:,1:nr])
+        N = hcat(N[:, nr+1:r], N[:, 1:nr])
     end
     A = (T = N * M1, N = N, M1 = M1, Q = Q, R = R)
     quot(x) = x
@@ -641,7 +698,8 @@ function logg0(p::Integer, ord::Integer, zt)
     v
 end
 
-loggx(a::AbstractVector, G::Type{<:GaloisField}) = loggx(a, order(G), gettypevar(G).zechtable, logg0(G))
+loggx(a::AbstractVector, G::Type{<:GaloisField}) =
+    loggx(a, order(G), gettypevar(G).zechtable, logg0(G))
 function loggx(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
     loggi(k) = logt[k+1]
     k = findfirst(!iszero, a)
@@ -651,10 +709,10 @@ function loggx(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::Abstra
         ai = a[i]
         if !iszero(ai)
             lai = loggi(ai) + i - 1
-            accu = log_zech(mod(accu - lai, ord-1), ord, zt) + lai
+            accu = log_zech(mod(accu - lai, ord - 1), ord, zt) + lai
         end
     end
-    mod(accu, ord-1)
+    mod(accu, ord - 1)
 end
 
 function log_calc(num::Integer, G::Type{<:GaloisField})

@@ -35,16 +35,32 @@ import Base: +, -, *, zero, one, ==, hash, isless, iszero, isone
 copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
 # promotion and conversion
-_promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} = Base.Bottom
-_promote_rule(::Type{MultivariatePolynomial{R,N,X,T,B}}, ::Type{MultivariatePolynomial{S,N,X,T,B}}) where {X,N,R,S,T,B} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
-_promote_rule(::Type{P}, ::Type{S}) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
-promote_rule(::Type{P}, ::Type{S}) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} = MultivariatePolynomial{promote_type(R,S),N,X,T,B}
+_promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} =
+    Base.Bottom
+_promote_rule(
+    ::Type{MultivariatePolynomial{R,N,X,T,B}},
+    ::Type{MultivariatePolynomial{S,N,X,T,B}},
+) where {X,N,R,S,T,B} = MultivariatePolynomial{promote_type(R, S),N,X,T,B}
+_promote_rule(
+    ::Type{P},
+    ::Type{S},
+) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} =
+    MultivariatePolynomial{promote_type(R, S),N,X,T,B}
+promote_rule(
+    ::Type{P},
+    ::Type{S},
+) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} =
+    MultivariatePolynomial{promote_type(R, S),N,X,T,B}
 
-function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(a::MultivariatePolynomial{S,N,X,T,B}) where {R,N,X,T,B,S}
+function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(
+    a::MultivariatePolynomial{S,N,X,T,B},
+) where {R,N,X,T,B,S}
     P(a.ind, R.(a.coeff))
 end
 
-function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::MultivariatePolynomial{S}) where {R,N,X,T,S}
+function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
+    a::MultivariatePolynomial{S},
+) where {R,N,X,T,S}
     deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
     va = varnames(a)
@@ -62,7 +78,9 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::MultivariatePolynomial{
     pc = a.coeff[perm]
     P(pind, pc)
 end
-function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::UnivariatePolynomial{S}) where {R,N,X,T,S}
+function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
+    a::UnivariatePolynomial{S},
+) where {R,N,X,T,S}
 
     deg(a) <= 0 && return P(LC(a))
     vp = varnames(P)
@@ -78,7 +96,7 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(a::UnivariatePolynomial{S}
         aci = ac[i]
         if !iszero(aci)
             j += 1
-            xa = [i-1]
+            xa = [i - 1]
             perm[j] = i
             xp = reindex2(xa, pos, N)
             pind[j] = expo2ordblock(P, xp)
@@ -141,7 +159,8 @@ Return monic monomial with given exponents. (`[1,0,...]` corresponds to first va
 function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) where {N,S}
     n = length(xv)
     n == 0 && return zero(P)
-    length(xv) != N && throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
+    length(xv) != N &&
+        throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
     P([expo2ordblock(P, xv)], [1])
 end
 
@@ -187,7 +206,10 @@ function index2expo(p::MultivariatePolynomial{S,N,X,<:Integer}, i::Integer) wher
     ord2expo(p.ind[i], N)
 end
 
-function index2expo(p::MultivariatePolynomial{S,N,X,<:Tuple,B}, i::Integer) where {S,N,X,B<:Tuple}
+function index2expo(
+    p::MultivariatePolynomial{S,N,X,<:Tuple,B},
+    i::Integer,
+) where {S,N,X,B<:Tuple}
     vp = tupcon(B)
     m = length(vp)
     vcat([ord2expo(p.ind[i][k], vp[k]) for k = 1:m]...)
@@ -237,7 +259,7 @@ end
 
 function +(a::T...) where T<:MultivariatePolynomial
     n = length(a)
-    n >  0 || throw(ArgumentError("+ requires at least one argument"))
+    n > 0 || throw(ArgumentError("+ requires at least one argument"))
     n == 1 && return a[1]
     c = similar(a[1].coeff)
     d = similar(a[1].ind)
@@ -262,8 +284,8 @@ function +(a::T...) where T<:MultivariatePolynomial
         if !iszero(cj)
             j += 1
             if j > length(d)
-                resize!(d, 2*j)
-                resize!(c, 2*j)
+                resize!(d, 2 * j)
+                resize!(c, 2 * j)
             end
             d[j] = m
             c[j] = cj
@@ -284,7 +306,7 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
     d = similar(a.ind)
     j = 0
     p = ones(Int, n)
-    pm = [exposum(a, 1, b, j) for j in 1:n]
+    pm = [exposum(a, 1, b, j) for j = 1:n]
     bound = maxindex(T)
 
     while true
@@ -303,8 +325,8 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
         if !iszero(cj)
             j += 1
             if j > length(d)
-                resize!(d, 2*j)
-                resize!(c, 2*j)
+                resize!(d, 2 * j)
+                resize!(c, 2 * j)
             end
             d[j] = min
             c[j] = cj
@@ -316,13 +338,17 @@ function *(a::T, b::T) where {N,S,T<:MultivariatePolynomial{S,N}}
 end
 
 (p::MultivariatePolynomial)(a, b...) = evaluate(p, a, b...)
-function evaluate(p::T, a::Union{Ring,Int,Rational}...) where {N,S,T<:MultivariatePolynomial{S,N}}
-    length(a) != N && throw(ArgumentError("wrong number of arguments of polynomial with $N variables"))
+function evaluate(
+    p::T,
+    a::Union{Ring,Int,Rational}...,
+) where {N,S,T<:MultivariatePolynomial{S,N}}
+    length(a) != N &&
+        throw(ArgumentError("wrong number of arguments of polynomial with $N variables"))
     n = length(p.ind)
     R = promote_type(S, typeof.(a)...)
     deg(p) < 0 && return zero(R)
     deg(p) == 0 && return R(p.coeff[1])
-    vdeg = maximum(hcat(index2expo.(p, 1:n)...), dims=2)
+    vdeg = maximum(hcat(index2expo.(p, 1:n)...); dims = 2)
     xpot = [Vector{R}(undef, vdeg[i]) for i = 1:N]
     # precalculate all required monoms.
     for i = 1:N
@@ -357,11 +383,17 @@ In the first case, or if the tuple has length one, that is the `:grevlex` order,
 otherwise a block order, based on `:grevlex`, including `:lex`, if each variable
 block consists of one variable.
 """
-function expo2ordblock(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+function expo2ordblock(
+    ::Type{P},
+    a::AbstractVector{<:Integer},
+) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     expo2ord(a)
 end
 
-function expo2ordblock(::Type{P}, a::AbstractVector{<:Integer}) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
+function expo2ordblock(
+    ::Type{P},
+    a::AbstractVector{<:Integer},
+) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
 
     t = tupcon(B)
     res = Vector{T}(undef, M)
@@ -439,9 +471,9 @@ Calculate the greatest integer `c` such that `binomial(c, d) <= n`
 function cbin(n::T, d::Int) where T<:Integer
     d <= 0 && throw(ArgumentError("tuple size > 0 required, but is $d"))
     d == 1 && return n, n
-    n == 0 && return d-1, n
+    n == 0 && return d - 1, n
     n == 1 && return d, n
-    c = T(floor((n * sqrt(2pi*d))^(1/d) * d / ℯ + d/2))
+    c = T(floor((n * sqrt(2pi * d))^(1 / d) * d / ℯ + d / 2))
     if c <= d
         c = d
         b = T(1)
@@ -453,12 +485,12 @@ function cbin(n::T, d::Int) where T<:Integer
     while b <= n
         bp = b
         c += 1
-        b = b * c ÷ (c-d)
+        b = b * c ÷ (c - d)
     end
-    b >= n > bp && return c-1, bp
+    b >= n > bp && return c - 1, bp
     while b > n
         bp = b
-        b = b * (c-d) ÷ c
+        b = b * (c - d) ÷ c
         c -= 1
     end
     return c, b
@@ -489,12 +521,18 @@ end
 zeroindex(P::Type{<:MultivariatePolynomial}) = fillindex(one, P)
 maxindex(P::Type{<:MultivariatePolynomial}) = fillindex(typemax, P)
 
-function fillindex(f, ::Type{<:P}) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+function fillindex(
+    f,
+    ::Type{<:P},
+) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     f(T)
 end
-function fillindex(f, ::Type{<:P}) where {R,N,X,T,M,P<:MultivariatePolynomial{R,N,X,NTuple{M,T}}}
+function fillindex(
+    f,
+    ::Type{<:P},
+) where {R,N,X,T,M,P<:MultivariatePolynomial{R,N,X,NTuple{M,T}}}
     ft = f(T)
-    ntuple(x->ft, M)
+    ntuple(x -> ft, M)
 end
 
 """
@@ -504,21 +542,31 @@ Return the sum of variable exponents at `a.ind[i]` and `b.ind[j].
 Realizes multiplication of monomials.
 If one of the coefficients is undefined, return `maxindex` symbolizing zero.
 """
-function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
+function exposum(
+    pa::P,
+    i::Integer,
+    pb::P,
+    j::Integer,
+) where {R,N,X,T,P<:MultivariatePolynomial{R,N,X,T,Tuple{N}}}
     a = pa.ind
     b = pb.ind
     (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
     indexsum(a[i], b[j], N)
 end
 
-function exposum(pa::P, i::Integer, pb::P, j::Integer) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
+function exposum(
+    pa::P,
+    i::Integer,
+    pb::P,
+    j::Integer,
+) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T,B}}
     a = pa.ind
     b = pb.ind
     (isassigned(a, i) && isassigned(b, j)) || return maxindex(P)
     ai = a[i]
     bi = b[j]
     vp = tupcon(B)
-    ntuple(k->indexsum(ai[k], bi[k], vp[k]), length(ai))
+    ntuple(k -> indexsum(ai[k], bi[k], vp[k]), length(ai))
 end
 
 function getindex(pa::P, i::Integer) where P<:MultivariatePolynomial
@@ -666,7 +714,7 @@ using Base.Iterators
 # find all in one
 function buchbergerall(f::AbstractVector{P}) where P<:MultivariatePolynomial
     n = length(f)
-    C = [(i,j) for i=1:n for j = i+1:n]
+    C = [(i, j) for i = 1:n for j = i+1:n]
     buchberger(f, C)
 end
 
@@ -686,12 +734,15 @@ function buchberger(f::VP, h::VP) where {P<:MultivariatePolynomial,VP<:AbstractV
     n = length(f)
     m = length(h)
     g = vcat(f, h)
-    C = [(i,n+j) for i = 1:n for j = 1:m]
+    C = [(i, n + j) for i = 1:n for j = 1:m]
     buchberger(g, C)
 end
 
 # Buchberger's algorithm - C contains the remaining critical pairs (i,j)
-function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:MultivariatePolynomial
+function buchberger(
+    f::AbstractVector{P},
+    C::Vector{Tuple{Int,Int}},
+) where P<:MultivariatePolynomial
     n = length(f)
     g = copy(f)
     while !isempty(C)
@@ -705,7 +756,7 @@ function buchberger(f::AbstractVector{P}, C::Vector{Tuple{Int,Int}}) where P<:Mu
         if !iszero(s) && isone(d)
             push!(g, s)
             n += 1
-            append!(C, [(i,n) for i = 1:n-1])
+            append!(C, [(i, n) for i = 1:n-1])
             cleanup!(C, g)
         end
     end
@@ -737,7 +788,7 @@ function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k
     for j = 1:length(G)
         (j == i || j == k) && continue
         hx = multideg(G[j])
-        if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k,j), C)
+        if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k, j), C)
             return true # chain criterion - already removed
         end
     end
@@ -812,10 +863,10 @@ function reduce!(H::AbstractVector{P}) where P<:Polynomial
             H[i] = g
         end
     end
-    sort_unique!(H, rev=true)
+    sort_unique!(H; rev = true)
     j = findlast(iszero, H)
     if j !== nothing
-        resize!(H, j-1)
+        resize!(H, j - 1)
     end
     H
 end
@@ -870,7 +921,7 @@ end
 
 function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
     findfirst(iszero, pos) === nothing && return pos
-    i = findfirst(i->iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
+    i = findfirst(i -> iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
     if i !== nothing
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
     end

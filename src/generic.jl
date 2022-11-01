@@ -19,13 +19,30 @@ function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
     end
 end
 
-promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}= _promote_rule(R, S)
+promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
-_promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = promote_rule(R, promote_type(basetype(R), S))
+_promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} =
+    promote_rule(R, promote_type(basetype(R), S))
 
 depth(::Type{<:Number}) = 0
 
-for op in (:+, :-, :*, :/, :\, :(==), :(//), :divrem, :div, :rem, :gcd, :gcdx, :pgcd, :pgcdx, :isless)
+for op in (
+    :+,
+    :-,
+    :*,
+    :/,
+    :\,
+    :(==),
+    :(//),
+    :divrem,
+    :div,
+    :rem,
+    :gcd,
+    :gcdx,
+    :pgcd,
+    :pgcdx,
+    :isless,
+)
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
         ($op)(a::Ring, b::Union{Integer,Rational}) = ($op)(promote(a, b)...)
@@ -40,15 +57,19 @@ basetype(::Type{T}) where T = T
 convert(::Type{T}, a) where T = T(a)
 function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     if !(S <: basetype(T)) && depth(T) > depth(S)
-            b = convert(basetype(T), a)
-            convert(T, b)
+        b = convert(basetype(T), a)
+        convert(T, b)
     else
         T(a)
     end
 end
-(G::Type{<:Ring})(a) = G !== basetype(G) ? G(convert(basetype(G), a)) : throw(MethodError(G, a))
+(G::Type{<:Ring})(a) =
+    G !== basetype(G) ? G(convert(basetype(G), a)) : throw(MethodError(G, a))
 @generated function basetypes(a)
-    _basetypes(::Type{a}) where a = begin b = basetype(a); a == b ? [a] : [a; _basetypes(b)] end
+    _basetypes(::Type{a}) where a = begin
+        b = basetype(a)
+        a == b ? [a] : [a; _basetypes(b)]
+    end
     bt = tuple(_basetypes(a.parameters[1])...)
     :($bt)
 end
@@ -109,14 +130,14 @@ characteristic(::Type) = 0
 
 Calculate `a ^ b` in appropriate result type.
 """
-intpower(a::Integer, b::Integer) = uptype(a, mintype_for(a, b, false)) ^ b
+intpower(a::Integer, b::Integer) = uptype(a, mintype_for(a, b, false))^b
 
 """
     uptype(a, [T::Type])
 
 promote `a` to get at least type `promote_type(typeof(a), T)`.
 """
-uptype(a::T, S::Type=Int) where T = promote_type(S, T)(a)
+uptype(a::T, S::Type = Int) where T = promote_type(S, T)(a)
 
 
 """
@@ -147,7 +168,7 @@ function _isprimitive(g, n::Integer, fact)
     true
 end
 function pwr(g::G, x::Integer) where G<:Ring
-    g ^ x
+    g^x
 end
 function pwr((g, m)::Tuple{G,G}, x::Integer) where G<:Ring
     powermod(g, x, m)
@@ -243,7 +264,7 @@ rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
 
 Return if ring element `a` is dividable by `b` without remainder.
 """
-isdiv(a::T, b::T) where T <: Ring = iszero(rem(a, b))
+isdiv(a::T, b::T) where T<:Ring = iszero(rem(a, b))
 
 """
     iscoprime(a, b)
@@ -297,7 +318,7 @@ function gcd(a::T, b::T) where T<:Ring
             break
         end
         a, b = b, c
-        issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
+        issimpler(b, a) || throw(DomainError((a, b), "b is not simpler than a"))
     end
     u = lcunit(a)
     isone(a) ? a : a * inv(u)
@@ -327,7 +348,7 @@ function gcdx(a::T, b::T) where T<:Ring
         ##println("gcdx($a, $b) T = $T")
         q, r = divrem2(a, b)
         a, b = b, r
-        issimpler(b, a) || throw(DomainError((a,b), "b is not simpler than a"))
+        issimpler(b, a) || throw(DomainError((a, b), "b is not simpler than a"))
         s0, s1 = s1, s0 - q * s1
         t0, t1 = t1, t0 - q * t1
     end
@@ -390,25 +411,51 @@ function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
     t = trailing_zeros(p) + 1
     p >>= t
     while (t -= 1) > 0
-        x  = rem(x * x, m)
+        x = rem(x * x, m)
     end
     y = x
     while p > 0
         t = trailing_zeros(p) + 1
         p >>= t
         while (t -= 1) >= 0
-            x  = rem(x * x, m)
+            x = rem(x * x, m)
         end
         y = rem(y * x, m)
     end
     return y
 end
 
-const SUPERSCRIPTS = Char[0x2070, 0xb9, 0xb2, 0xb3, 0x2074, 0x2075, 0x2076, 0x2077, 0x2078, 0x2079, 0x207a, 0x207b]
-const SUBSCRIPTS = Char[0x2080, 0x2081, 0x2082, 0x2083, 0x2084, 0x2085, 0x2086, 0x2087, 0x2088, 0x2089, 0x208a, 0x208b]
+const SUPERSCRIPTS = Char[
+    0x2070,
+    0xb9,
+    0xb2,
+    0xb3,
+    0x2074,
+    0x2075,
+    0x2076,
+    0x2077,
+    0x2078,
+    0x2079,
+    0x207a,
+    0x207b,
+]
+const SUBSCRIPTS = Char[
+    0x2080,
+    0x2081,
+    0x2082,
+    0x2083,
+    0x2084,
+    0x2085,
+    0x2086,
+    0x2087,
+    0x2088,
+    0x2089,
+    0x208a,
+    0x208b,
+]
 
-tosuper(a::Integer; sign::Bool=false) = _integer_to_script(a, SUPERSCRIPTS, sign)
-tosub(a::Integer; sign::Bool=false) = _integer_to_script(a, SUBSCRIPTS, sign)
+tosuper(a::Integer; sign::Bool = false) = _integer_to_script(a, SUPERSCRIPTS, sign)
+tosub(a::Integer; sign::Bool = false) = _integer_to_script(a, SUBSCRIPTS, sign)
 function _integer_to_script(a::Integer, chars::Vector{Char}, sign::Bool)
     io = IOBuffer()
     if a < 0
@@ -422,10 +469,10 @@ function _integer_to_script(a::Integer, chars::Vector{Char}, sign::Bool)
     String(take!(io))
 end
 
-function sort_unique!(A::AbstractVector; rev::Bool=false)
+function sort_unique!(A::AbstractVector; rev::Bool = false)
     n = length(A)
     n == 0 && return A
-    a = sort!(A, rev=rev)
+    a = sort!(A; rev = rev)
     j = 1
     aj = a[1]
     for i = 2:length(a)
@@ -458,18 +505,18 @@ function testrules(io, gg)
                 println(io, "inv($a)")
             end
         end
-        if a * a * a != a ^ 3
+        if a * a * a != a^3
             println(io, "$(a) ^ 3")
         end
     end
-    for (a,b,c) in Iterators.product(gg, gg, gg)
-        if (a * b) * c != a * ( b * c)
+    for (a, b, c) in Iterators.product(gg, gg, gg)
+        if (a * b) * c != a * (b * c)
             println(io, "assoc * $a $b $c")
         end
-        if (a + b) + c != a + ( b + c)
+        if (a + b) + c != a + (b + c)
             println(io, "assoc + $a $b $c")
         end
-        if a * ( b + c) != a * b + a * c
+        if a * (b + c) != a * b + a * c
             println(io, "distrib $a $b $c")
         end
     end

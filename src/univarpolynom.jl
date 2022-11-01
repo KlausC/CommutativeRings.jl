@@ -6,8 +6,10 @@ getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
 
 ### Constructors
 category_trait(P::Type{<:Polynomial}) = category_trait_poly(P, category_trait(basetype(P)))
-category_trait_poly(::Type{<:UnivariatePolynomial}, Z::Type{<:FieldTrait}) = EuclidianDomainTrait
-category_trait_poly(::Type{<:Polynomial}, Z::Type{<:UniqueFactorizationDomainTrait}) = UniqueFactorizationDomainTrait
+category_trait_poly(::Type{<:UnivariatePolynomial}, Z::Type{<:FieldTrait}) =
+    EuclidianDomainTrait
+category_trait_poly(::Type{<:Polynomial}, Z::Type{<:UniqueFactorizationDomainTrait}) =
+    UniqueFactorizationDomainTrait
 category_trait_poly(::Type, Z::Type{<:IntegralDomainTrait}) = IntegralDomainTrait
 category_trait_poly(::Type, ::Type) = CommutativeRingTrait
 category_trait_fraction(::Type{<:IntegralDomainTrait}) = FieldTrait
@@ -59,11 +61,20 @@ function issimpler(a::T, b::T) where T<:Polynomial
 end
 
 # promotion and conversion
-_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,Y}}) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
-_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{UnivariatePolynomial{S,X}}) where {X,R,S} = UnivariatePolynomial{promote_type(R,S),X}
-_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} = UnivariatePolynomial{promote_type(R,S),X}
-promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} = UnivariatePolynomial{promote_type(R,S),X}
-promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} = UnivariatePolynomial{promote_type(R,S),X}
+_promote_rule(
+    ::Type{UnivariatePolynomial{R,X}},
+    ::Type{UnivariatePolynomial{S,Y}},
+) where {X,Y,R,S} = Base.Bottom # throw(DomainError((X,Y), "cannot promote univariate polynomials with differnet variables"))
+_promote_rule(
+    ::Type{UnivariatePolynomial{R,X}},
+    ::Type{UnivariatePolynomial{S,X}},
+) where {X,R,S} = UnivariatePolynomial{promote_type(R, S),X}
+_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} =
+    UnivariatePolynomial{promote_type(R, S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} =
+    UnivariatePolynomial{promote_type(R, S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} =
+    UnivariatePolynomial{promote_type(R, S),X}
 
 
 (P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])
@@ -95,7 +106,9 @@ function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
         co = [S(p)]
         UnivariatePolynomial{S,X}(co)
     else
-        throw(DomainError((X,Y), "cannot convert polynomials with differing variable names"))
+        throw(
+            DomainError((X, Y), "cannot convert polynomials with differing variable names"),
+        )
     end
 end
 
@@ -104,9 +117,9 @@ function monom(P::Type{<:UnivariatePolynomial}, xv::Vector{<:Integer})
     monom(P, xv...)
 end
 
-function monom(P::Type{<:UnivariatePolynomial{S}}, k::Integer=1) where S
+function monom(P::Type{<:UnivariatePolynomial{S}}, k::Integer = 1) where S
     k = max(k, -1)
-    v = zeros(S,k+1)
+    v = zeros(S, k + 1)
     v[k+1] = one(S)
     P(v)
 end
@@ -119,7 +132,8 @@ Allow all coefficient classes, which can be mapped to S, that means
 the canonical homomorphism is used.
 """
 function UnivariatePolynomial{S,X}(v::AbstractVector) where {X,S}
-    isempty(v) ? UnivariatePolynomial{S,X}(S[]) : UnivariatePolynomial{S,X}([S(x) for x = v])
+    isempty(v) ? UnivariatePolynomial{S,X}(S[]) :
+    UnivariatePolynomial{S,X}([S(x) for x in v])
 end
 
 # canonical embedding homomorphism from base ring
@@ -183,8 +197,8 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     else
         v = similar(vp, nv)
         for k = 1:nv
-            i1 = max(k+1-np,1)
-            i2 = min(k,nq)
+            i1 = max(k + 1 - np, 1)
+            i2 = min(k, nq)
             vk = vp[k-i1+1] * vq[i1]
             for j = i1+1:i2
                 vk += vp[k-j+1] * vq[j]
@@ -223,7 +237,7 @@ function ^(p::P, k::Integer) where P<:Polynomial
     if n == 0
         P(LC(p)^k)
     elseif k < 0
-        throw(DomainError((p,k), "polynom power negative exponent"))
+        throw(DomainError((p, k), "polynom power negative exponent"))
     elseif k == 0
         one(p)
     elseif k == 1 || n < 0
@@ -337,7 +351,8 @@ function rem(p::T, q::T) where T<:UnivariatePolynomial
 end
 
 function divrem(p::T, q::T) where T<:UnivariatePolynomial
-    cp = p.coeff; cq = q.coeff
+    cp = p.coeff
+    cq = q.coeff
     d, r = divrem(cp, cq, Val(false))
     tweak(d, cp, p), tweak(r, cp, p)
 end
@@ -347,7 +362,8 @@ function tweak(d, cp, p::T) where T<:UnivariatePolynomial
 end
 
 function div(p::T, q::T) where T<:UnivariatePolynomial
-    cp = p.coeff; cq = q.coeff
+    cp = p.coeff
+    cq = q.coeff
     d = divrem(cp, cq, Val(false))[1]
     tweak(d, cp, p)
 end
@@ -367,7 +383,7 @@ function divrem(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
                 d = div(r[nf], lcgi)
                 if !iszero(d)
                     modi = true
-                    a[i] += d * monom(T, nf-ni)
+                    a[i] += d * monom(T, nf - ni)
                     nj = nf - ni
                     for j = nf-ni+1:nf
                         rj = r[j] - gi[j-nf+ni] * d
@@ -398,7 +414,8 @@ The polynomial `a` is multiplied by a minimal factor `f ∈ R` with
 `f * a = q * b + r`.
 """
 function pdivrem(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
-    cp = p.coeff; cq = q.coeff
+    cp = p.coeff
+    cq = q.coeff
     vd, vr, f = divrem(cp, cq, Val(true))
     tweak(vd, cp, p), tweak(vr, cp, p), f
 end
@@ -415,7 +432,7 @@ function content(p::Polynomial)
 end
 function content(q::Polynomial{Q}) where Q<:Union{QQ,Quotient}
     c = lcm(getfield.(q.coeff, :den))
-    g = gcd(getfield.(q.coeff, :num) .* ( div.(c, getfield.(q.coeff, :den))))
+    g = gcd(getfield.(q.coeff, :num) .* (div.(c, getfield.(q.coeff, :den))))
     g = isnegative(LC(q)) ? -g : g
     Q(g, c)
 end
@@ -541,7 +558,7 @@ function resultant(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     r(0)
 end
 resultant(a::T, b::T) where T = iszero(a) || iszero(b) ? zero(T) : oneunit(T)
-resultant(a, b) = resultant(promote(a,b)...)
+resultant(a, b) = resultant(promote(a, b)...)
 
 """
     discriminant(a)
@@ -563,7 +580,11 @@ Another interpretation of this remainder yields the resultant of `a` and `b`.
 See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
 and TAoCP 2nd Ed. 4.6.1.
 """
-function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:UnivariatePolynomial{S}}
+function presultant_seq(
+    a::T,
+    b::T,
+    ::Val{Usedet},
+) where {Usedet,S,T<:UnivariatePolynomial{S}}
     E = one(S)
     da = deg(a)
     db = deg(b)
@@ -577,13 +598,13 @@ function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:Univariat
     end
     cc, a, b = normgcd(a, b)
     iszero(b) && return b, cc, b
-    s *= cc^(da+db)
+    s *= cc^(da + db)
     ψ = -E
     β = iseven(d) ? -E : E
     det = isodd(da) && isodd(db) ? -E : E
     while true
         γ = LC(b)
-        δ = γ^(d+1)
+        δ = γ^(d + 1)
         a = a * δ
         c = rem(a, b)
         iszero(c) && break
@@ -591,19 +612,19 @@ function presultant_seq(a::T, b::T, ::Val{Usedet})  where {Usedet,S,T<:Univariat
         c /= β
         # prepare for next turn
         if Usedet
-            det = det * δ ^ db / γ ^ (da - dc) / β ^ db
+            det = det * δ^db / γ^(da - dc) / β^db
 
         end
         if isodd(db) && isodd(dc)
             det = -det
         end
-        ψ = iszero(d) ? ψ : (-γ)^d / ψ^(d-1)
+        ψ = iszero(d) ? ψ : (-γ)^d / ψ^(d - 1)
         a, b = b, c
         da, db = db, dc
         d = da - db
         β = -γ * ψ^d
     end
-    r = db > 0 ? zero(b) : d < 1 ? one(b) : d == 1 ? b : LC(b)^(d-1) * b
+    r = db > 0 ? zero(b) : d < 1 ? one(b) : d == 1 ? b : LC(b)^(d - 1) * b
     b, cc, r * s / det
 end
 
@@ -614,22 +635,22 @@ This code is taken from "Algorithm 8.76 (Signed Subresultant Polynomials)"
 "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
 Its use is restricted to the case of `S` is an integral domain (there is no non-trivial divisor of zero).
 """
-function signed_subresultant_polynomials(P::T, Q::T)  where {S,T<:UnivariatePolynomial{S}}
+function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
     # epsi(n) = (-1) ^ (n*(n-1)÷2)
     epsi(n::Int) = iseven(n >> 1) ? 1 : -1
     p, q = deg(P), deg(Q)
     p > q || throw(ArgumentError("degree of polynomials: $p is not > $q"))
-    sresp = zeros(T, p+1)
-    s = zeros(S, p+1)
-    t = zeros(S, p+1)
+    sresp = zeros(T, p + 1)
+    s = zeros(S, p + 1)
+    t = zeros(S, p + 1)
     sresp[p+1] = P
     s[p+1] = t[p+1] = 1
     sresp[p] = Q
     bq = LC(Q)
     t[p] = bq
     if p > q - 1
-        bqp = bq ^ (p - q - 1)
-        sresp[q+1] = (epsi(p-q) * bqp) * Q
+        bqp = bq^(p - q - 1)
+        sresp[q+1] = (epsi(p - q) * bqp) * Q
     end
     s[q+1] = LC(sresp[q+1])
     i = p + 1
@@ -641,11 +662,11 @@ function signed_subresultant_polynomials(P::T, Q::T)  where {S,T<:UnivariatePoly
             if k > 0
                 sresp[k] = -rem(s[j]^2 * sresp[i], sresp[j]) / (s[j+1] * t[i])
             end
-            elseif k < j - 1
+        elseif k < j - 1
             s[j] = 0
             sig = -1
             for d = 1:j-k-1
-                t[j-d] = (t[j]*t[j-d+1]) / s[j+1] * sig
+                t[j-d] = (t[j] * t[j-d+1]) / s[j+1] * sig
                 sig = -sig
             end
             s[k+1] = t[k+1]
@@ -668,7 +689,7 @@ end
 Extended pseudo GCD algorithm.
 Return `g == pgcd(a, b)` and `u, v, f` with `a * u + b * v == g * f`.
 """
-function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
+function pgcdx(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     E = one(S)
     iszero(b) && return a, E, zero(S), a
     iszero(a) && return b, zero(S), E, b
@@ -687,7 +708,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
     s1, s2, t1, t2 = EE, ZZ, ZZ, EE
     while true
         γ = LC(b)
-        γd = γ^(d+1)
+        γd = γ^(d + 1)
         a = a * γd
         q, c = divrem(a, b)
         c /= β
@@ -698,7 +719,7 @@ function pgcdx(a::T, b::T) where {X,S,T<:UnivariatePolynomial{S}}
         # prepare for next turn
         da = db
         db = deg(c)
-        ψ = d == 0 ? ψ : (-γ)^d / ψ^(d-1)
+        ψ = d == 0 ? ψ : (-γ)^d / ψ^(d - 1)
         d = da - db
         β = -γ * ψ^d
     end
@@ -721,12 +742,12 @@ function LinearAlgebra.sylvester(v::P, u::P) where {Z,P<:UnivariatePolynomial{Z}
     S = zeros(Z, n, n)
     if nv >= 0
         for k = 1:nu
-            S[k:k+nv,k] .= reverse(v.coeff)
+            S[k:k+nv, k] .= reverse(v.coeff)
         end
     end
     if nu >= 0
         for k = 1:nv
-            S[k:k+nu,k+nu] .= reverse(u.coeff)
+            S[k:k+nu, k+nu] .= reverse(u.coeff)
         end
     end
     S
@@ -760,7 +781,7 @@ end
 Inverse of `p` modulo `q`, where both are polynomials of the same type.
 If the base type is not a field, typically no inverse exists.
 """
-function invert(p::T, q::T) where T <: UnivariatePolynomial
+function invert(p::T, q::T) where T<:UnivariatePolynomial
     g, u, v, f = pgcdx(p, q)
     if isunit(g) && isunit(f)
         u / g / f
@@ -796,10 +817,13 @@ Convenient method ot evaluate is is `p(y)`.
 function evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     _evaluate(p, x)
 end
-function evaluate(p::U, x::V) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePolynomial{T,Y}}
+function evaluate(
+    p::U,
+    x::V,
+) where {U<:UnivariatePolynomial,Y,T,V<:UnivariatePolynomial{T,Y}}
     if ismonic(x) && ismonom(x)
         spread(p, deg(x), Y, T)
-     else
+    else
         _evaluate(p, x)
     end
 end
@@ -809,7 +833,7 @@ function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     n = length(c)
     R = promote_type(S, eltype(T))
     n == 0 && return x * zero(S)
-    n == 1 && return x ^ 0 * c[1]
+    n == 1 && return x^0 * c[1]
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x
@@ -887,7 +911,7 @@ function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
     if n == 2
         print(io, X)
     elseif n != 1
-        print(io, string(X, '^', n-1))
+        print(io, string(X, '^', n - 1))
     end
 end
 
@@ -927,7 +951,7 @@ function show(io::IO, p::Polynomial{T}) where T
 end
 
 function showelem(io::IO, el, start::Bool)
-    v = sprint(show, el, context=io)
+    v = sprint(show, el; context = io)
     v1 = v[1]
     if v1 == '-'
         print(io, '-')
@@ -940,7 +964,7 @@ function showelem(io::IO, el, start::Bool)
 end
 
 LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Ring = det!(copy(a))
-det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number}  = _det(a, category_trait(D))
+det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = _det(a, category_trait(D))
 _det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB(a)
 _det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB(a)
 _det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing = det_QR(a)
@@ -963,7 +987,7 @@ function det_DJB(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
     for k = 1:n-1
         j0 = 0
         for j = k:n
-            if !iszero(b[k,j])
+            if !iszero(b[k, j])
                 j0 = j
                 break
             end
@@ -973,23 +997,23 @@ function det_DJB(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
         end
         if j0 != k
             for i = k:n
-                b[i,j0], b[i,k] = b[i,k], b[i,j0]
+                b[i, j0], b[i, k] = b[i, k], b[i, j0]
             end
             s = -s
         end
-        bkk = b[k,k]
+        bkk = b[k, k]
         for i = k+1:n
-            bik = b[i,k]
-            b[i,k] = 0
+            bik = b[i, k]
+            b[i, k] = 0
             for j = k+1:n
-                bkj = b[k,j]
-                bij = b[i,j]
-                b[i,j] = div(bkk * bij - bik * bkj, b00)
+                bkj = b[k, j]
+                bij = b[i, j]
+                b[i, j] = div(bkk * bij - bik * bkj, b00)
             end
         end
         b00 = bkk
     end
-    return b[n,n] * s
+    return b[n, n] * s
 end
 
 """
@@ -1011,7 +1035,7 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
         # println("k = $k, ij = $ij")
         # display(a)
         if ij !== nothing
-            ij += CartesianIndex(k-1, k-1)
+            ij += CartesianIndex(k - 1, k - 1)
             s = flipall!(b, ij, k, s)
         else
             vmin = zero(Z)
@@ -1025,25 +1049,25 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
                 m = modulus(D)
                 v, w = splitmod(vmin, m)
                 # println("splitmod($vmin, $m) = $v, $w")
-                ZV = Z/v
+                ZV = Z / v
                 dv = det!(ZV.(a))
                 isone(w) && return dv
-                ZW = Z/w
+                ZW = Z / w
                 dw = det!(ZW.(a))
                 return crt(D(value(dv)), D(value(dw)), v, w) * s
             end
         end
         bkk = one(D)
         for i = k+1:n
-            bik = b[i,k]
+            bik = b[i, k]
             for j = k+1:n
-                bkj = b[k,j]
-                bij = b[i,j]
-                b[i,j] = bkk * bij - bik * bkj
+                bkj = b[k, j]
+                bij = b[i, j]
+                b[i, j] = bkk * bij - bik * bkj
             end
         end
     end
-    return b[n,n] * s
+    return b[n, n] * s
 end
 
 function flipall!(a::AbstractMatrix, ij::CartesianIndex, k, s)
@@ -1053,20 +1077,20 @@ function flipall!(a::AbstractMatrix, ij::CartesianIndex, k, s)
     if i != k
         s = -s
         for u = k:size(a, 2)
-            a[i,u], a[k,u] = a[k,u], a[i,u]
+            a[i, u], a[k, u] = a[k, u], a[i, u]
         end
     end
     if j != k
         s = -s
         for u = k:size(a, 1)
-            a[u,j], a[u,k] = a[u,k], a[u,j]
+            a[u, j], a[u, k] = a[u, k], a[u, j]
         end
     end
-    akk = a[k,k]
+    akk = a[k, k]
     if isunit(akk)
         for u = k:size(a, 2)
             # println("a[$k,$u] / akk == $(a[k,u]) / $akk = $(a[k,u] / akk)")
-            a[k,u] /= akk
+            a[k, u] /= akk
         end
         s *= akk
     end
@@ -1080,15 +1104,15 @@ function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{
     g0 = zero(Z)
     g1 = one(Z)
     for j = k:n
-        g1 = gcd(g0, value(b[i,j]))
+        g1 = gcd(g0, value(b[i, j]))
         isone(g1) && break
         g0 = g1
     end
     if !isone(g1)
         s *= g1
         for j = k:n
-            bij = D(value(b[i,j]) ÷ g1)
-            b[i,j] = bij
+            bij = D(value(b[i, j]) ÷ g1)
+            b[i, j] = bij
             if ij === nothing && isunit(bij)
                 ij = CartesianIndex(i, j)
             end
@@ -1122,7 +1146,7 @@ function splitmod(v, m)
         end
         v = g
     end
-    a = v ^ x
+    a = v^x
     b = m ÷ a
     a, b
 end
@@ -1141,7 +1165,7 @@ function det_Bird(a::AbstractMatrix{D}) where D
     for k = n-1:-1:1
         mutx!(x, k, a)
     end
-    isodd(n) ? x[1,1] : -x[1,1]
+    isodd(n) ? x[1, 1] : -x[1, 1]
 end
 
 function mutx!(x::AbstractMatrix, k::Integer, a::AbstractMatrix{T}) where T
@@ -1149,37 +1173,37 @@ function mutx!(x::AbstractMatrix, k::Integer, a::AbstractMatrix{T}) where T
     n = size(a, 1)
     for j = 1:n
         for i = j+1:n
-            x[i,j] = 0
+            x[i, j] = 0
         end
     end
-    s = -x[k+1,k+1]
-    x[k+1,k+1] = 0
+    s = -x[k+1, k+1]
+    x[k+1, k+1] = 0
     for j = k:-1:1
-        xjj = x[j,j]
-        x[j,j] = s
+        xjj = x[j, j]
+        x[j, j] = s
         s -= xjj
     end
     s = zero(T)
     for l = k:n
-        s += x[k,l] * a[l,k]
+        s += x[k, l] * a[l, k]
     end
-    x[k,k] = s
+    x[k, k] = s
     for j = k+1:n
-        x[k,j] = 0
+        x[k, j] = 0
     end
     for i = k-1:-1:1
         for j = i:n
-            x[j,1] = x[i,j]
+            x[j, 1] = x[i, j]
         end
         for j = n:-1:1
             s = zero(T)
             for l = i:n
-                s += x[l,1] * a[l,j]
+                s += x[l, 1] * a[l, j]
             end
-            x[i,j] = s
+            x[i, j] = s
         end
         for j = i+1:n
-            x[j,1] = 0
+            x[j, 1] = 0
         end
     end
     x
@@ -1213,7 +1237,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
         nothing
     end
 
-    s = max(min(n * (n+1) ÷ 2, count(!iszero, a)), max(2 * n, 32))
+    s = max(min(n * (n + 1) ÷ 2, count(!iszero, a)), max(2 * n, 32))
     sizehint!(A, s)
     sizehint!(B, s)
     p = isodd(n)
@@ -1224,9 +1248,9 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
         empty!(B)
         empty!(C)
         for (p, u, v, Auvp) in A
-            avu = a[v,u]
+            avu = a[v, u]
             for w = u+1:n
-                avw = a[v,w]
+                avw = a[v, w]
                 if !iszero(avw)
                     avw *= Auvp
                     addpush!(B, C, (p, u, w, avw))
@@ -1246,7 +1270,7 @@ function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
 
     d = zero(D)
     for (p, u, v, Auvp) in A
-        avu = a[v,u] * (p ? 1 : -1)
+        avu = a[v, u] * (p ? 1 : -1)
         if !iszero(avu)
             d += Auvp * avu
         end
@@ -1262,27 +1286,27 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     B2 = zeros(D, n, n)
     p = n & 1 + 1
     for u = 1:n
-        (p == 1 ? A1 : A2)[u,u] = one(D)
+        (p == 1 ? A1 : A2)[u, u] = one(D)
     end
     for i = 0:n-2
         for u = 1:n
             for v = u:n
-                Auvp = A1[u,v]
+                Auvp = A1[u, v]
                 if !iszero(Auvp)
                     for w = u+1:n
                         #println("addpush(0, $u, $w, $(Auvp*a[v,w]))")
-                        B1[u,w] += Auvp * a[v,w]
+                        B1[u, w] += Auvp * a[v, w]
                         #println("addpush(1, $w, $w, $(Auvp * a[v,u]))")
-                        B2[w,w] += Auvp * a[v,u]
+                        B2[w, w] += Auvp * a[v, u]
                     end
                 end
-                Auvp = A2[u,v]
+                Auvp = A2[u, v]
                 if !iszero(Auvp)
                     for w = u+1:n
                         #println("addpush(1, $u, $w, $(Auvp*a[v,w]))")
-                        B2[u,w] += Auvp * a[v,w]
+                        B2[u, w] += Auvp * a[v, w]
                         #println("addpush(0, $w, $w, $(Auvp * a[v,u]))")
-                        B1[w,w] += Auvp * a[v,u]
+                        B1[w, w] += Auvp * a[v, u]
                     end
                 end
             end
@@ -1297,14 +1321,14 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
 
     for u = 1:n
         for v = u:n
-            avu = a[v,u]
+            avu = a[v, u]
             if !iszero(avu)
-                B1[1,1] += A1[u,v] * avu
-                B2[1,1] += A2[u,v] * avu
+                B1[1, 1] += A1[u, v] * avu
+                B2[1, 1] += A2[u, v] * avu
             end
         end
     end
-    B2[1,1] - B1[1,1]
+    B2[1, 1] - B1[1, 1]
 end
 
 function hamilton_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
@@ -1316,28 +1340,28 @@ end
 function hamilton_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
     m, n = size(a)
 
-    for i = 1:min(m,n)-1
+    for i = 1:min(m, n)-1
         for j = 1:i
-            ajj = a[j,j]
-            aji = a[j,i+1]
+            ajj = a[j, j]
+            aji = a[j, i+1]
             r, p, q = gcdx(ajj, aji)
             pp = -div(aji, r)
             qq = div(ajj, r)
             for k = 1:m
-                akj = a[k,j]
-                aki = a[k,i+1]
+                akj = a[k, j]
+                aki = a[k, i+1]
                 bkj = akj * p + aki * q
                 bki = akj * pp + aki * qq
-                a[k,j] = bkj
-                a[k,i+1] = bki
+                a[k, j] = bkj
+                a[k, i+1] = bki
             end
             for k = 1:n
-                akj = u[k,j]
-                aki = u[k,i+1]
+                akj = u[k, j]
+                aki = u[k, i+1]
                 bkj = akj * p + aki * q
                 bki = akj * pp + aki * qq
-                u[k,j] = bkj
-                u[k,i+1] = bki
+                u[k, j] = bkj
+                u[k, i+1] = bki
             end
             reduce_off_diagonal!(a, u, j)
         end
@@ -1347,15 +1371,15 @@ function hamilton_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
 end
 
 function reduce_off_diagonal!(a, u, k)
-    akk = a[k,k]
+    akk = a[k, k]
     if akk < 0
         akk = -akk
-        a[:,k] .= -a[:,k]
-        u[:,k] .= -u[:,k]
+        a[:, k] .= -a[:, k]
+        u[:, k] .= -u[:, k]
     end
     for z = 1:k-1
-        d = div(-a[k,z], akk)
-        a[:,z] .+= a[:,k] .* d
-        u[:,z] .+= u[:,k] .* d
+        d = div(-a[k, z], akk)
+        a[:, z] .+= a[:, k] .* d
+        u[:, z] .+= u[:, k] .* d
     end
 end

@@ -1,9 +1,9 @@
 
 ## Creation
 
-pseudo_ideal(::Type{R},m::RingInt) where R = R(m)
-pseudo_ideal(::Type{R},mm::AbstractVector) where R = Ideal(Vector{R}(mm))
-pseudo_ideal(::Type{R},m::Ideal{R}) where R = m
+pseudo_ideal(::Type{R}, m::RingInt) where R = R(m)
+pseudo_ideal(::Type{R}, mm::AbstractVector) where R = Ideal(Vector{R}(mm))
+pseudo_ideal(::Type{R}, m::Ideal{R}) where R = m
 
 function Ideal(m::R) where R<:Ring
     if iszero(m)
@@ -46,7 +46,7 @@ end
 +(a::R, id::Ideal{R}) where R = Ideal([a; id.base])
 
 function *(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
-    C = [ b1 * b2 for b1 in id1.base for b2 in id2.base]  
+    C = [b1 * b2 for b1 in id1.base for b2 in id2.base]
     Ideal(C)
 end
 
@@ -61,9 +61,9 @@ function ^(id::Ideal{R}, p::Integer) where R<:MultivariatePolynomial
     elseif p == 2
         id * id
     elseif iseven(p)
-        (id^(p÷2))^2
+        (id^(p ÷ 2))^2
     else
-        (id^((p-1)÷2))^2 * id
+        (id^((p - 1) ÷ 2))^2 * id
     end
 end
 
@@ -88,4 +88,3 @@ zero(::Type{I}) where {R,I<:Ideal{R}} = Ideal(R[])
 one(::Type{I}) where {R,I<:Ideal{R}} = Ideal(R[1])
 one(::R) where R<:Ideal = one(R)
 zero(::R) where R<:Ideal = zero(R)
-

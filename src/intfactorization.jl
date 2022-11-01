@@ -10,7 +10,7 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
     end
 end
 
-function isirreducible(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
+function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     deg(p) > 1 || return true
     iszero(p[0]) && return false
     X = varname(P)
@@ -20,7 +20,7 @@ function isirreducible(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     zassenhaus_irr(q; p0)
 end
 
-function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
@@ -42,7 +42,7 @@ function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     res
 end
 
-function factor(p::P; p0=3) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
+function factor(p::P; p0 = 3) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
     c = content(p)
     pp = ZZ{T}[X](numerator.((p / c).coeff))
     fz = factor(pp; p0)
@@ -55,7 +55,7 @@ function factor(p::P; p0=3) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
             fq[i] = P(u) => k
         else
             fq[i] = P(u) / lc => k
-            c *= lc ^ k
+            c *= lc^k
         end
     end
     if isone(c)
@@ -97,7 +97,7 @@ return `gcd(u, v), u / g, v / g`.
 """
 function GCD(u, v)
     t = pgcd(u, v)
-    isone(t) ? (t, u, v) : (t, u/t, v/t)
+    isone(t) ? (t, u, v) : (t, u / t, v / t)
 end
 
 function zassenhaus_unused_tomonic_etc(u)
@@ -156,14 +156,14 @@ end
 
 Returns true iff the squarefree polynomial `u` is irreducible.
 """
-function zassenhaus_irr(u; p0=3)
+function zassenhaus_irr(u; p0 = 3)
     res = zassenhaus2(u, Val(true); p0)
     isempty(res) || deg(res[1]) >= deg(u)
 end
 
 # find small prime number >= p0 for which number of
 # factors modulo p is smallest
-function best_prime(u, p0=3, kmax=5, vmin=10, vmax=15)
+function best_prime(u, p0 = 3, kmax = 5, vmin = 10, vmax = 15)
 
     kbreak(vl) = vl <= vmin ? 0 : vl > vmax ? vl : kmax
 
@@ -196,7 +196,7 @@ function factormod(u, p::Integer)
     while isempty(v)
         p = nextprime(p + 1)
         compatible_with(p, un) || continue
-        Zp = ZZ/p
+        Zp = ZZ / p
         unp = Zp(un)
         up = Zp[X](u) / unp
         fac = factor(up) # modulo p
@@ -290,7 +290,7 @@ end
 The procedure may be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
 """
-function factormod(u::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
+function factormod(u::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
@@ -311,8 +311,12 @@ If degrees of `V` sums up to the degree of `U`, that indicates the factorization
 It is also possible, that only one factor is found.
 The factors are not proved to be irreducible.
 """
-function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa::AbstractVector) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
-    res = Tuple{Z, Any, Any}[]
+function combinefactors(
+    u::Z,
+    vv::AbstractVector{<:UnivariatePolynomial{Zp}},
+    aa::AbstractVector,
+) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
+    res = Tuple{Z,Any,Any}[]
     un = LC(u)
     unp = Zp(un)
     uu = u * un
@@ -320,11 +324,11 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
     r0 = 0
     while (r = length(vv)) > 0 && r != r0
         n = deg(uu)
-        tr = max(UInt64(1)<<(r-1) - 1, 1)
+        tr = max(UInt64(1) << (r - 1) - 1, 1)
         for i = 1:tr
             d = enumx(i, r)
             nv = deg_prod(vv, d)
-            if 2*nv > n || ( 2*nv == n && (d & 1 == 1) )
+            if 2 * nv > n || (2 * nv == n && (d & 1 == 1))
                 #println("before d = $(bitstring(d)) nv = $nv n = $n r = $r")
                 d = (1 << r - 1) & ~d
                 nv = n - nv
@@ -398,7 +402,7 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
     iszero(u0) && throw(ArgumentError("required u(0) != 0"))
     rua = norm(value.(u.coeff)) * accuracy
     ua = Integer(ceil(rua))
-    v = zeros(I, m+1)
+    v = zeros(I, m + 1)
     if m > 0
         v[m+1], v[1] = un, u0
     else
@@ -427,13 +431,17 @@ In the case u is not monic, the factor lc(u) has to be multiplied into v[1]. lc(
 
 The output vector V contains polynomials of same degree as corresponding v.
 """
-function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {P<:Polynomial,Pq<:Polynomial,Pp<:Polynomial}
+function hensel_lift(
+    u::P,
+    v::AbstractVector{Pq},
+    a::AbstractVector{Pp},
+) where {P<:Polynomial,Pq<:Polynomial,Pp<:Polynomial}
     X = varname(Pq)
     Zp = basetype(Pp)
     Zq = basetype(Pq)
     p = modulus(Zp)
     q = modulus(Zq)
-    Zqp = ZZ/(widemul(q, p))
+    Zqp = ZZ / (widemul(q, p))
     qp = modulus(Zqp)
     Pqp = Zqp[X]
     lc = LC(u)
@@ -442,7 +450,7 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
     V = liftmod.(Pqp, v)
     f = liftmod(Pqp, u) - prod(V) * Pqp(lc)
     fp = downmod(Zp, f, p) * lci
-    fi = rem.(a .* fp , v)
+    fi = rem.(a .* fp, v)
     V .+= liftmod.(Pqp, fi) * p
 
     A = liftmod.(Pqp, a)
@@ -458,7 +466,7 @@ function hensel_lift(u::P, v::AbstractVector{Pq}, a::AbstractVector{Pp}) where {
 end
 
 function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolynomial{T,X}}
-    c = map(x->Zp(value(x) ÷ q), f.coeff)
+    c = map(x -> Zp(value(x) ÷ q), f.coeff)
     UnivariatePolynomial{Zp,X}(c)
 end
 
@@ -472,7 +480,7 @@ end
 function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
     Z(signed(T)(a))
 end
-function liftmod(::Type{P}, a::Polynomial) where {Z, P<:Polynomial{Z}}
+function liftmod(::Type{P}, a::Polynomial) where {Z,P<:Polynomial{Z}}
     c = liftmod.(Z, a.coeff)
     P(c)
 end
@@ -546,7 +554,7 @@ Return `pprod(v, n)[0:1]` efficiently.
 function l1prod(vv, n)
     T = basetype(eltype(vv))
     start = (oneunit(T), zero(T))
-    preduce((p, v) -> (p[1]*v[0], p[2] * v[0] + p[1] * v[1]), start, vv, n)
+    preduce((p, v) -> (p[1] * v[0], p[2] * v[0] + p[1] * v[1]), start, vv, n)
 end
 
 function preduce(op, start, vv::AbstractVector, n::Integer)
@@ -598,13 +606,20 @@ The iterator elements are tuples `(n, w)`, where n is an integer in `0:2^r-1` an
 The elements `w` have the property
 `deg(w) < deg(u)/2` or `deg(w) == deg(u)/2 && ( count_ones(n) < r/2 || count_ones(n) == r/2 && isodd(n) )`.
 """
-function smallfactors(vv, u::P, mask = typemax(Int)) where P<:UnivariatePolynomial{<:ZZ{<:Integer}}
+function smallfactors(
+    vv,
+    u::P,
+    mask = typemax(Int),
+) where P<:UnivariatePolynomial{<:ZZ{<:Integer}}
     r = length(vv)
-    mask &= (1<<r - 1)
+    mask &= (1 << r - 1)
     rm = count_ones(mask)
     up = eltype(vv)(u)
     smaller(n, v, w) = deg(v) <= deg(w) ? (n, v, w) : (mask & ~n, w, v)
-    sm1 = Iterators.filter(x -> x & mask == x && (2count_ones(x) < rm || 2count_ones(x) == rm && isodd(x)), 1:2^r-1)
+    sm1 = Iterators.filter(
+        x -> x & mask == x && (2count_ones(x) < rm || 2count_ones(x) == rm && isodd(x)),
+        1:2^r-1,
+    )
     sm2 = Iterators.map(n -> smaller(n, pprod(vv, n), pprod(vv, mask & ~n)), sm1)
     sm2
     # Iterators.filter(x -> divides_maybe(P(x[2]), u), sm3)
@@ -629,7 +644,7 @@ function divides_maybe(v::UnivariatePolynomial, u::UnivariatePolynomial)
     iszero(r0) || return false
     m < 1 && return true
     if basetype(v0) <: Integer
-        Z = ZZ/abs(value(v0))
+        Z = ZZ / abs(value(v0))
         Z(u[1]) == Z(q0) * Z(v[1])
     else
         r0 = u[1] - q0 * v[1]
@@ -728,7 +743,7 @@ end
 
 # to be moved to test, once productive implementation is stable - used to verify results
 function enumx_slow(n::Integer, bits::Int)
-    nm = (oftype(n, 1)<<bits) - 1
+    nm = (oftype(n, 1) << bits) - 1
     nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
     bits == 0 && return zero(n)
     if n >> (bits - 1) == 1
@@ -738,7 +753,7 @@ function enumx_slow(n::Integer, bits::Int)
     d = s
     for k = 0:bits
         t = s + binomial(bits, k)
-        mm = binomial(bits - 1, k-1)
+        mm = binomial(bits - 1, k - 1)
         if n < t || t <= 0
             m = n - s
             return (enumx_slow(m + d, bits - 1) << 1) + (m < mm)
@@ -758,7 +773,7 @@ in two's complement representation.
 In other words, `enumx.(0:n, bits)` is sorted by the bitcount.
 """
 function enumx(n::Integer, bits::Int)
-    mask = (oftype(n, 1)<<bits) - 1
+    mask = (oftype(n, 1) << bits) - 1
     nm = mask
     nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
     a = zero(n)
@@ -778,7 +793,7 @@ function enumx(n::Integer, bits::Int)
                 break
             end
             d += u1
-            u1, u0 = u0, u0 * (bits-k-1) ÷ (k+1)
+            u1, u0 = u0, u0 * (bits - k - 1) ÷ (k + 1)
             v1, v0 = v0, u0 + v0
             w1, w0 = w0, v0 + v1
         end
@@ -869,7 +884,7 @@ function polyfactor(u::UnivariatePolynomial{ZZ{T}}, left::Bool) where T<:Integer
     n = deg(u)
     g = Vector{T}(undef, n)
     gk = zero(T)
-    cc(k) = left ? c[k+1] : c[n - k + 1]
+    cc(k) = left ? c[k+1] : c[n-k+1]
 
     for k = n:-1:1
         gk = gcd(gk, value(cc(k)))
@@ -914,7 +929,7 @@ function allgcdx(v::AbstractVector{T}) where T
         g, a, aa = gcdx(s, vk)
         @assert isone(g)
         #println("g = $g, a = $a, aa = $aa, c = $c, s = $s, vk = $vk f = $f")
-#       isone(g) || throw(ArgumentError("factors must be coprime"))
+        #       isone(g) || throw(ArgumentError("factors must be coprime"))
         r, w[k] = divrem(a * c / g, vk)
         c = aa * c / g + r * s
     end
@@ -937,7 +952,8 @@ end
 """
     bezout_sum(u, a)
 
-Calculate the sum of products `a[i] * (prod(u) / u[i])`. Should be 1 if `a` are bezout factors of `u`.
+Calculate the sum of products `a[i] * (prod(u) / u[i])`.
+Should be 1 if `a` are bezout factors of `u`.
 """
 function bezout_sum(u::AbstractVector{T}, a::AbstractVector{T}) where T
     n = length(a)

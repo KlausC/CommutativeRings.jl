@@ -30,7 +30,7 @@ function minimal_polynomial(A::AbstractMatrix{R}, u::AbstractVector{R}) where R<
     n == length(u) || throw(ArgumentError("size of vector does not match matrix"))
     lut, v = lu_axu(A, u)
     r = lut.rank
-    U = UpperTriangular(view(lut.factors,1:r, 1:r))
+    U = UpperTriangular(view(lut.factors, 1:r, 1:r))
     L = UnitLowerTriangular(view(lut.factors, 1:r, 1:r))
     w = U \ (L \ v[lut.pivr[1:r]])
     UnivariatePolynomial{R,:x}([-w; 1])
@@ -44,14 +44,19 @@ Return new matrix `[u A*u A^2*u ... A^(n-1)*u]`
 function axspace(A, u::AbstractVector, n::Integer)
     m = checksquare(A)
     B = Matrix{eltype(A)}(undef, m, n)
-    B[:,1] .= u
+    B[:, 1] .= u
     for k = 2:n
-        B[:,k] .= A * B[:,k-1]
+        B[:, k] .= A * B[:, k-1]
     end
     B
 end
 
-function combine_minimals(A::AbstractMatrix{R}, v::AbstractVector{R}, P, w::AbstractVector{R}) where R<:Ring
+function combine_minimals(
+    A::AbstractMatrix{R},
+    v::AbstractVector{R},
+    P::UnivariatePolynomial{R},
+    w::AbstractVector{R},
+) where R<:Ring
     # P = minimal_polynomial(A, v)
     Q = minimal_polynomial(A, w)
     G = gcd(P, Q)
@@ -140,7 +145,7 @@ function rnf_matrix(rnf::RNF{R}) where R
     p = 1
     for pi in rnf.minpoly
         d = deg(pi)
-        M[p:p+d-1,p:p+d-1] .= companion(pi)
+        M[p:p+d-1, p:p+d-1] .= companion(pi)
         p += d
     end
     M
@@ -161,30 +166,30 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     r = deg(P)
     lut, _ = lu_axu(A, u)
     piv = lut.pivr
-    B = (lut.L * lut.R)[invperm(piv),:]
+    B = (lut.L*lut.R)[invperm(piv), :]
     if r == m
         return RNF(P, B)
     end
     p1 = view(piv, 1:r)
     p2 = view(piv, r+1:m)
-    A12 = A[p1,p2]
-    A22 = A[p2,p2]
+    A12 = A[p1, p2]
+    A22 = A[p2, p2]
     L11, L21, R11 = lut.L11, lut.L21, lut.R11
     D = A22 - L21 * (L11 \ A12)
 
     rnf = rational_normal_form(D)
 
-    B[:,r+1:m] .= B[:,r+1:m] * rnf.trans
+    B[:, r+1:m] .= B[:, r+1:m] * rnf.trans
     p = r + 1
     for pi in rnf.minpoly
-        g = prod_pmv(pi, A, B[:,p])
+        g = prod_pmv(pi, A, B[:, p])
         h = R11 \ (L11 \ g[p1])
         H = UnivariatePolynomial{R,:x}(h)
         S = H / pi
-        B[:,p] .-= S(A) * B[:,1]
+        B[:, p] .-= S(A) * B[:, 1]
         d = deg(pi)
         for j = p:p+d-2
-            B[:,j+1] .= A * B[:,j]
+            B[:, j+1] .= A * B[:, j]
         end
         p += d
     end

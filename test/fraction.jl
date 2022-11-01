@@ -52,8 +52,8 @@ end
     G = GF(7)
     GX = G[:x]
     x = monom(GX)
-    p = (x + 1) ^ 3 + 1
-    q =  x + 2
+    p = (x + 1)^3 + 1
+    q = x + 2
     @test p // q == p / q
     @test p // q^2 == (x^2 + x + 1) // q
 end
@@ -62,16 +62,16 @@ end
     G = GF(4)
     GX = G[:x]
     x = monom(GX)
-    p = (x + 1) ^ 3 + 1
-    q =  x + G[2]
+    p = (x + 1)^3 + 1
+    q = x + G[2]
     @test p // q == p / q
-    @test p // q^2 == (x^2 + G[3]*x) // q
+    @test p // q^2 == (x^2 + G[3] * x) // q
 end
 
 @testset "Padé approximation" begin
     P = QQ{BigInt}[:x]
     x = monom(P)
-    p = sum( x^n / factorial(n) for n = 0:10)
+    p = sum(x^n / factorial(n) for n = 0:10)
 
     @test pade(p, 0, 0) == 1
 

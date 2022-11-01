@@ -19,7 +19,7 @@ The value can be retrieved by calling `gettypevar(t)`.
 function settypevar!(f::Function, t::Type)
     get!(f, TypeVariablesTemp, t)
 end
-const TypeVariablesTemp = IdDict{DataType, Any}()
+const TypeVariablesTemp = IdDict{DataType,Any}()
 
 """
     gettypevar(t::Type)
@@ -28,7 +28,7 @@ Return value, which has previously been associated with this type
 """
 @generated function gettypevar(::Type{R}) where {T,R<:Ring{T}}
     tv = TypeVariablesTemp[R]
-    :( $tv )
+    :($tv)
 end
 
 """

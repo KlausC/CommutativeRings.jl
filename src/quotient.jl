@@ -1,6 +1,6 @@
 
 # class constructors
-Quotient(X::Integer,::Type{T}) where T<:Integer = T / T(X)
+Quotient(X::Integer, ::Type{T}) where T<:Integer = T / T(X)
 Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
 
 # convenience type constructor
@@ -10,7 +10,7 @@ function /(::Type{R}, m) where R<:Ring
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
     b = order(basetype(R))
-    new_class(Quotient{R,typeof(ideal),sintern(m),(p,r)}, ideal)
+    new_class(Quotient{R,typeof(ideal),sintern(m),(p, r)}, ideal)
 end
 
 # Constructors
@@ -24,7 +24,7 @@ function Quotient{R,I,X,Id}(a::R) where {I,X,R<:Ring,Id}
     Quotient{R,I,X,Id}(v, NOCHECK)
 end
 
-monom(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P)) 
+monom(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P))
 
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)
@@ -32,8 +32,10 @@ Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,
 
 # promotion and conversion
 _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
-_promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Ring,Id} = Quotient{promote_type(R,S),I,X,Id}
-promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} = Quotient{R,I,X,Id}
+_promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Ring,Id} =
+    Quotient{promote_type(R, S),I,X,Id}
+promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} =
+    Quotient{R,I,X,Id}
 
 #(::Type{Q})(a::S) where {S,R,Q<:Quotient{R}} = Q(R(a))
 
@@ -49,14 +51,14 @@ iszerodiv(q::R) where R<:Union{Ring,Number} = iszero(q)
 
 ## Arithmetic
 
-==(a::T, b::T) where T<:Quotient =  a.val == b.val
-==(a::Quotient, b::Quotient) =  false
-+(a::T, b::T) where T<:Quotient =  T(a.val + b.val)
--(a::T, b::T) where T<:Quotient =  T(a.val - b.val)
-*(a::T, b::T) where T<:Quotient =  T(a.val * b.val)
-*(a::Integer, b::T) where T<:Quotient =  T(a * b.val)
-*(a::T, b::Integer) where T<:Quotient =  T(a.val * b)
--(a::T) where T<:Quotient =  T(-a.val)
+==(a::T, b::T) where T<:Quotient = a.val == b.val
+==(a::Quotient, b::Quotient) = false
++(a::T, b::T) where T<:Quotient = T(a.val + b.val)
+-(a::T, b::T) where T<:Quotient = T(a.val - b.val)
+*(a::T, b::T) where T<:Quotient = T(a.val * b.val)
+*(a::Integer, b::T) where T<:Quotient = T(a * b.val)
+*(a::T, b::Integer) where T<:Quotient = T(a.val * b)
+-(a::T) where T<:Quotient = T(-a.val)
 inv(a::T) where T<:Quotient = T(invert(a.val, modulus(T)), NOCHECK)
 
 isunit(a::T) where T<:Quotient = isunit(a.val) || isinvertible(modulus(T), a.val)
@@ -75,7 +77,8 @@ end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
 function (h::Hom{F,R,S})(a::Q) where {F,R,S,Q<:Quotient{<:R}}
-    iszero(h.f(modulus(Q))) || throw(DomainError((F,R), "ideal not in kernel of homomorphism"))
+    iszero(h.f(modulus(Q))) ||
+        throw(DomainError((F, R), "ideal not in kernel of homomorphism"))
     h.f(a.val)
 end
 
@@ -89,14 +92,13 @@ end
 modulus(t::Type{<:Quotient{R}}) where R = gettypevar(t).modulus
 
 # standard functions
-==(a::Quotient{S,I,X},b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
+==(a::Quotient{S,I,X}, b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
 function Base.show(io::IO, a::Quotient)
     v = a.val
     m = modulus(a)
-    if m isa UnivariatePolynomial && deg(m) == 2 &&
-         iszero(m.coeff[2]) && isone(m.coeff[3])
+    if m isa UnivariatePolynomial && deg(m) == 2 && iszero(m.coeff[2]) && isone(m.coeff[3])
 
         x = string(varnames(m)[1])
         y = string('\u23b7', -m.coeff[1])

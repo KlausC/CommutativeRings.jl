@@ -137,7 +137,7 @@ function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
         w = y
         i += 1
     end
-    
+
     if deg(c) > 0
         c = shrink(c, p)
         for (g, i) in sff(c)
@@ -150,7 +150,7 @@ end
 # assuming p(x) = q(x^p), return q. Formally q(x) = p(x^(1/p)).
 function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
     n = deg(a)
-    c = similar(a.coeff, (n÷p)+1)
+    c = similar(a.coeff, (n ÷ p) + 1)
     for k = 0:n÷p
         c[k+1] = a.coeff[p*k+1]
     end
@@ -165,9 +165,9 @@ Input is a squarefree polynomial.
 Returns a list of pairs `g_i => d_i` of polynomials g_i, each of which is a product of
 all irreducible monic polynomials of equal degree `d_i`. The product of all `g_i == p`.
 """
-function ddf(f::P) where {Z<:QuotientRing, P<:UnivariatePolynomial{Z}}
+function ddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
-    S = Pair{P, Int}[]
+    S = Pair{P,Int}[]
     x = monom(typeof(f), 1)
     i = 1
     fs = f
@@ -190,7 +190,7 @@ function ddf(f::P) where {Z<:QuotientRing, P<:UnivariatePolynomial{Z}}
     S
 end
 
-function isddf(f::P) where {Z<:QuotientRing, P<:UnivariatePolynomial{Z}}
+function isddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     x = monom(typeof(f), 1)
     i = 1
@@ -208,7 +208,7 @@ end
 """
     edf(p::Polynomial, d::Integer)
 
-`Equal-degree factorization`. 
+`Equal-degree factorization`.
 Algorithm of Cantor-Zassenhaus to find the factors of `p`, a product of monomials of
 degree `d`. (Such polynomials are in the output of `ddf`).
 The base type for `p` must be a finite field. Odd charcteristic is a covered special case.
@@ -260,15 +260,17 @@ function rand(r::AbstractRNG, ::SamplerType{Z}) where {Z<:ZZmod}
     Z(rand(r, 0:m-1))
 end
 # Random field element of `Q = P / (polynomial)`, whith `basetype(P) <: ZZmod`.
-function rand(r::AbstractRNG, ::SamplerType{Q}) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
-    
+function rand(
+    r::AbstractRNG,
+    ::SamplerType{Q},
+) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
+
     m = deg(modulus(Q))
     r = Q(P(rand(r, Z, m)))
 end
 
 function Base.isless(p::T, q::T) where T<:Pair{<:Ring,<:Integer}
-    p.first < q.first ||
-    p.first == q.first && p.second == q.second
+    p.first < q.first || p.first == q.first && p.second == q.second
 end
 
 import Base: prod
@@ -279,4 +281,3 @@ function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
     end
     res
 end
-

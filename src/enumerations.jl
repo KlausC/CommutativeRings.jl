@@ -32,7 +32,7 @@ function iterate(::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quo
         end
     end
     if m < n
-        resize!(c, m+1)
+        resize!(c, m + 1)
         c[m+1] = one(Z)
         m >= 1 && (c[m] = zero(Z))
         z = Q(c)
@@ -82,9 +82,9 @@ function Base.iterate(mo::Monic{Z,X}, s) where {X,Z<:Ring}
     end
     nothing
 end
-    
 
-isqrt2(i::T) where T<:Integer = T(floor(sqrt(8*i+1) - 1)) ÷ 2
+
+isqrt2(i::T) where T<:Integer = T(floor(sqrt(8 * i + 1) - 1)) ÷ 2
 function ipair(i::Integer)
     m = isqrt2(i)
     c = m * (m + 1) ÷ 2
@@ -133,25 +133,25 @@ len(::Type, d...) = 0
 len(T::Type{<:ZZmod}, d...) = modulus(T)
 function len(T::Type{<:FractionRing{S}}, d...) where S
     n = len(S, d...)
-    n == 0 ? 0 : (n-1)^2 + 1
+    n == 0 ? 0 : (n - 1)^2 + 1
 end
 len(T::Type{UnivariatePolynomial{S}}, d::Integer) where S = intpower(len(S), d)
-len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T)-1))
+len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T) - 1))
 len(T::Type{<:GaloisField}) = order(T)
 
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
-ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a+1) >> 1
+ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a + 1) >> 1
 ofindex(a::Integer, T::Type{ZZ{S}}) where S = T(ofindex(a, S))
 ofindex(a::Integer, T::Type{<:ZZmod{m,S}}) where {m,S} = T(ofindex(a, unsigned(S)))
 function ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where {S<:UnivariatePolynomial}
     d = deg(modulus(T))
-    T(ofindex(a, S, d) - monom(S,d))
+    T(ofindex(a, S, d) - monom(S, d))
 end
 
 function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     a == 0 && return zero(T)
     s, t = index(a - 1, len(T), len(T))
-    T(ofindex(t+1, S), S(ofindex(s + 1, unsigned(S))))
+    T(ofindex(t + 1, S), S(ofindex(s + 1, unsigned(S))))
 end
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
     P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
@@ -163,15 +163,15 @@ function ofindex(a::Integer, ::Type{P}, d::Integer) where {S<:ZZ,P<:UnivariatePo
     P(hypercube(a, d, EnumPolynomial()))
 end
 struct Factors{T<:Integer,P}
-   f::P
-   Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)
+    f::P
+    Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)
 end
-Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x+1 for x in _values(fi.f))
+Base.length(fi::Factors) = isempty(fi.f) ? 1 : prod(x + 1 for x in _values(fi.f))
 
 _values(d::AbstractDict) = values(d)
 _values(d::Vector{<:Pair}) = (last(x) for x in d)
 
-Base.iterate(fi::Factors) = (1, zeros(Int,length(fi.f)))
+Base.iterate(fi::Factors) = (1, zeros(Int, length(fi.f)))
 function Base.iterate(fi::Factors, s::Array{Int})
     f = fi.f
     n = length(f)
@@ -210,7 +210,12 @@ function select_k_from_n(x::T, n::S, k::Integer) where {S<:Integer,T<:Integer}
     r = zeros(S, k)
     select_k_from_n!(r, x, n, k)
 end
-function select_k_from_n!(r::AbstractVector{<:Integer}, x::T, n::Integer, k::Integer) where T<:Integer
+function select_k_from_n!(
+    r::AbstractVector{<:Integer},
+    x::T,
+    n::Integer,
+    k::Integer,
+) where T<:Integer
     # @assert 0 < x <= binomial(n, k) && 0 <= k <= n && 0 <= n
     t = binomial(T(n), k)
     while k > 0
@@ -240,7 +245,7 @@ end
 Gives the one-based index of integer vector `v` in the canonical sequence of `select_k_from_n`.
 Reverse of `select_k_from_n`. Assuming `v` is strictly sorted and positive.
 """
-function index_of_select(v::AbstractVector{<:Integer}, ::Type{T}=Int) where T <: Integer
+function index_of_select(v::AbstractVector{<:Integer}, ::Type{T} = Int) where T<:Integer
     n = length(v)
     s = zero(T)
     for i = 1:n
@@ -269,16 +274,21 @@ numsides(::EnumFull) = 2
 Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 0.
 The tuples `0:(2k+1)^n-1` are contained in n-dimensional hypercube `[-k:k]^n`.
 Tuple number `(2k+1)^n-1` is always `-k*ones(n)`.
-The implied order is no way canonical. 
+The implied order is no way canonical.
 """
-function hypercube(x::T, n::Integer, ez::EnumCube=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,P}
+function hypercube(
+    x::T,
+    n::Integer,
+    ez::EnumCube = EnumCube(),
+    ew::EnumWidth = EnumFull(),
+) where T<:Integer
     if n <= 0 || ez isa EnumCube && x == 0
         return zeros(T, n)
     end
     sides = numsides(ew)
     km = (diameter(ez, x, n) + sides - 1) ÷ sides
     k = sides * (km - 1) + 1
-    kn = k ^ n
+    kn = k^n
     x -= kn
     mi = T(1)
     ei = T(1)
@@ -301,16 +311,21 @@ end
     hypercube(x, n, EnumPolynomial(), [EnumFull(), EnumHalf()])
 
 Return the `x`-th `n`-tuple of integers where the last element is not zero.
-The implied order is no way canonical. 
+The implied order is no way canonical.
 """
-function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull()) where {T<:Integer,P}
+function hypercube(
+    x::T,
+    n::Integer,
+    ez::EnumPolynomial,
+    ew::EnumWidth = EnumFull(),
+) where T<:Integer
     if n <= 0
         return zeros(T, n)
     end
     sides = numsides(ew)
     km = (diameter(ez, sides * x, n) + sides - 1) ÷ sides
     k = sides * (km - 1) + 1
-    kn = k ^ (n - 1)
+    kn = k^(n - 1)
     kn1 = kn * (k - 1) ÷ sides
     kn *= k
     #println("x=$x km = $km k = $k kn = $kn kn1 = $kn1")
@@ -326,9 +341,9 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
         ei1 = ei1 * (n - i) ÷ i # binomial(n-1, i)
         ki ÷= k # k ^ (n - i)
         ki1 ÷= k
-        @assert mi1 == sides ^ (i-1)
-        @assert ei == binomial(T(n-1), i-1)
-        @assert ki == T(k) ^ (n - i)
+        @assert mi1 == sides^(i - 1)
+        @assert ei == binomial(T(n - 1), i - 1)
+        @assert ki == T(k)^(n - i)
         t = mi1 * ei * ki
         #println("i=$i x = $x $t = t = mi1*ei*ki = $mi1 * $ei * $ki")
         if x < t
@@ -338,9 +353,9 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
             x -= t
         end
         #println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
-        @assert mi == sides ^ i
-        @assert ei1 == binomial(T(n-1), i)
-        @assert ei1 == 0 || ki1 == (T(k)^(n-i) - T(k)^(n-i-1) ) ÷ 2
+        @assert mi == sides^i
+        @assert ei1 == binomial(T(n - 1), i)
+        @assert ei1 == 0 || ki1 == (T(k)^(n - i) - T(k)^(n - i - 1)) ÷ 2
         t = mi * ei1 * ki1
         if x < t
             m, e, x = linear2tuple(x, (mi, ei1, ki1))
@@ -354,7 +369,7 @@ function hypercube(x::T, n::Integer, ez::EnumPolynomial, ew::EnumWidth=EnumFull(
 end
 
 function linear2tuple(x::Integer, b::NTuple{N,T}) where {N,T<:Integer}
-    r = Vector{T}(undef,N)
+    r = Vector{T}(undef, N)
     for i = 1:N-1
         x, r[i] = fldmod(x, b[i])
     end
@@ -363,7 +378,11 @@ function linear2tuple(x::Integer, b::NTuple{N,T}) where {N,T<:Integer}
     tuple(r...)
 end
 
-function tuple2linear(t::NTuple{N,Integer}, b::NTuple{N,Integer}, ::Type{R}=BigInt) where {N,R<:Integer}
+function tuple2linear(
+    t::NTuple{N,Integer},
+    b::NTuple{N,Integer},
+    ::Type{R} = BigInt,
+) where {N,R<:Integer}
     x = R(t[N])
     for i = N-1:-1:1
         x = x * b[i] + t[i]
@@ -375,10 +394,10 @@ function selecttuple1(x, e, m, n, km, i, ez::EnumCube, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
     ne = select_k_from_n(e, n, i) # i edge coordinate numbers
     p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
-    q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
+    q = hypercube(x, n - i, ez, ew) # values for n-i inner coordinates
     r = similar(q, n)
     for j = 1:i
-        r[p[j]] = bincoord(m, j-1) * km
+        r[p[j]] = bincoord(m, j - 1) * km
     end
     for j = i+1:n
         r[p[j]] = q[j-i]
@@ -390,16 +409,16 @@ function selecttuple2a(x, e, m, n, km, i, ez::EnumCube, ew)
     ne = select_k_from_n(e, n - 1, i - 1) # i - 1 edge coordinate numbers
     ne = [ne; n]
     p = perm(n, ne) # permutation of the coordinate numbers - edge coordinates first
-    q = hypercube(x, n-i, ez, ew) # values for n-i inner coordinates
+    q = hypercube(x, n - i, ez, ew) # values for n-i inner coordinates
     r = similar(q, n)
     for j = 1:i
-        r[p[j]] = bincoord(m, j-1) * km
+        r[p[j]] = bincoord(m, j - 1) * km
     end
     for j = i+1:n
         r[p[j]] = q[j-i]
     end
     r
-end  
+end
 function selecttuple2b(x, e, m, n, km, i, ez::EnumPolynomial, ew)
     # on a n - i dimensional edge (i ∈ 1:n)
     ne = select_k_from_n(e, n - 1, i) # i edge coordinate numbers
@@ -411,7 +430,7 @@ function select_tail(x, n, i, m, km, ez, ew, p)
     q = hypercube(x, n - i, ez, ew) # values for n-i-1 inner coordinates
     r = similar(q, n)
     for j = 1:i
-        r[p[j]] = bincoord(m, j-1) * km
+        r[p[j]] = bincoord(m, j - 1) * km
     end
     for j = i+1:n
         r[p[j]] = q[j-i]
@@ -433,7 +452,7 @@ function diameter(::EnumCube, x, n)
 end
 function diameter(::EnumPolynomial, x, n)
     r = iroot(x, n)
-    (r + 1)^(n-1) * r > x ? r : r + 1
+    (r + 1)^(n - 1) * r > x ? r : r + 1
 end
 
 Base.binomial(x::Int128, y::Integer) = binomial(big(x), y)
@@ -454,7 +473,7 @@ function iroot(s::Integer, n::Integer)
         isone(s) && return s
     end
     isone(n) && return s
-	x1 = aroot(s, n)
+    x1 = aroot(s, n)
     if isone(x1)
         n > ilog2(s) && return x1
         x1 += x1
@@ -462,9 +481,9 @@ function iroot(s::Integer, n::Integer)
     x0 = up(x1, s, n)
     x0 == x1 && return x0
     x1 = up(x0, s, n)
-	while x1 < x0
-	    x0 = x1
-		x1 = up(x0, s, n)
+    while x1 < x0
+        x0 = x1
+        x1 = up(x0, s, n)
     end
     x0
 end
@@ -482,7 +501,7 @@ Terminate calculation as soon as it is evident that the result will be zero.
 function powerdiv(s::S, x::Integer, p::Integer) where S<:Integer
     sig = sign(s) * (x >= 0 || iseven(p) ? one(s) : -one(s))
     s, x = promote_unsigned(abs(s), abs(x))
-    _signed(S, _powerdiv(s, x, p)) * sig 
+    _signed(S, _powerdiv(s, x, p)) * sig
 end
 promote_unsigned(a::Integer, b::Integer) = promote(_unsigned(a), _unsigned(b))
 _signed(::Type{<:Unsigned}, x) = x
@@ -528,18 +547,18 @@ function aroot(s, n)
     oftype(s, ceil(ldexp(exp2((t + (j - 54)) / n), 54))) << (i - 54)
 end
 
-""" 
-    ilog2(a::Integer)::Int 
- 
+"""
+    ilog2(a::Integer)::Int
+
 For nonzero integers `a` return Int(floor(log2(abs(a)))) exact arithmethic.
-For zero return `-1` 
-""" 
-function ilog2(a::Integer) 
-    ndigits(a, base=2, pad=0) - 1 
+For zero return `-1`
+"""
+function ilog2(a::Integer)
+    ndigits(a; base = 2, pad = 0) - 1
 end
-function ilog2(a::Base.BitInteger) 
-    bpl = sizeof(a) * 8 
-    bpl - 1 - leading_zeros(abs(a)) 
+function ilog2(a::Base.BitInteger)
+    bpl = sizeof(a) * 8
+    bpl - 1 - leading_zeros(abs(a))
 end
 
 """
@@ -552,22 +571,30 @@ implies
 
     v = hypercube(x, length(v))
 """
-function inv_hypercube(v::AbstractVector{T}, ::Type{R}=BigInt,
-                        ez::EnumZero=EnumCube(), ew::EnumWidth=EnumFull()) where {T<:Integer,R<:Integer}
+function inv_hypercube(
+    v::AbstractVector{T},
+    ::Type{R} = BigInt,
+    ez::EnumZero = EnumCube(),
+    ew::EnumWidth = EnumFull(),
+) where {T<:Integer,R<:Integer}
     n = length(v)
     n == 0 && return zero(R)
     km = maximum(abs, v)
     km == 0 && return zero(R)
     sides = numsides(ew)
     k = sides * (km - 1) + 1
-    ne = findall(v) do x; abs(x) == km end
+    ne = findall(v) do x
+        abs(x) == km
+    end
     i = length(ne)
     e = index_of_select(ne, R)
     m = zero(R)
     for j = 1:i
-        m |= ( v[ne[j]] < 0 ) << (j - 1)
+        m |= (v[ne[j]] < 0) << (j - 1)
     end
-    p = findall(v) do x; abs(x) != km end
+    p = findall(v) do x
+        abs(x) != km
+    end
     y = inv_hypercube(view(v, p), R, ez, ew)
     x = zero(R)
     bi = one(R)
@@ -575,7 +602,7 @@ function inv_hypercube(v::AbstractVector{T}, ::Type{R}=BigInt,
     ki = R(k)^n
     for j = 0:i-1
         x += si * bi * ki
-        bi = (bi * (n - j)) ÷ (j+1)
+        bi = (bi * (n - j)) ÷ (j + 1)
         si *= sides
         ki ÷= k
     end
@@ -624,7 +651,7 @@ Rows are zero-based.
 """
 function row2index(r)
     xl = row2degree(r) + 1
-    xl * widen(r) + xl - one(widen(r))<<xl + 1
+    xl * widen(r) + xl - one(widen(r)) << xl + 1
 end
 
 """
@@ -636,11 +663,11 @@ element number `x` is located.
 function index2row(y)
     function _index2row(x, y0, y1)
         xl = row2degree(x)
-        d, r = fldmod(y0 + one(x)<<(xl-1), xl + 1)
-        (r<<2 + y1 + xl) ÷ (xl + one(x)) + d<<2 - 2one(x)
+        d, r = fldmod(y0 + one(x) << (xl - 1), xl + 1)
+        (r << 2 + y1 + xl) ÷ (xl + one(x)) + d << 2 - 2one(x)
     end
     iszero(y) && return y
-    y0, y1 = fldmod(y, 1<<2)
+    y0, y1 = fldmod(y, 1 << 2)
     x0 = y
     x1 = _index2row(x0, y0, y1)
     while x0 > x1
@@ -657,7 +684,7 @@ For degree `d` return the index of the first element
 of that degree.
 """
 function degree2index(n)
-    big(2)^n  * (n - 1) + n + 1
+    big(2)^n * (n - 1) + n + 1
 end
 
 """
@@ -667,7 +694,7 @@ Return the maximal degree of elements in row number `r`.
 This is the fundamantal definition of the shape of the table.
 """
 function row2degree(r)
-    r <= 0 && return zero(r) 
+    r <= 0 && return zero(r)
     ilog2((r - 1) >> 1 + 1) + 1
 end
 

@@ -50,10 +50,10 @@ export det
 # RingClass subtypes describe the different categories
 abstract type RingClass end
 struct ZZClass{T<:Integer} <: RingClass end
-abstract type FractionRingClass <:RingClass end
+abstract type FractionRingClass <: RingClass end
 struct FractionClass{P} <: FractionRingClass end
-struct QQClass{S<:Integer} <:FractionRingClass end
-abstract type QuotientRingClass <:RingClass end
+struct QQClass{S<:Integer} <: FractionRingClass end
+abstract type QuotientRingClass <: RingClass end
 struct QuotientClass{Id,M} <: QuotientRingClass
     modulus::M
 end

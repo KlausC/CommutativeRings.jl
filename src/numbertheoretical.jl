@@ -33,7 +33,6 @@ function cyclotomic(::Type{P}, n::Integer) where P<:UnivariatePolynomial
     end
     n == v1 ? q : spread(q, n ÷ v1)
 end
-   
 
 # Jacobi symbol
 function jacobi(n::Integer, k::Integer)
@@ -59,7 +58,7 @@ end
 
 # Kronecker symbol
 function kronecker(n::Integer, k::Integer)
-    n&1 == 0 && k&1 == 0 && return 0
+    n & 1 == 0 && k & 1 == 0 && return 0
     k == 0 && return n == 1 || n == -1 ? 1 : 0
     ks = k < 0 && n < 0 ? -1 : 1
     if k < 0
@@ -67,7 +66,7 @@ function kronecker(n::Integer, k::Integer)
     end
     t = trailing_zeros(k)
     k >>= t
-    ks = (n&7 == 3 || n&7 == 5 ) && t&1 == 1 ? -ks : ks
+    ks = (n & 7 == 3 || n & 7 == 5) && t & 1 == 1 ? -ks : ks
     jacobi(n, k) * ks
 end
 
@@ -114,4 +113,3 @@ function _necklace(q, n::Integer)
     end
     s
 end
-

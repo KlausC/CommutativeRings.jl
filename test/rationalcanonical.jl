@@ -4,6 +4,7 @@ using Test
 using CommutativeRings
 
 Q = QQ{BigInt}
+#! format: off
 tm = [
     Q.([1 2 3; 4 5 6; 7 8 10]),
 
@@ -22,6 +23,7 @@ tm = [
          1  0  0  0  2  0  0  0
          0  0  0  0  4  0  1  0])
 ]
+#! format: on
 A = tm[2]
 push!(tm, [A A; -A A])
 

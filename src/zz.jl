@@ -16,10 +16,11 @@ ZZ(a::T) where T<:Integer = ZZ{T}(a)
 ZZ{T}(a::ZZ) where T = ZZ{T}(T(a.val))
 
 # promotion and conversion
-_promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S,T)}
-_promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S,T)}
-promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S,T)}
-promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = QQ{promote_type(S,T)}
+_promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S, T)}
+_promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}
+promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S, T)}
+promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
+    QQ{promote_type(S, T)}
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZ{<:R}}
@@ -55,12 +56,11 @@ one(::Type{ZZ{T}}) where T = ZZ(one(T))
 ==(a::ZZ{T}, b::ZZ{T}) where T = a.val == b.val
 hash(a::ZZ, h::UInt) = hash(a.val, h)
 
-gcd(a::T, b::T) where T<: ZZ = T(gcd(a.val, b.val))
+gcd(a::T, b::T) where T<:ZZ = T(gcd(a.val, b.val))
 lcm(a::T, b::T) where T<:ZZ = T(lcm(a.val, b.val))
 
-factor(a::Z) where Z <:ZZ = [Z(first(x)) => last(x) for x in Primes.factor(value(a))]
+factor(a::Z) where Z<:ZZ = [Z(first(x)) => last(x) for x in Primes.factor(value(a))]
 isirreducible(a::ZZ) = isirreducible(a.val)
 isirreducible(a::Integer) = abs(a) <= 1 || Primes.isprime(abs(a))
 
 Base.show(io::IO, z::ZZ) = print(io, z.val)
-    

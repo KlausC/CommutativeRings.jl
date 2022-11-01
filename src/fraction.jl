@@ -7,7 +7,7 @@ Frac(::Type{R}) where R<:Integer = QQ{R}
 category_trait(Z::Type{<:Frac}) = category_trait_fraction(category_trait(basetype(Z)))
 basetype(::Type{<:Frac{T}}) where T = T
 depth(::Type{<:Frac{T}}) where T = depth(T) + 1
-copy(a::Frac) = typeof(a)(a.num,a.den, NOCHECK)
+copy(a::Frac) = typeof(a)(a.num, a.den, NOCHECK)
 
 numerator(a::FractionRing) = a.num
 denominator(a::FractionRing) = a.den
@@ -21,10 +21,10 @@ Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
 Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
 Frac{T}(a::Base.Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
 Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
-Frac(a::T) where T<:Ring  = Frac{T}(a)
+Frac(a::T) where T<:Ring = Frac{T}(a)
 Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
 Frac(a::Rational{T}) where T<:Integer = Frac{ZZ{T}}(a)
-Frac{T}(a::Integer,b::Integer) where T = Frac(T(a), T(b))
+Frac{T}(a::Integer, b::Integer) where T = Frac(T(a), T(b))
 function Frac(a::T, b::T) where T<:Polynomial
     cab = content(a) // content(b)
     a = primpart(a)
@@ -56,10 +56,11 @@ end
 //(a::T, b::T) where T<:FractionRing = (a.num * b.den) // (b.num * a.den)
 Frac{T}(a, b) where T = Frac(T(a), T(b))
 
-_promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S,T)}
-_promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S,T)}
-promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} = Frac{promote_type(S,T)}
+_promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S, T)}
+_promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S, T)}
+promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S, T)}
+promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
+    Frac{promote_type(S, T)}
 
 lcunit(a::Frac) = inv(lcunit(a.den))
 
@@ -118,7 +119,7 @@ evaluate(p::Frac, a) = evaluate(p.num, a) // evaluate(p.den, a)
 derive(p::Frac) = (derive(p.num) * p.den - p.num * derive(p.den)) // p.den // p.den
 function derive(p::Ring, n::Integer)
     n < 0 && throw(ArgumentError("degree of derivative must not be negative"))
-    n == 0 ? p : derive(derive(p, n-1))
+    n == 0 ? p : derive(derive(p, n - 1))
 end
 
 Base.getindex(s::Series{T}, i::Integer) where T = T(s.f(i))
@@ -136,12 +137,15 @@ If `deg(p)` is greater than `m + n`, the higher terms of `p` are ignored.
 The Padé approximant is a rational function `R(x) = P(x) / Q(x)` with polynomials
 with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
 
-It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than or equal `m + n` at `0`.
+It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than
+or equal `m + n` at `0`.
 """
 function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,Series}
-    (m >= 0 && n >= 0) || throw(ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"))
+    (m >= 0 && n >= 0) || throw(
+        ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"),
+    )
     P = UnivariatePolynomial{basetype(S),varname(S)}
-    p = P([s[i] for i in 0:m+n])
+    p = P([s[i] for i = 0:m+n])
     d = m + n + 1
     r0 = monom(P, d)
     r1 = p
@@ -182,7 +186,10 @@ function pade_normal!(p::Frac{<:UnivariatePolynomial})
     p
 end
 
-function evaluate(p::Union{Frac{<:UnivariatePolynomial},UnivariatePolynomial}, x::AbstractFloat)
+function evaluate(
+    p::Union{Frac{<:UnivariatePolynomial},UnivariatePolynomial},
+    x::AbstractFloat,
+)
     float(Rational(evaluate(p, rationalize(x))))
 end
 
@@ -193,4 +200,3 @@ function show(io::IO, a::Frac)
         print(io, '(', a.num, ") \u2044(", a.den, ')')
     end
 end
-    

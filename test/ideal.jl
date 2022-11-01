@@ -4,7 +4,7 @@ import CommutativeRings: pseudo_ideal
 @testset "basics" begin
     R = ZZ{Int}
     RX = R[:x]
-    RYZ = R[:y,:z]
+    RYZ = R[:y, :z]
     @test iszero(Ideal(0))
     @test isone(Ideal(-1))
     @test Ideal(15, 21) == Ideal(3)
@@ -14,7 +14,7 @@ import CommutativeRings: pseudo_ideal
 
     x, = generators(RX)
     y, z = generators(RYZ)
-    @test Ideal(x, x^2-x) == Ideal(x)
+    @test Ideal(x, x^2 - x) == Ideal(x)
     @test Ideal(y + z, y^2 - z^2) == Ideal(y + z)
 
     @test pseudo_ideal(R, 15) == ZZ(15)
@@ -27,12 +27,12 @@ import CommutativeRings: pseudo_ideal
 end
 
 @testset "operations" begin
-    P = QQ{Int}[:x,:y,:z]
+    P = QQ{Int}[:x, :y, :z]
     x, y, z = generators(P)
     @test Ideal(x, y) isa Ideal
 
-    A = [x*z^2 - 3y*z; x^2-2y; x*y - 5z]
-    B = [x*y]
+    A = [x * z^2 - 3y * z; x^2 - 2y; x * y - 5z]
+    B = [x * y]
     ida = Ideal(A)
     idb = Ideal(B)
     idint = intersect(ida, idb)
@@ -44,12 +44,12 @@ end
     @test zero(Ideal{P}) == Ideal(P(0))
     @test one(Ideal{P}) == Ideal(P(1))
     @test isone(Ideal(QQ(2)))
-    @test issubset(idint, ida) 
-    @test issubset(idint, idb) 
+    @test issubset(idint, ida)
+    @test issubset(idint, idb)
     @test issubset(ida, idsum)
     @test issubset(idb, idsum)
     @test A[1] * y + A[2] in ida
-    @test 2x*y*z^2 - 9x*y^2 in idint
+    @test 2x * y * z^2 - 9x * y^2 in idint
     @test B[1] * x + A[1] * y in idsum
 
     i0 = zero(ida)
