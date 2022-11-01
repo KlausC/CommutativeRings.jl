@@ -247,11 +247,21 @@ struct Hom{F,R<:RingInt,S<:RingInt}
     Hom{R,S}(f::F) where {F<:Union{Function,Type},R,S} = new{F,R,S}(f)
 end
 
+"""
+    VectorSpace{T}
+
+Represent a vector space over a ring(field)
+"""
 struct VectorSpace{T}
     base::T
     pivr::Vector{Int} # row permutation vector
 end
 
+"""
+    Series{T,F}
+
+Represent a Taylor- or Laurent-series by a function over the integers.
+"""
 struct Series{T,F}
     f::F
     Series{T}(f::F) where {T,F<:Function} = new{T,F}(f)
