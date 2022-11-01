@@ -35,7 +35,7 @@ export characteristic_polynomial, adjugate, companion
 export coeffbounds
 
 export minimal_polynomial
-export rational_canonical_form
+export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
@@ -43,6 +43,9 @@ import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, el
 import Primes: factor
 import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
+
+# Re-exports
+export det
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end

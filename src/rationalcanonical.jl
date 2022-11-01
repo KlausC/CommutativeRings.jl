@@ -1,11 +1,13 @@
 """
-    rational_canonical_form(A::AbstractMatrix{field})
+    rational_normal_form(A::AbstractMatrix{field})
 
-Calculate the rational canonical form of square matrix `A`.
+Calculate the rational canonical form factorization of square matrix `A`.
 Element type of `A` must be a field.
+The form is also known as 'Frobenius normal' form or 'rational canonical form'.
 
 # @see:
-Klaus Bongartz, Normalformen von Matrizen
+The algorithm is derived from the lecture notes
+'Klaus Bongartz, Normalformen von Matrizen'
 https://www2.math.uni-wuppertal.de/~bongartz/Normalformen.pdf
 """
 function rational_normal_form(A::AbstractMatrix{<:Ring})
@@ -17,10 +19,11 @@ end
 
 """
     minimal_polynomial(A::AbstractMatrix{F}, u::AbstractVector{F}) where F<:Ring (field)
-    minimal_polynomial(A::AbstractMatrix{F}) where F<:Ring (field)
 
-Calculate minimal degree polynomial `ma` of matrix `A` (ma(A) == 0) or
-minimal degree polynomial `ma_u` at location `u` (ma_u(A) * u == 0)
+Calculate the local minimal polynomial ``m_A,u`` of a square matrix `A` over a ring
+for vector `u`.
+
+``m_A,u`` is the minimum degree monic polynomial with ``m_A,u(A)*u == 0``
 """
 function minimal_polynomial(A::AbstractMatrix{R}, u::AbstractVector{R}) where R<:Ring
     n = checksquare(A)
@@ -63,7 +66,19 @@ function combine_minimals(A::AbstractMatrix{R}, v::AbstractVector{R}, P, w::Abst
     u, V
 end
 
+"""
+    minimal_polynomial(A::AbstractMatrix)
+
+Calculate the minimal polynomial ``m_A`` of a square matrix `A` over a ring.
+
+``m_A`` is the minimum degree monic polynomial with ``m_A(A) == 0``
+"""
 function minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
+    _minimal_polynomial(A)[1]
+end
+
+# Implementation - also return a generating vector of stable space
+function _minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
     n = checksquare(A)
     u = zeros(R, n)
     v = zeros(R, n)
@@ -92,13 +107,61 @@ function RNF(p::Vector{UnivariatePolynomial{R}}, t::AbstractMatrix{R}) where R<:
     RNF{R}(p, t)
 end
 
+"""
+    rnf_transformation(rnf::RNF)
+
+Return a transformation matrix in the RNF factorization of a square matrix.
+The transformation matrices are not unique.
+"""
+function rnf_transformation(rnf::RNF)
+    rnf.trans
+end
+
+"""
+    rnf_polynomials(rnf::RNF)
+
+Return the sequence of minimal polynomials `P` with `P[1]` multiple of `P[2]` ...
+"""
+function rnf_polynomials(rnf::RNF)
+    rnf.minpoly
+end
+
+"""
+    rnf_matrix(rnf::RNF)
+
+Return matrix in 'rational normal form' from rnf-factorization of a square matrix.
+The form is also known as 'Frobenius normal form' or 'rational canonical form'.
+The matrix is a unique block diagonal matrix containing the companion matrices of
+the minimal polynomials. See also `rnf_polynomials`.
+"""
+function rnf_matrix(rnf::RNF{R}) where R
+    n = size(rnf.trans, 1)
+    M = zeros(R, n, n)
+    p = 1
+    for pi in rnf.minpoly
+        d = deg(pi)
+        M[p:p+d-1,p:p+d-1] .= companion(pi)
+        p += d
+    end
+    M
+end
+
+function characteristic_polynomial(rnf::RNF)
+    prod(rnf_polynomials(rnf))
+end
+
+function minimal_polynomial(rnf::RNF)
+    first(rnf_polynomials(rnf))
+end
+
+# Implementation
 function _rational_normal_form(A::AbstractMatrix{R}) where R
     m = checksquare(A)
-    P, u = minimal_polynomial(A)
+    P, u = _minimal_polynomial(A)
     r = deg(P)
     lut, _ = lu_axu(A, u)
     piv = lut.pivr
-    B = (lut.L * lut.R)[invperm(lut.pivr),:]
+    B = (lut.L * lut.R)[invperm(piv),:]
     if r == m
         return RNF(P, B)
     end
@@ -115,7 +178,7 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     p = r + 1
     for pi in rnf.minpoly
         g = prod_pmv(pi, A, B[:,p])
-        h = R11 \ (L11 \ g[lut.pivr[1:r]])
+        h = R11 \ (L11 \ g[p1])
         H = UnivariatePolynomial{R,:x}(h)
         S = H / pi
         B[:,p] .-= S(A) * B[:,1]
@@ -131,7 +194,7 @@ end
 """
     prod_pvm(p, A, v)
 
-Calculate `p(A) * v`.
+Calculate `p(A) * v` where `p` is a polynomial, `A` a matrix, and `v` an array.
 """
 function prod_pmv(p::UnivariatePolynomial, A::AbstractMatrix, v::AbstractArray)
     d = deg(p)
