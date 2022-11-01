@@ -3,6 +3,7 @@ module CommutativeRings
 using LinearAlgebra
 using Base.Checked
 using Primes
+using Random
 
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
@@ -15,7 +16,8 @@ export isunit, deg, content, primpart, isnegative
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv
-export monom, ismonom, ismonic, issimpler, iscoprime, evaluate, derive
+export monom, ismonom, ismonic, issimpler, iscoprime
+export evaluate, derive, pade, pade_normal!
 export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
@@ -32,12 +34,18 @@ export characteristic_polynomial, adjugate, companion
 
 export coeffbounds
 
-import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log
-import Base: iszero, isone, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
-import Base: copy, show, promote_rule, convert, abs, isless
+export minimal_polynomial
+export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
+
+import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log, isfinite
+import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
+import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor
-import Base: numerator, denominator
+import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
+
+# Re-exports
+export det
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
@@ -59,7 +67,9 @@ struct MultiPolyRingClass{X,R,N} <: PolyRingClass
 end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
+    factors::Primes.Factorization # of order of multiplicative group
     exptable::Vector{T}
+    logtable::Vector{T}
     zechtable::Vector{T}
 end
 
@@ -81,7 +91,7 @@ abstract type Ring{T<:RingClass} end
 """
     RingInt
 
-Union of system `Integer` types and any `Ring` subtype. 
+Union of system `Integer` types and any `Ring` subtype.
 """
 const RingInt = Union{Ring,Integer}
 
@@ -95,7 +105,7 @@ abstract type FractionRing{S<:RingInt,T<:FractionRingClass} <: Ring{T} end
 """
     QuotientRing{S<:Union{Integer,Ring},T<:QuotientRingClass}
 
-Quotient ring of ring `S` by some ideal. If S = Z, the ring of integer numbers, and p 
+Quotient ring of ring `S` by some ideal. If S = Z, the ring of integer numbers, and p
 a positive number Z/p is calculation modulo p.
 """
 abstract type QuotientRing{S<:RingInt,T<:QuotientRingClass} <: Ring{T} end
@@ -142,7 +152,7 @@ struct Frac{P<:Union{Polynomial,ZZ}} <: FractionRing{P,FractionClass{P}}
 end
 
 """
-    Quotient{R,I,m} 
+    Quotient{R,I,m}
 
 The quotient ring of `R` modulo `m` of type `I`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
@@ -197,7 +207,7 @@ end
 
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
-    GaloisField{Id,T,Q}(v::Integer, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v)) 
+    GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))
 end
 
 # Categorial traits specify algebraic properties of ring types
@@ -242,6 +252,12 @@ struct VectorSpace{T}
     pivr::Vector{Int} # row permutation vector
 end
 
+struct Series{T,F}
+    f::F
+    Series{T}(f::F) where {T,F<:Function} = new{T,F}(f)
+    Series(f::F) where {F<:Function} = Series{typeof(f(0))}(f)
+end
+
 # implementation
 
 include("typevars.jl")
@@ -260,5 +276,6 @@ include("intfactorization.jl")
 include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
+include("rationalcanonical.jl")
 
 end # module

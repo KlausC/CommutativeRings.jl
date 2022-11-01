@@ -24,16 +24,18 @@ function Quotient{R,I,X,Id}(a::R) where {I,X,R<:Ring,Id}
     Quotient{R,I,X,Id}(v, NOCHECK)
 end
 
+monom(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P)) 
+
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)
-Quotient{R,I,X,Id}(v) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(R(v))
+#Quotient{R,I,X,Id}(v) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(R(v))
 
 # promotion and conversion
 _promote_rule(::Type{<:Quotient}, ::Type{<:Quotient}) = Base.Bottom
 _promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Ring,Id} = Quotient{promote_type(R,S),I,X,Id}
 promote_rule(::Type{Quotient{R,I,X,Id}}, ::Type{S}) where {I,X,R,S<:Integer,Id} = Quotient{R,I,X,Id}
 
-(::Type{Q})(a::S) where {S,R,Q<:Quotient{R}} = Q(R(a))
+#(::Type{Q})(a::S) where {S,R,Q<:Quotient{R}} = Q(R(a))
 
 Base.isless(p::T, q::T) where T<:Quotient = isless(p.val, q.val)
 

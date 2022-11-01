@@ -10,7 +10,7 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
 
     @test basetype(Q) == P
     @test depth(Q) == 3
-    @test P / ideal != nothing
+    @test P / ideal !== nothing
     p = 4x + 5
     @test Qp(p) == p
     @test Qp(1) == 1

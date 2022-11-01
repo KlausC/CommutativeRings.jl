@@ -105,7 +105,7 @@ end
     @test prod(fac2) == p^3 * q^2 * x^100 * 2
     @test length(fac2) == length(fac) + 2
 
-    fac = factor(p(x^40))
+    fac = factor(p, 40)
     @test prod(fac) == p(x^40)
     @test length(fac) == 1
     @test isirreducible(p(x^10))

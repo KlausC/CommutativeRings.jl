@@ -8,28 +8,46 @@ struct LU_total{T,MT}
     rank::Int
 end
 
-# find maximal element in A[i:end,j]
-function pivot(A::Matrix, i::Integer, j::Integer)
-    amax = abs(A[i,j])
+"""
+    pivot(A, i, j)
+
+Find maximal element in `A[i:end,j]`
+"""
+function pivot(A::Union{AbstractMatrix,AbstractVector}, i::Integer, j::Integer=1)
+    m = size(A, 1)
+    amax = pivabs(A[i+(j-1)*m])
     imax = i
-    m = last(axes(A,1))
     for k = i+1:m
-        bmax = abs(A[k,j])
+        bmax = pivabs(A[k+(j-1)*m])
         if bmax > amax
-            amax = bmax;
+            amax = bmax
             imax = k
         end
     end
     amax, imax
 end
 
-function swaprows(A::Matrix, pr::Vector, i::Integer, j::Integer)
+pivabs(a::QQ) = pivabs(ZZ(numerator(a)))
+pivabs(z::ZZ) = iszero(z) ? 0.0 : isunit(z) ? Inf : 1.0 / abs(z.val)
+pivabs(a::Ring) = isunit(a) ? 1 : 0
+
+"""
+    swaprows(A, pr, i, j, cols)
+
+Swap rows `A[i,cols]` with `A[j,cols]` and `pr[i]` with `pr[j]`
+"""
+function swaprows(A::Matrix{T}, pr::Vector, i::Integer, j::Integer, cols=axes(A,2)) where T
     pr[i], pr[j] = pr[j], pr[i]
-    for k = axes(A, 2)
+    for k = cols
         A[i,k], A[j,k] = A[j,k], A[i,k]
     end
 end
-function swapcols(A::Matrix, pc::Vector, i::Integer, j::Integer)
+"""
+    swapcols(A, pc, i, j)
+
+Swap columns `A[:,i]` with `A[:,j]` and `pc[i]` with `pc[j]`
+"""
+function swapcols(A::Matrix{T}, pc::Vector, i::Integer, j::Integer) where T
     pc[i], pc[j] = pc[j], pc[i]
     for k = axes(A, 1)
         A[k,i], A[k,j] = A[k,j], A[k,i]
@@ -102,6 +120,110 @@ function lu_total!(A::D) where {T,D<:Diagonal{T}}
     LU_total{T,D}(A, pr, copy(pr), jmax)
 end
 
+# assuming A[:,1:k-1] contain partial L-U decomposition of A[pr,:]
+# add b as additional column.
+function lu_incremental!(A::Matrix{T}, pr::Vector{<:Integer}, k::Integer, b::AbstractVector{T}) where T
+    m, n = size(A)
+    if length(b) != m
+        throw(ArgumentError("vector length must be equal to first dimension of matrix"))
+    end
+    if n < k
+        throw(ArgumentError("number of columns of matrix not sufficient"))
+    end
+    permute!(b, pr)
+    for j = 2:m
+        s = b[j]
+        for i = 1:min(j-1,k-1)
+            s -= A[j,i] * b[i]
+        end
+        b[j] = s
+    end
+    if k <= m
+        amax, imax = pivot(b, k)
+        if !iszero(amax)
+            if imax != k
+                swaprows(A, pr, k, imax, 1:k-1)
+                b[k], b[imax] = b[imax], b[k]
+            end
+            aa = inv(b[k])
+            for j = k+1:m
+                b[j] *= aa
+            end
+        end
+    end
+    A
+end
+
+function lu_rowpivot!(A::Matrix{T}) where T
+    m, n = size(A)
+    pr = collect(1:m)
+    pc = collect(1:n)
+    rank = 0
+    for j = 1:n
+        lu_incremental!(A, pr, j, view(A, :, j))
+        if j <= m
+            if !iszero(A[j,j])
+                rank = j
+            else
+                break
+            end
+        end
+    end
+    LU_total{T,Matrix{T}}(A, pr, pc, rank)
+end
+
+"""
+    lu_axu(A, u)
+
+Calculate partial lu-factorization of `[u A*u A^2*u A^(rank-1)*u]` with row pivoting.
+Return `LU_total` factorization where `L` and `R` are extended by unit base.
+As second output return `A^rank*u`.
+"""
+function lu_axu(A::AbstractMatrix{R}, u::AbstractVector{R}) where R
+    n = checksquare(A)
+    n == length(u) || throw(ArgumentError("vector dimension must match matrix"))
+    pr = collect(1:n)
+    B = zeros(R, n, n)
+    rank = 0
+    for j = 1:n
+        v = copy(u)
+        lu_incremental!(B, pr, j, v)
+        iszero(v[j]) && break
+        rank = j
+        B[:,j] .= v
+        u = A * u
+    end
+    for j = rank+1:n
+        B[pr[j],j] = one(R)
+    end
+    pc = collect(1:n)
+    LU_total{R,Matrix{R}}(B, pr, pc, rank), u
+end
+
+function Base.propertynames(::LU_total)
+    tuple(fieldnames(LU_total)..., :L11, :R11, :L_1, :L21, :L, :R)
+end
+function Base.getproperty(lut::LU_total, s::Symbol)
+    r = getfield(lut, :rank)
+    factors = getfield(lut, :factors)
+    m, n = size(factors)
+    if s === :L11
+        UnitLowerTriangular(view(factors, 1:r, 1:r))
+    elseif s === :L_1
+        [lut.L11; lut.L21]
+    elseif s === :L
+        [lut.L_1 [zeros(Int, r, m-r); I(m-r)]]
+    elseif s === :L21
+        view(factors, r+1:m,1:r)
+    elseif s === :R11
+        UpperTriangular(view(factors, 1:r, 1:r))
+    elseif s === :R
+        [lut.R11 zeros(Int, r, n-r); zeros(Int, m-r, r) I(n-r)]
+    else
+        getfield(lut, s)
+    end
+end
+
 import LinearAlgebra: Matrix, UpperTriangular, Diagonal, nullspace, rank, size
 nullspace(A::Union{LU_total,AbstractMatrix{<:Ring}}) = VectorSpace(nullbase(A))
 
@@ -117,11 +239,11 @@ function nullbase(fac::LU_total{T}) where T
 end
 nullbase(A::AbstractMatrix{<:Ring}) = nullbase(lu_total!(copy(A)))
 
-function rank(fac::LU_total) where T
+function LinearAlgebra.rank(fac::LU_total) where T
     fac.rank
 end
 
-rank(A::AbstractMatrix{<:Ring}) = rank(lu_total!(copy(A)))
+LinearAlgebra.rank(A::AbstractMatrix{<:Ring}) = rank(lu_total!(copy(A)))
 
 """
     VectorSpace(v::AbstractVector...)
@@ -180,7 +302,7 @@ end
 
 Sum of two vector spaces resulting in vector space of same kind.
 """
-function sum(v::V, w::V) where {T,V<:VectorSpace{T}}
+function Base.sum(v::V, w::V) where {T,V<:VectorSpace{T}}
     m, rv = size(v)
     n, rw = size(w)
     rv >= rw || return sum(w, v)
@@ -217,8 +339,8 @@ function complement(v::VectorSpace{T}) where T
 end
 
 import Base: ==, issubset, -, +, *
-==(v::V, w::V) where V<:VectorSpace = size(v) == size(w) && rank(v) == rank(intersect(v, w)) 
-issubset(v::V, w::V) where V<:VectorSpace = size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w)) 
+==(v::V, w::V) where V<:VectorSpace = size(v) == size(w) && rank(v) == rank(intersect(v, w))
+issubset(v::V, w::V) where V<:VectorSpace = size(v, 1) == size(w, 1) && rank(w) >= rank(v) == rank(intersect(v, w))
 
 function check_square(A::AbstractMatrix)
     m, n = size(A)
@@ -249,7 +371,7 @@ end
 """
     characteristic_polynomial(A[, P])
 
-Characteristic polynomial of matrix `A`. `P` is an optional 
+Characteristic polynomial of matrix `A`. `P` is an optional
 univariate polynomial type, defaulting to `eltype(A)[:x]`
 """
 function characteristic_polynomial(A, P=eltype(A)[:x])

@@ -4,7 +4,7 @@ using LinearAlgebra
 const companion = CommutativeRings.companion
 
 @testset "vector spaces" begin
-    
+
     Z = ZZ/7
 
     xnull = VectorSpace(Matrix{Z}(undef, 5, 0))
@@ -67,4 +67,10 @@ end
     p = characteristic_polynomial(B)
     @test iszero(p(B))
     @test characteristic_polynomial(companion(p)) == p
+end
+
+@testset "lu_total" begin
+
+
+
 end

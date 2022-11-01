@@ -25,7 +25,7 @@
     @test convert(F, 42) == F(84, 2)
     @test convert(F, 42 // 8) == 21 // 4
 
-    @test Frac(p, q) != nothing
+    @test Frac(p, q) !== nothing
     @test p // q == Frac(p, q)
     @test p // p == 1
     @test pq * pq == F(p * p, P([1, -2, 1]))
@@ -41,10 +41,10 @@
     @test P(1) + F(1) == 2
 
     @test sprint(show, F(p)) == "-2*x + 1"
-    @test sprint(show, pq) == "(2*x - 1)/(x - 1)"
+    @test sprint(show, pq) == "(2*x - 1) \u2044(x - 1)"
 
     Q = Frac(ZZ{Int})
-    @test sprint(show, Q(12, 8)) == "(3)/(2)"
+    @test sprint(show, Q(12, 8)) == "(3) \u2044(2)"
 
 end
 
@@ -66,4 +66,23 @@ end
     q =  x + G[2]
     @test p // q == p / q
     @test p // q^2 == (x^2 + G[3]*x) // q
+end
+
+@testset "Padé approximation" begin
+    P = QQ{BigInt}[:x]
+    x = monom(P)
+    p = sum( x^n / factorial(n) for n = 0:10)
+
+    @test pade(p, 0, 0) == 1
+
+    pa = pade(p, 3, 3)
+    @test all(evaluate.(derive.(pa, 0:5), 0) .== 1)
+    @test derive(pa, 7) != 1
+
+    pa = pade(p, 6, 6)
+    @test all(evaluate.(derive.(pa, 0:10), 0) .== 1)
+    @test all(evaluate.(derive.(pa, 11:12), 0) .== 0)
+
+    @test abs(pa(1.0) - exp(1.0)) < 1e-7
+    @test abs(pa(1.0) - p(1.0)) < 1e-10
 end

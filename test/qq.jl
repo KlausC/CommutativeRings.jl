@@ -5,7 +5,7 @@
     @test lcunit(QQ(0)) == 1
     @test copy(QQ(12//15)) == QQ(4, 5)
     @test QQ{Int32}(QQ(3, 4)) isa QQ{Int32}
-    @test QQ{Int}(QQ(3, 4)) != nothing
+    @test QQ{Int}(QQ(3, 4)) !== nothing
     @test QQ{BigInt}(ZZ(11)) == 11
     @test ZZ(12) // ZZ(13) == QQ(12, 13)
 

@@ -24,7 +24,7 @@ function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
-    q = convert(Z, isone(c) ? p : p / c)
+    q = Z(isone(c) ? copy(p) : p / c)
     x = monom(Z)
     q, e = stripzeros!(q)
     res = Pair{Z,Int}[]
@@ -42,11 +42,35 @@ function factor(p::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     res
 end
 
+function factor(p::P; p0=3) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
+    c = content(p)
+    pp = ZZ{T}[X](numerator.((p / c).coeff))
+    fz = factor(pp; p0)
+    fq = Vector{Pair{P,Int}}(undef, length(fz) + 1)
+    i = 1
+    for (u, k) in fz
+        i += 1
+        lc = LC(u)
+        if isone(lc)
+            fq[i] = P(u) => k
+        else
+            fq[i] = P(u) / lc => k
+            c *= lc ^ k
+        end
+    end
+    if isone(c)
+        deleteat!(fq, 1)
+    else
+        fq[1] = c => 1
+    end
+    fq
+end
+
 """
     yun(u::UnivariatePolynomial)::Vector
 
 Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
-such that `p = u_1^1 * u_2^2 * ... * u_e^e`.  
+such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
 """
 function yun(u::UnivariatePolynomial{<:ZZ})
     t, v, w = GCD(u, derive(u))
@@ -54,9 +78,11 @@ function yun(u::UnivariatePolynomial{<:ZZ})
     if isone(t)
         push!(res, u)
     else
-        while ( wv = w - derive(v) )  |> !iszero
+        wv = w - derive(v)
+        while !iszero(wv)
             u, v, w = GCD(v, wv)
             push!(res, u)
+            wv = w - derive(v)
         end
         push!(res, v)
     end
@@ -66,7 +92,7 @@ end
 """
     GCD(u::P, v::P) where P<:UnivariatePolynomial
 
-Calculate `g = gcd(u, v) and 
+Calculate `g = gcd(u, v) and
 return `gcd(u, v), u / g, v / g`.
 """
 function GCD(u, v)
@@ -135,7 +161,7 @@ function zassenhaus_irr(u; p0=3)
     isempty(res) || deg(res[1]) >= deg(u)
 end
 
-# find small prime number >= p0 for which number of 
+# find small prime number >= p0 for which number of
 # factors modulo p is smallest
 function best_prime(u, p0=3, kmax=5, vmin=10, vmax=15)
 
@@ -181,24 +207,25 @@ function factormod(u, p::Integer)
 end
 
 """
-    factor1(u::UnivariatePolynomial, a::Integer)
+    factor(u::UnivariatePolynomial, a::Integer)
 
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
-function factor1(u::UnivariatePolynomial, a::Integer)
+function factor(u::P, a::Integer) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
-    r = factor(u)
-    a == 1 && return r
-    b = a
-    res = []
-    x = monom(typeof(u))
-    #afactors = drop(sort(collect(factors(a))), 1)
-    afactors = first.(factor(a).pe)
-    for (v, e) ∈ r
-        for ab in reverse(afactors)
-            b = a ÷ ab
-            s = factor1(v(x^ab), b)
-            append!(res, s)
+    res = Pair{P,Int}[]
+    x = monom(P)
+    for ab in sort(collect(factors(a)))
+        r = factor(u(x^ab))
+        ab == a && return r
+        if length(r) > 1
+            for (v, e) ∈ r
+                b = a ÷ ab
+                s = factor(v, b)
+                for (p, x) in s
+                    push!(res, p => x * e)
+                end
+            end
             break
         end
     end
@@ -225,7 +252,7 @@ function all_factors_irreducible!(res, fac, p)
     for i = 1:length(fac)
         u, vv = fac[i]
         n2 = deg(u) ÷ 2
-        domessage = n2 > 10
+        domessage = n2 >= 50
         B = maximum(coeffbounds(u, n2))
         if length(vv) > 1 && 2 * B > p
             domessage && @warn "irreducibility of $u cannot be proved - p = $p B = $B"
@@ -262,12 +289,12 @@ end
 
 The procedure may be repeated with increased `p`.
 If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
-""" 
+"""
 function factormod(u::P; p0=3) where P<:UnivariatePolynomial{<:ZZ}
     fl = leftfactor(u)
     fr = rightfactor(u)
     u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = zassenhaus(u, p0)
+    res = zassenhaus(u; p0)
     for (u, vv) in res
         rightop!(leftop!(u, *, fl), *, fr)
     end
@@ -277,7 +304,7 @@ end
 """
     combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}}, a::Vector{<:UnivariatePolynomial{ZZ/q}})
 
-Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).  
+Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).
 Return vector of tuples containing integer polynomial factors `U`, `V` vector with corresponding factorization, and
 `A` corresponding factors.
 If degrees of `V` sums up to the degree of `U`, that indicates the factorization was successful.
@@ -303,7 +330,7 @@ function combinefactors(u::Z, vv::AbstractVector{<:UnivariatePolynomial{Zp}}, aa
                 nv = n - nv
                 #println("after  d = $(bitstring(d)) nv = $nv n = $n r = $r")
             end
-            if true || dividecheck(uu, unp, vv, d)
+            if dividecheck(uu, unp, vv, d)
                 w = pprod(vv, d)
                 v = Z(w * unp)
                 # println("pprod = $v  inv = $(Z(pprod(vv, ~d) * unp))")
@@ -357,7 +384,7 @@ end
     coeffbounds(u::Polygon, m)::Vector{<:Integer}
 
 Assuming `u` is a univariate polynomial with integer coefficients and `LC(u) != 0 != u(0)`.
-If `u` has a integer factor polynom `v` with `deg(v) == m`,
+If `u` has an integer factor polynom `v` with `deg(v) == m`,
 calculate array of bounds `b` with `abs(v[i]) <= b[i+1] for i = 0:m`.
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 20.
 """
@@ -465,14 +492,14 @@ function stripzeros!(p)
     e -= 1
     if e > 0
         deleteat!(c, 1:e)
-    end 
+    end
     p, e
 end
 
 """
     reverse(p::UnivariatePolynomial)
 
-Revert the order of coefficients. decrease degree if `p(0) == 0`. 
+Revert the order of coefficients. decrease degree if `p(0) == 0`.
 """
 Base.reverse(p::P) where P<:UnivariatePolynomial = reverse!(copy(p))
 function Base.reverse!(p::P) where P<:UnivariatePolynomial
@@ -612,7 +639,7 @@ end
 
 function partsums(s::Vector{<:Integer})
     m = length(s)
-    n = sum(s) ÷ 2 + 1
+    n = Base.sum(s) ÷ 2 + 1
     if n > 64
         a = falses(n)
         a[1] = true
@@ -871,7 +898,7 @@ end
 
 Given vector `v` of mutual coprime elements modulo `p`.
 Calculate vector `a` with  `sum(div.(a .* prod(v), v)) == 1 modulo p` and `deg.(a) .< deg.(v)`.
-If element type is not a polynomial over `ZZ/p`, read `deg` as `abs`. 
+If element type is not a polynomial over `ZZ/p`, read `deg` as `abs`.
 """
 function allgcdx(v::AbstractVector{T}) where T
     # check_mutual_coprime(v)

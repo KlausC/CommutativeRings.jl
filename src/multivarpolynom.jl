@@ -18,7 +18,7 @@ function lextend(::Type{P}, s::Symbol, t::Symbol...) where {R,P<:MultivariatePol
     construct(R, blocks)
 end
 
-function construct(::Type{R}, blocks) where R<:Ring    
+function construct(::Type{R}, blocks) where R<:Ring
     vs = vcat(blocks...)
     N = length(vs)
     Id = sintern(vs)
@@ -96,7 +96,7 @@ function (P::Type{<:MultivariatePolynomial{S}})(a::T) where {S,T}
     iszero(a) ? zero(P) : P(one(P).ind, [S(a)])
 end
 
-deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : sum(multideg(p))
+deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : Base.sum(multideg(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
@@ -136,7 +136,7 @@ end
 """
     monom(<:MultivariatePolynomial, expos::Vector{Int})
 
-Return monic monomial with given exponents. (`[1,0,...]` corresponds to first variable). 
+Return monic monomial with given exponents. (`[1,0,...]` corresponds to first variable).
 """
 function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) where {N,S}
     n = length(xv)
@@ -245,7 +245,7 @@ function +(a::T...) where T<:MultivariatePolynomial
     p = ones(Int, n)
     pm = [getindex(x, 1) for x in a]
     bound = maxindex(T)
-    
+
     while true
         m, imin = findmin(pm)
         m == bound && break
@@ -467,8 +467,8 @@ end
 # the isless function for the `degrevlex` ordering of monomial exponents
 function degrevlex(a::V, b::V) where V<:AbstractVector{<:Integer}
     length(a) != length(b) && throw(ArgumentError("lengths of vectors must match"))
-    dega = sum(a)
-    degb = sum(b)
+    dega = Base.sum(a)
+    degb = Base.sum(b)
     dega != degb && return dega < degb
     for j = length(a):-1:1
         aj = a[j]
@@ -606,7 +606,7 @@ function pdivrem(f::P, g::P) where {T,N,P<:MultivariatePolynomial{T,N}}
     q = monom(P, lif .- lig)
     if isone(d)
         k = q * c
-        k, f - g * k, one(T) 
+        k, f - g * k, one(T)
     elseif isunit(d)
         k = q * (c / d)
         k, f - g * k, one(T)
@@ -716,7 +716,7 @@ function select_critical_pair(C::AbstractVector{Tuple{Int,Int}}, g::AbstractVect
     n = length(C)
     kmin = 1
     return kmin
-    degp(k) = sum(max.((multideg(g[C[k][1]])), multideg(g[C[k][2]])))
+    degp(k) = Base.sum(max.((multideg(g[C[k][1]])), multideg(g[C[k][2]])))
     dmin = degp(1)
     for k = 2:n
         dk = degp(k)
@@ -733,11 +733,11 @@ function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k
     g = G[k]
     fx = multideg(f)
     gx = multideg(g)
-    sum(fx .* gx) == 0 && return true # product criterion - no powers in common
+    Base.sum(fx .* gx) == 0 && return true # product criterion - no powers in common
     for j = 1:length(G)
         (j == i || j == k) && continue
         hx = multideg(G[j])
-        if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k,j), C)    
+        if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k,j), C)
             return true # chain criterion - already removed
         end
     end
@@ -869,7 +869,7 @@ function reindex2(xa::AbstractVector, pos::AbstractVector{<:Integer}, n::Integer
 end
 
 function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
-    findfirst(iszero, pos) == nothing && return pos
+    findfirst(iszero, pos) === nothing && return pos
     i = findfirst(i->iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
     if i !== nothing
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
