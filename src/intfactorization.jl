@@ -10,6 +10,17 @@ function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:
     end
 end
 
+"""
+    content_primpart(p::UnivariatePolynomial{<:QQ})
+
+Convert a polynomial over `QQ` to a (rational) content and a polynomial over `ZZ`
+"""
+function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
+    c = content(p)
+    pp = ZZ{T}[X](numerator.((p / c).coeff))
+    c, pp
+end
+
 function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     deg(p) > 1 || return true
     iszero(p[0]) && return false
@@ -18,6 +29,11 @@ function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
     zassenhaus_irr(q; p0)
+end
+
+function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
+    c, pp = content_primpart(p)
+    isunit(c) && isirreducible(pp; p0 = 3)
 end
 
 function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
@@ -42,9 +58,8 @@ function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     res
 end
 
-function factor(p::P; p0 = 3) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
-    c = content(p)
-    pp = ZZ{T}[X](numerator.((p / c).coeff))
+function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
+    c, pp = content_primpart(p)
     fz = factor(pp; p0)
     fq = Vector{Pair{P,Int}}(undef, length(fz) + 1)
     i = 1

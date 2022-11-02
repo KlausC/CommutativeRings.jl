@@ -60,13 +60,21 @@ function swapcols(A::Matrix{T}, pc::Vector, i::Integer, j::Integer) where T
     end
 end
 
-# partial L-U factorization of irregular matix A.
-# left upper rxr A is regular. right lower corner consits of elements a with abs(a) == 0
-# The element type must assure, that isinvertible(a) <=> abs(a) != 0
-# 0 <= abs(a) ∈ Real
-# Input matrix A is overwritten with the components of L and R.
-# Return r = rank(A) and permutation vectors for rows and columns
-function lu_total!(A::Matrix{T}) where T
+"""
+    lu_total!(A::AbstractMatrix)
+
+Compute partial L-U factorization of general matrix A.
+
+Left upper rxr A is regular. right lower corner consits of elements a with abs(a) == 0
+The element type must assure, that isunit(a) <=> abs(a) != 0
+`0 <= abs(a) ∈ Real`
+Input matrix A is overwritten with the components of L and U.
+Return r = rank(A) and permutation vectors for rows and columns
+"""
+function lu_total!(A::AbstractMatrix{T}) where T
+    lu_total!(A, category_trait(T))
+end
+function lu_total!(A::AbstractMatrix{T}, ::Type{<:FieldTrait}) where T
     m, n = size(A)
     mn = min(m, n)
     pr = collect(1:m)
@@ -113,7 +121,7 @@ function lu_total!(A::D) where {T,D<:Diagonal{T}}
     jmax = 0
     for i = 1:n
         j = i
-        while j <= n && iszero(abs(A[j, j]))
+        while j <= n && iszero(pivabs(A[j, j]))
             j += 1
         end
         j > n && break
@@ -212,7 +220,7 @@ function lu_axu(A::AbstractMatrix{R}, u::AbstractVector{R}) where R
 end
 
 function Base.propertynames(::LU_total)
-    tuple(fieldnames(LU_total)..., :L11, :R11, :L_1, :L21, :L, :R)
+    tuple(fieldnames(LU_total)..., :L11, :U11, :L_1, :L21, :L, :U)
 end
 function Base.getproperty(lut::LU_total, s::Symbol)
     r = getfield(lut, :rank)
@@ -226,10 +234,10 @@ function Base.getproperty(lut::LU_total, s::Symbol)
         [lut.L_1 [zeros(Int, r, m - r); I(m - r)]]
     elseif s === :L21
         view(factors, r+1:m, 1:r)
-    elseif s === :R11
+    elseif s === :U11
         UpperTriangular(view(factors, 1:r, 1:r))
-    elseif s === :R
-        [lut.R11 zeros(Int, r, n - r); zeros(Int, m - r, r) I(n - r)]
+    elseif s === :U
+        [lut.U11 zeros(Int, r, n - r); zeros(Int, m - r, r) I(n - r)]
     else
         getfield(lut, s)
     end

@@ -423,8 +423,8 @@ end
 """
     content(p::Polynomial)
 
-Return the content of the polynomial p, i.e. the `gcd` of its coefficients,
-negated if leading coefficient is negative. See also `primpart`.
+Return the content of the polynomial p, i.e. the [`gcd`](@ref) of its coefficients,
+negated if leading coefficient is negative. See also [`primpart`](@ref).
 """
 function content(p::Polynomial)
     g = gcd(p.coeff)
@@ -448,7 +448,7 @@ end
 """
     primpart(p::Polynomial)
 
-The primitive part of the polynomial `p`, equals `p / content(p)`.
+The primitive part of the polynomial `p`, equals [`p / content(p)`](@ref).
 """
 primpart(p::Polynomial) = p / content(p)
 
@@ -484,13 +484,14 @@ end
 """
     ismonom(p::Polynomial)
 
-Return iff polynomial `p` consists is identical to its leading term.
+Return iff polynomial `p` is identical to its leading term.
 """
 ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
+
 """
     ismonic(p::Polynomial)
 
-Return iff leading coefficient of polynomial `p` is one.
+Return iff leading coefficient [`LC`](@ref) of polynomial `p` is one.
 """
 ismonic(p::Polynomial) = isone(LC(p))
 
@@ -577,7 +578,7 @@ end
 Modification of Euclid's algorithm to produce `subresultant sequence of pseudo-remainders`.
 The next to last calculated remainder is a scalar multiple of the gcd.
 Another interpretation of this remainder yields the resultant of `a` and `b`.
-See: `https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence`
+See: [`WIKI: Subresultant`](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Subresultant_pseudo-remainder_sequence)
 and TAoCP 2nd Ed. 4.6.1.
 """
 function presultant_seq(

@@ -166,7 +166,8 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     r = deg(P)
     lut, _ = lu_axu(A, u)
     piv = lut.pivr
-    B = (lut.L*lut.R)[invperm(piv), :]
+    B = lut.L * lut.U
+    B = B[invperm(piv), :]
     if r == m
         return RNF(P, B)
     end
@@ -174,7 +175,7 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     p2 = view(piv, r+1:m)
     A12 = A[p1, p2]
     A22 = A[p2, p2]
-    L11, L21, R11 = lut.L11, lut.L21, lut.R11
+    L11, L21, U11 = lut.L11, lut.L21, lut.U11
     D = A22 - L21 * (L11 \ A12)
 
     rnf = rational_normal_form(D)
@@ -183,7 +184,7 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     p = r + 1
     for pi in rnf.minpoly
         g = prod_pmv(pi, A, B[:, p])
-        h = R11 \ (L11 \ g[p1])
+        h = U11 \ (L11 \ g[p1])
         H = UnivariatePolynomial{R,:x}(h)
         S = H / pi
         B[:, p] .-= S(A) * B[:, 1]
