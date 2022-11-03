@@ -109,7 +109,7 @@ const X = monom(ZZ{Int}[:x])
 @testset "category traits $T/($p)" for (T, p, C) in [
     (ZZ / 5, X^2 + 2, FieldTrait),
     (ZZ / 5, X^2 + 1, CommutativeRingTrait),
-    (ZZ{Int}, X^2 + 1, FieldTrait),
+    (ZZ{Int}, X^2 + 1, IntegralDomainTrait),
     (ZZ{Int}, X^2 - 1, CommutativeRingTrait),
 ]
     x = monom(T[:x])

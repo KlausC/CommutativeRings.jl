@@ -152,7 +152,8 @@ end
 """
     isprimitive(g::G)
 
-Return iff `g` is a primitive element of its ring (its powers form the complete multiplicative subgroup of `G`)
+Return iff `g` is a primitive element of its ring
+(its powers form the complete multiplicative subgroup of `G`)
 """
 function isprimitive(g::G) where G<:Ring
     iszero(g) && return false
@@ -294,6 +295,30 @@ modulus(::T) where T<:Ring = modulus(T)
 copy(p::QuotientRing) = typeof(p)(p.val)
 # make Ring elements behave like scalars with broadcasting
 Base.broadcastable(x::Ring) = Ref(x)
+
+"""
+    isreducible(p::R)
+
+Return iff `p` is neither `0` nor a unit nor irreducible in `R`.
+"""
+isreducible(p::Ring) = !iszero(p) && !isunit(p) && !isirreducible(p)
+
+"""
+    isirreducible(p::R)
+
+Return iff `p` is neither `0` nor a unit nor a product of non-units of `R`.
+"""
+isirreducible(a::Integer) = Primes.isprime(abs(a))
+isirreducible(a::R) where R<:Ring = isirreducible(a, category_trait(R))
+
+"""
+    isprime(p::R)
+
+Return iff p is neither `0` nor a unit and
+for any `a,b ∈ R` if `p` divides `a*b` then `p` divides `a` or `p` divides `b`.
+"""
+isprime(a::R) where R<:Ring = isprime(a, category_trait(R))
+isprime(a::Ring, ::Type{<:GCDDomainTrait}) = isirreducible(a)
 
 # apply homomorphism
 (h::Hom{F,R,S})(a::R) where {F,R,S} = h.f(a)::S

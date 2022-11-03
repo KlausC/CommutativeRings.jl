@@ -24,19 +24,17 @@ end
 
 Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `factor`.
 """
-function isirreducible(p::UnivariatePolynomial{<:QuotientRing})
+function isirreducible(
+    p::UnivariatePolynomial{F},
+    ::Type{<:EuclidianDomainTrait},
+) where F<:QuotientRing
+    (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
     iszero(p.coeff[1]) && return false
     pp = gcd(p, derive(p))
     deg(pp) > 0 && return false
     isddf(p)
 end
-"""
-    isreducible(p::F[X])
-
-Returns iff `p` is a reducible (prime) polynomial over field `F`. See also `factor`.
-"""
-isreducible(p::UnivariatePolynomial) = !isirreducible(p)
 
 import Base.Iterators: Filter, take, drop
 """::UnivariatePolynomial{<:QuotientRing}

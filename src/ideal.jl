@@ -19,6 +19,8 @@ Ideal(mm::RingInt...) = Ideal(collect(Base.promote_typeof(mm...), mm))
 Ideal(mm::AbstractVector{<:RingInt}) = Ideal(gcd(mm))
 Ideal(mm::AbstractVector{R}) where R<:MultivariatePolynomial = Ideal{R}(groebnerbase(mm))
 
+*(a::RingInt, ::Type{R}) where R <:Ring = Ideal(R(a))
+
 # Arithmetic
 
 import Base: in, issubset, ==, intersect, sum, +, *, ^, iszero, zero, one, rem
@@ -50,8 +52,8 @@ function *(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     Ideal(C)
 end
 
-*(id::Ideal{R}, a::R) where R = Ideal(id.base .* a)
-*(a::R, id::Ideal{R}) where R = Ideal(a .* id.base)
+*(id::Ideal{R}, a::RingInt) where R = Ideal(id.base .* R(a))
+*(a::RingInt, id::Ideal{R}) where R = Ideal(R(a) .* id.base)
 
 function ^(id::Ideal{R}, p::Integer) where R<:MultivariatePolynomial
     if p == 1
@@ -88,3 +90,4 @@ zero(::Type{I}) where {R,I<:Ideal{R}} = Ideal(R[])
 one(::Type{I}) where {R,I<:Ideal{R}} = Ideal(R[1])
 one(::R) where R<:Ideal = one(R)
 zero(::R) where R<:Ideal = zero(R)
+isproper(id::Ideal) = !iszero(id) && !isone(id)

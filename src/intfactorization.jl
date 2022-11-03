@@ -22,7 +22,8 @@ function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
 end
 
 function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
-    deg(p) > 1 || return true
+    (iszero(p) || isunit(p)) && return false
+    deg(p) <= 1 && return true
     iszero(p[0]) && return false
     X = varname(P)
     Z = ZZ{BigInt}[X]
@@ -32,8 +33,9 @@ function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
 end
 
 function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
+    (iszero(p) || isunit(p)) && return false
     c, pp = content_primpart(p)
-    isunit(c) && isirreducible(pp; p0 = 3)
+    isirreducible(pp; p0 = 3)
 end
 
 function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}

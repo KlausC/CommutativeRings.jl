@@ -9,12 +9,17 @@ function /(::Type{R}, m) where R<:Ring
 
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
-    b = order(basetype(R))
-    new_class(Quotient{R,typeof(ideal),sintern(m),(p, r)}, ideal)
+    i = isirreducible(ideal)
+    new_class(Quotient{R,typeof(ideal),sintern(m),(p, r, i)}, ideal)
 end
 
 # Constructors
-category_trait(Z::Type{<:QuotientRing}) = isprimemod(Z) ? FieldTrait : CommutativeRingTrait
+category_trait(Z::Type{<:QuotientRing}) =
+    isprimemod(Z) ? category_trait_irr(Z) : CommutativeRingTrait
+category_trait_irr(::Type{<:ZZmod}) = FieldTrait
+category_trait_irr(::Type{<:Quotient{<:UnivariatePolynomial{F}}}) where F =
+    category_trait(F) <: FieldTrait ? FieldTrait : IntegralDomainTrait
+
 basetype(::Type{<:Quotient{T}}) where T = T
 depth(::Type{<:Quotient{T}}) where T = depth(T) + 1
 
@@ -69,6 +74,8 @@ one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 value(a::QuotientRing) = a.val
 characteristic(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[1]
 dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
+isprimemod(Z::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id}= Id[3]
+
 function order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id}
     r = Id[2]
     b = order(basetype(R))

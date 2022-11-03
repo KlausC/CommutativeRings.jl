@@ -12,7 +12,7 @@ export GaloisField
 
 export Hom, Ideal
 
-export isunit, deg, content, primpart, isnegative
+export isunit, deg, content, primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv
@@ -40,12 +40,12 @@ export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log, isfinite
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
-import Primes: factor
+import Primes: factor, isprime
 import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
 
 # Re-exports
-export det
+export det, isprime, factor
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
