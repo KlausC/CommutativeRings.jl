@@ -5,3 +5,4 @@
 deps/deps.jl
 Manifest.toml
 .vscode
+lcov.info

@@ -317,8 +317,8 @@ isirreducible(a::R) where R<:Ring = isirreducible(a, category_trait(R))
 Return iff p is neither `0` nor a unit and
 for any `a,b ∈ R` if `p` divides `a*b` then `p` divides `a` or `p` divides `b`.
 """
-isprime(a::R) where R<:Ring = isprime(a, category_trait(R))
-isprime(a::Ring, ::Type{<:GCDDomainTrait}) = isirreducible(a)
+isprime(a::R) where R<:Ring = _isprime(a, category_trait(R))
+_isprime(a::Ring, ::Type{<:GCDDomainTrait}) = isirreducible(a)
 
 # apply homomorphism
 (h::Hom{F,R,S})(a::R) where {F,R,S} = h.f(a)::S
@@ -333,7 +333,9 @@ function divrem2(a::T, b::T) where T<:FractionRing
 end
 
 # generic Euclid's algorithm
-function gcd(a::T, b::T) where T<:Ring
+gcd(a::T, b::T) where T<:Ring = _gcd(a, b, category_trait(T))
+
+function _gcd(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Ring
     iszero(b) && return a
     a, b = b, rem2(a, b)
     while !iszero(b)
@@ -351,21 +353,32 @@ end
 
 # extension to array
 function gcd(aa::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
-    n = length(aa)
     g = zero(T)
-    n == 0 && return g
-    for i = 1:n
+    for x in aa
         isone(g) && break
-        g = gcd(aa[i], g)
+        g = gcd(x, g)
     end
     g
 end
-gcd(a::T...) where T<:Ring = gcd(a)
+# to be used with non-empty generators
+function gcd_generator(aa::Base.Generator)
+    vs = iterate(aa)
+    g, s = vs
+    while (vs = iterate(aa, s)) !== nothing && !isone(g)
+        x, s = vs
+        g = gcd(x, g)
+    end
+    g
+end
+gcd(a::T, b::T...) where T<:Ring = gcd([a; b...])
 
 pgcd(a::R, b::R) where R<:Ring = gcd(a, b)
+pgcdx(a::R, b::R) where R<:Ring = (gcdx(a, b)..., one(R))
 
 # generic extended Euclid's algorithm
-function gcdx(a::T, b::T) where T<:Ring
+gcdx(a::T, b::T) where T<:Ring = _gcdx(a, b, category_trait(T))
+
+function _gcdx(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Ring
     s0, s1 = one(T), zero(T)
     t0, t1 = s1, s0
     # invariant: a * s0 + b * t0 == gcd(a, b)
@@ -378,14 +391,14 @@ function gcdx(a::T, b::T) where T<:Ring
         t0, t1 = t1, t0 - q * t1
     end
     u = lcunit(a)
-    if isone(a)
+    if isone(u)
         a, s0, t0
     else
         a, s0, t0 = a / u, s0 / u, t0 / u
     end
 end
 
-function gcdx(a::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
+function gcdx(a::AbstractVector{T}) where T<:Ring
     n = length(a)
     n == 0 && return zero(T), zero(T), zero(T)
     u = similar(a)
@@ -399,7 +412,7 @@ function gcdx(a::Union{AbstractVector{T},NTuple{N,T}}) where {N,T<:Ring}
     end
     g, u
 end
-gcdx(a::T...) where T<:Ring = gcdx([a...])
+gcdx(a::T, b::T...) where T<:Ring = gcdx([a; b...])
 
 # least common multiplier derived from gcd
 function lcm(a::T, b::T) where T<:Ring

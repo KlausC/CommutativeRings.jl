@@ -87,7 +87,7 @@ function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
         n -= 1
     end
     if n < length(v)
-        v = copyto!(similar(v, n), 1, v, 1, n)
+        v = resize!(v, n)
     end
     UnivariatePolynomial{S,x}(v, NOCHECK)
 end
@@ -208,14 +208,12 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     v === vp ? p : v === vq ? q : T(v, NOCHECK)
 end
 
-function *(p::UnivariatePolynomial{R}, q::R) where R<:Ring
+function *(p::T, q::R) where {R<:Ring,T<:UnivariatePolynomial{R}}
     if iszero(q)
         zero(p)
     else
-        T = typeof(p)
-        S = basetype(T)
         # make broadcast recognize q as scalar
-        T(p.coeff .* Ref(q), NOCHECK)
+        T(p.coeff .* Ref(q))
     end
 end
 *(p::UnivariatePolynomial{S}, q::Integer) where {S} = *(p, S(q))
@@ -963,11 +961,16 @@ function showelem(io::IO, el, start::Bool)
     end
 end
 
-LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Ring = det!(copy(a))
+# TODO determinants to dedicated file
+function LinearAlgebra.det(a::AbstractMatrix{D}) where D<:Ring
+    checksquare(a)
+    det!(copy(a))
+end
 det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = _det(a, category_trait(D))
-_det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB(a)
-_det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB(a)
-_det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing = det_QR(a)
+
+_det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB!(a)
+_det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB!(a)
+_det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing = det_QR!(a)
 _det(a::AbstractMatrix, ::Type{<:CommutativeRingTrait}) = det_Bird(a)
 
 """
@@ -978,11 +981,13 @@ This code is taken from "Algorithm 8.36 (Dogdson-Jordan-Bareiss)" of
 
 Its use is restricted to the case of `D` an integral domain.
 """
-function det_DJB(a::AbstractMatrix{D}) where D<:Union{Ring,Number}
-    n = checksquare(a)
-    n == 0 && return one(D)
-    b = copy(a)
+det_DJB(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = det_DJB!(copy(a))
+
+function det_DJB!(b::AbstractMatrix{D}) where D<:Union{Ring,Number}
+    n = checksquare(b)
+    @assert category_trait(D) <: IntegralDomainTrait
     b00 = one(D)
+    n == 0 && return b00
     s = 1
     for k = 1:n-1
         j0 = 0
@@ -1025,30 +1030,31 @@ I.e. `ZZ/p` where `p` is not prime and `P[:x]/q` where `q` is the product of pol
 det_QR(a::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}} = det_QR!(copy(a))
 
 function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
-    #println("det_QR!($D)")
     n = checksquare(b)
-    n == 0 && return one(D)
     s = one(D)
+    n == 0 && return s
+
     for k = 1:n-1
         a = view(b, k:n, k:n)
         ij = findfirst(isunit, a)
-        # println("k = $k, ij = $ij")
-        # display(a)
         if ij !== nothing
             ij += CartesianIndex(k - 1, k - 1)
             s = flipall!(b, ij, k, s)
         else
-            vmin = zero(Z)
             for i = k:n
-                v, ij, s = rowdivgcd!(b, i, k, ij, s)
-                vmin = max(vmin, v)
+                ij, s = rowdivgcd!(b, i, k, ij, s)
+                iszero(s) && return s
             end
             if ij !== nothing
                 s = flipall!(b, ij, k, s)
             else
+                # now no element of `a` is unit - all have common divisors with `m`
                 m = modulus(D)
-                v, w = splitmod(vmin, m)
-                # println("splitmod($vmin, $m) = $v, $w")
+                ij = findfirst(!iszero, a)
+                u = value(a[ij])
+                v, w = splitmod(u, m)
+                # println("splitmod($u, $m) = $v, $w")
+                @assert v != m && w != m
                 ZV = Z / v
                 dv = det!(ZV.(a))
                 isone(w) && return dv
@@ -1099,28 +1105,33 @@ function flipall!(a::AbstractMatrix, ij::CartesianIndex, k, s)
     s
 end
 
+"""
+    rowdivgcd!(b::Matrix, i, k, ij, s)
+
+Divide row `b[i,k::end]` by the gcd of that row.
+Return gcd, index of a now unit element of the row, s * gcd
+"""
 function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{Z}}
     n = size(b, 2)
-    g0 = zero(Z)
-    g1 = one(Z)
-    for j = k:n
-        g1 = gcd(g0, value(b[i, j]))
-        isone(g1) && break
-        g0 = g1
-    end
-    if !isone(g1)
-        s *= g1
+    g = gcd_generator(value(b[i,j]) for j in k:n)
+    s *= g
+    if !isone(g) && !iszero(g)
         for j = k:n
-            bij = D(value(b[i, j]) ÷ g1)
+            bij = D(value(b[i, j]) ÷ g)
             b[i, j] = bij
             if ij === nothing && isunit(bij)
                 ij = CartesianIndex(i, j)
             end
         end
     end
-    g0, ij, s
+    ij, s
 end
 
+"""
+    crt(x, y, p, q)
+
+Chinese remainder theorem.
+"""
 function crt(x, y, p, q)
     g, u, v = gcdx(p, q)
     y * u * p + x * v * q
@@ -1128,11 +1139,12 @@ end
 """
     v = splitmod(a, m)
 
-Assume `gcd(a, m) != 1`.
-Find `v` in a way that `gcd(v, m/v) == 1`.
+Find `v` which divides `m` in a way that `gcd(v, m/v) == 1`.
+The input `a < m` with `gcd(a, m) != 1 serves as a starting point.
 """
 function splitmod(v, m)
     a = gcd(v, m)
+    @assert 1 < a < m
     b = m ÷ a
     x = 1
 
@@ -1158,10 +1170,10 @@ This is a division-free algorithm to calculate the determinant of `a`.
 There are no conditions on `D` except it is a non-empty commutative ring with one.
 Derived from "Pearls of Functional Algorithm Design, chap. 22" by Richard Bird - 2010
 """
-function det_Bird(a::AbstractMatrix{D}) where D
-    n = checksquare(a)
+det_Bird(a::AbstractMatrix{D}) where D = det_Bird!(copy(a), a)
+function det_Bird!(x::AbstractMatrix{D}, a::AbstractMatrix{D}) where D
+    n = checksquare(x)
     n == 0 && return one(D)
-    x = copy(a)
     for k = n-1:-1:1
         mutx!(x, k, a)
     end
@@ -1208,77 +1220,16 @@ function mutx!(x::AbstractMatrix, k::Integer, a::AbstractMatrix{T}) where T
     end
     x
 end
+
 """
-    det3(a)
+    det_MV(a)
 
 Divisionfree combinatoric algorithm to calculate determinant.
 "Determinant: Combinatorics, Algorithms, andComplexity" by Mahajan, Vinay
 in Chicago Journal of Theoretical Computer Science1997-5
 http://cjtcs.cs.uchicago.edu/articles/1997/5/cj97-05.pdf
 """
-function det3_new(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
-    n = checksquare(a)
-    A = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
-    B = Vector{Tuple{Bool,Int,Int,D}}(undef, 0)
-    C = Dict{Tuple,Int}()
-
-    function addpush!(B, C, t)
-        #println("addpush!($t)")
-        p, u, v, d = t
-        key = (p, u, v)
-        nx = length(B) + 1
-        ix = get!(C, key, nx)
-        if ix == nx
-            push!(B, t)
-        else
-            _, _, _, b = B[ix]
-            B[ix] = (p, u, v, b + d)
-        end
-        nothing
-    end
-
-    s = max(min(n * (n + 1) ÷ 2, count(!iszero, a)), max(2 * n, 32))
-    sizehint!(A, s)
-    sizehint!(B, s)
-    p = isodd(n)
-    for u = 1:n
-        push!(A, (p, u, u, one(D)))
-    end
-    for i = 0:n-2
-        empty!(B)
-        empty!(C)
-        for (p, u, v, Auvp) in A
-            avu = a[v, u]
-            for w = u+1:n
-                avw = a[v, w]
-                if !iszero(avw)
-                    avw *= Auvp
-                    addpush!(B, C, (p, u, w, avw))
-                end
-            end
-            if !iszero(avu)
-                avu *= Auvp
-                for w = u+1:n
-                    addpush!(B, C, (!p, w, w, avu))
-                end
-            end
-        end
-        A, B = B, A
-        #println("i = $i")
-        #display(A)
-    end
-
-    d = zero(D)
-    for (p, u, v, Auvp) in A
-        avu = a[v, u] * (p ? 1 : -1)
-        if !iszero(avu)
-            d += Auvp * avu
-        end
-    end
-    d
-end
-
-function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
+function det_MV(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     n = checksquare(a)
     A1 = zeros(D, n, n)
     A2 = zeros(D, n, n)
@@ -1331,13 +1282,24 @@ function det3(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     B2[1, 1] - B1[1, 1]
 end
 
-function hamilton_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
+#=
+TODO fix algorithm. normal forms to dedicated file
+"""
+    hermite_normal_form(A::AbstractMatrix{R}) where R<:Ring -> H, U
+
+Calculate matrixes `H` in column Hermite normal form and unimodular `U` with `A * U = H`.
+Unimodular means `det(U)` is unit element of the ring `R`.
+
+See [Wiki](https://en.wikipedia.org/wiki/Hermite_normal_form)
+[Algorithm](https://www.math.tamu.edu/~rojas/kannanbachemhermitesmith79.pdf)
+"""
+function hermite_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
     m, n = size(a)
     u = Matrix(R.(I(n)))
-    hamilton_normal_form!(copy(a), u)
+    hermite_normal_form!(copy(a), u)
 end
 
-function hamilton_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
+function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
     m, n = size(a)
 
     for i = 1:min(m, n)-1
@@ -1383,3 +1345,4 @@ function reduce_off_diagonal!(a, u, k)
         u[:, z] .+= u[:, k] .* d
     end
 end
+=#
