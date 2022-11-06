@@ -111,9 +111,15 @@ _promote_rule(
 function quotient(
     ::Type{Q},
     g::G,
-) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
+) where {Id,T<:Integer,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
+end
+function quotient(
+    ::Type{Q},
+    g::G,
+) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
+    g.val
 end
 
 (::Type{Q})(
@@ -210,6 +216,13 @@ function log(a::G) where {Id,G<:GaloisField{Id,<:Quotient}}
     else
         # calculating the discrete log is an expensive operation in general
         # which requires special algothimic effort (==> Adleman et. al.)
+        # here only a naive implementation
+        g = generator(G)
+        b = g^2
+        for e in 2:order(G)-2
+            b == a && return e
+            b *= g
+        end
         -2
     end
 end
