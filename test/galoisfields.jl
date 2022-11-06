@@ -107,6 +107,9 @@ end
     @test num_irreducibles(Polynomial(G), dimension(G)) < order(G)
     @test GF(p, r; nr = 1) !== nothing
     @test_throws ArgumentError GF(p, r, nr = 10000000)
+
+    @test log(generator(G)^20) == 20
+    @test det(normalmatrix(Q)) == 1
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin

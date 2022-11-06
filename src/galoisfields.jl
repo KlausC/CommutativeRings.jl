@@ -348,7 +348,8 @@ function Base.show(io::IO, g::Type{<:GaloisField})
 end
 
 function tovalue(::Type{G}, num::Integer) where G<:GaloisField
-    log_calc(num, G) + 1
+    logtable = gettypevar(G).logtable
+    logtable[num+1]
 end
 function tovalue(::Type{<:GaloisField{Id,V}}, num::Integer) where {Id,V<:Quotient}
     toquotient(num, V)
@@ -692,43 +693,4 @@ function order(x::G) where {Id,V<:Integer,G<:GaloisField{Id,V}}
     isone(x) && return 1
     ord = mult_order(G)
     ord ÷ gcd(x.val - 1, ord)
-end
-
-function logg0(G)
-    p = characteristic(G)
-    ord = order(G)
-    zt = gettypevar(G).zechtable
-    logg0(p, ord, zt)
-end
-function logg0(p::Integer, ord::Integer, zt)
-    v = Vector{Int}(undef, p)
-    v[1] = -1
-    s = v[2] = 0
-    for i = 3:length(v)
-        s = log_zech(s, ord, zt)
-        v[i] = s
-    end
-    v
-end
-
-loggx(a::AbstractVector, G::Type{<:GaloisField}) =
-    loggx(a, order(G), gettypevar(G).zechtable, logg0(G))
-function loggx(a::AbstractVector, ord::Integer, zt::AbstractVector, logt::AbstractVector)
-    loggi(k) = logt[k+1]
-    k = findfirst(!iszero, a)
-    k === nothing && return -1
-    accu = loggi(a[k]) + k - 1
-    for i = k+1:length(a)
-        ai = a[i]
-        if !iszero(ai)
-            lai = loggi(ai) + i - 1
-            accu = log_zech(mod(accu - lai, ord - 1), ord, zt) + lai
-        end
-    end
-    mod(accu, ord - 1)
-end
-
-function log_calc(num::Integer, G::Type{<:GaloisField})
-    logtable = gettypevar(G).logtable
-    logtable[num+1] - 1
 end
