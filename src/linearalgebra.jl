@@ -394,9 +394,9 @@ end
 Characteristic polynomial of matrix `A`. `P` is an optional
 univariate polynomial type, defaulting to `eltype(A)[:x]`
 """
-function characteristic_polynomial(A, P = eltype(A)[:x])
-    x = Frac(P)(monom(P))
-    numerator(det(x - A))
+function characteristic_polynomial(A, T = eltype(A))
+    x = monom(T[:x])
+    det(x - A)
 end
 
 """

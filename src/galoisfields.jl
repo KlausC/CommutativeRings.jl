@@ -683,7 +683,7 @@ function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial,Q<:Ring}
     M = normalmatrix(normalbase(P/p), r)
     N = hcat( (sized((vx^k).val.coeff, m) for k = 0:r-1)...) *  M
     a = inv(M)[:,2]
-    cp(N, k) = [N[:,k+1:r] N[:,1:k]] # cyclically permutating columns
+    cp(N, k) = [N[:,k+1:r] N[:,1:k]] # cyclically permuting columns
     [ Q(cp(N, k) * a) for k in 0:r-1]
     =#
 end
