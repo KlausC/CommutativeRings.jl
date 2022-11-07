@@ -4,6 +4,7 @@ using LinearAlgebra
 using Base.Checked
 using Primes
 using Random
+using GeneralizedCRT
 
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
@@ -37,15 +38,15 @@ export coeffbounds
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 
-import Base: +, -, *, /, inv, ^, \, //, getindex, sign, log, isfinite
-import Base: iszero, isone, isless, zero, one, div, rem, divrem, ==, hash, gcd, gcdx, lcm
+import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite
+import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime
 import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
 
-# Re-exports
-export det, isprime, factor
+# Re-exports (of non-Base functions)
+export det, isprime, factor, crt
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end

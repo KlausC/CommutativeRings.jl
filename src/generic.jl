@@ -37,6 +37,7 @@ for op in (
     :divrem,
     :div,
     :rem,
+    :mod,
     :gcd,
     :gcdx,
     :pgcd,
@@ -260,6 +261,9 @@ function divrem(a::T, b::T) where T<:Ring
 end
 div(a::T, b::T) where T<:Ring = divrem(a, b)[1]
 rem(a::T, b::T) where T<:Ring = divrem(a, b)[2]
+
+Base.mod(a::R, b::R) where R<:Ring = rem(a, b)
+
 """
     isdiv(a, b)
 

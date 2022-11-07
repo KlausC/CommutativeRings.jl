@@ -1060,7 +1060,7 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
                 isone(w) && return dv
                 ZW = Z / w
                 dw = det!(ZW.(a))
-                return crt(D(value(dv)), D(value(dw)), v, w) * s
+                return _crt(D(value(dv)), D(value(dw)), v, w) * s
             end
         end
         bkk = one(D)
@@ -1128,11 +1128,11 @@ function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{
 end
 
 """
-    crt(x, y, p, q)
+    _crt(x, y, p, q)
 
 Chinese remainder theorem.
 """
-function crt(x, y, p, q)
+function _crt(x, y, p, q)
     g, u, v = gcdx(p, q)
     y * u * p + x * v * q
 end
