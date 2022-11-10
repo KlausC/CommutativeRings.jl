@@ -158,6 +158,8 @@ end
     qp = Q(-p) / 12
     @test primpart(qp) == Q(p)
     @test content(qp) == -1 // 12
+    @test content(qp) isa QQ
+    @test primpart(qp) isa P
 
     @test iszero(LC(zero(P)))
     @test isone(LC(one(P)))

@@ -427,7 +427,7 @@ function content(p::Polynomial)
     g = gcd(p.coeff)
     isnegative(LC(p)) ? -g : g
 end
-function content(q::Polynomial{Q}) where Q<:Union{QQ,Quotient}
+function content(q::Polynomial{Q}) where Q<:Union{QQ,Frac}
     c = lcm(getfield.(q.coeff, :den))
     g = gcd(getfield.(q.coeff, :num) .* (div.(c, getfield.(q.coeff, :den))))
     g = isnegative(LC(q)) ? -g : g
@@ -448,6 +448,10 @@ end
 The primitive part of the polynomial `p`, equals [`p / content(p)`](@ref).
 """
 primpart(p::Polynomial) = p / content(p)
+function primpart(p::UnivariatePolynomial{Q,X}) where {Q<:Union{QQ,Frac},X}
+    Z = basetype(Q)
+    (Z[X])(Z.(numerator.((p / content(p)).coeff)))
+end
 
 #=
 Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
