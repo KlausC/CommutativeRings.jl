@@ -1,3 +1,7 @@
+module ZZTest
+
+using Test
+using CommutativeRings
 
 @testset "construction and promotion" begin
     @test basetype(ZZ{Int}) == Int
@@ -18,7 +22,7 @@
 end
 
 @testset "ZZ{$T}" for T in (Int32, Int64, BigInt)
-    
+
     Z = ZZ{T}
     z = zero(Z)
     @test z == zero(z)
@@ -35,13 +39,13 @@ end
     @test !isunit(z1)
     @test z1 + z1 == ZZ(T(2n1))
     T != BigInt && @test_throws OverflowError z2 + z2
-    
+
     @test z1 - z1 == z
     @test z1 - z2 == ZZ(n1 - n2)
     @test -z2 == ZZ(-n2)
     @test isunit(-o)
     T != BigInt && @test_throws OverflowError -z1 - z2
-    
+
     @test z1 * z1 == ZZ(T(n1 * n1))
     @test z1 * n1 == ZZ(T(n1 * n1))
     @test n1 * z1 == ZZ(T(n1 * n1))
@@ -49,7 +53,7 @@ end
 
     @test z1^2 == ZZ(n1^2)
     T != BigInt && @test_throws OverflowError z1^1000
-    
+
     z3 = 2z1
     z4 = z3 + o
     @test z3 ÷ z1 == ZZ(T(2))
@@ -60,7 +64,7 @@ end
 
     @test inv(-o) == -o
     @test_throws DomainError inv(z1)
-    
+
     @test gcd(z3, z1) == z1
     @test gcd(z3, z1, z3) == z1
     @test gcdx(z3, z1) == (z1, zero(z3), one(z1))
@@ -75,3 +79,5 @@ end
     @test factor(z3) == [Z(2) => 1, n1 => 1]
     @test eltype(factor(z3)) == Pair{Z,Int}
 end
+
+end # module

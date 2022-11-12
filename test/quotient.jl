@@ -1,3 +1,7 @@
+module QuotientTest
+
+using Test
+using CommutativeRings
 
 let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
 
@@ -61,3 +65,5 @@ let S = ZZ{BigInt}, P = S[:x], x = P([0, 1])
     end
 
 end
+
+end # module

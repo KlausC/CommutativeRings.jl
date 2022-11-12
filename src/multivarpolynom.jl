@@ -93,10 +93,11 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
     perm = Vector{Int}(undef, n)
     j = 0
     for i = 1:n
+        ii = i + a.first
         aci = ac[i]
         if !iszero(aci)
             j += 1
-            xa = [i - 1]
+            xa = [ii - 1]
             perm[j] = i
             xp = reindex2(xa, pos, N)
             pind[j] = expo2ordblock(P, xp)

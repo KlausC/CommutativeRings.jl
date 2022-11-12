@@ -1,4 +1,7 @@
+module GenericTest
 
+using Test
+using CommutativeRings
 import CommutativeRings: tosuper, tosub
 
 @testset "scriptdigits" begin
@@ -132,3 +135,5 @@ end
     @test op(x, y) == op(Z(x), y)
     @test op(y, x) == op(y, Z(x))
 end
+
+end # module

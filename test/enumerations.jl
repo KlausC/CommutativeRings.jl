@@ -1,4 +1,7 @@
+module EnumerationsTest
 
+using Test
+using CommutativeRings
 using CommutativeRings: len, GFImpl
 
 @testset "iterate" begin
@@ -124,3 +127,5 @@ end
 @testset "issue diameter division error" begin
     @test iroot(196, 65) == 1
 end
+
+end # module

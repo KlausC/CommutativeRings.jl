@@ -17,7 +17,8 @@ Convert a polynomial over `QQ` to a (rational) content and a polynomial over `ZZ
 """
 function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
     c = content(p)
-    pp = ZZ{T}[X](numerator.((p / c).coeff))
+    Z = ZZ{T}
+    pp = Z[X](Z.(numerator.((p / c).coeff)), p.first)
     c, pp
 end
 
@@ -44,7 +45,7 @@ function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     Z = ZZ{BigInt}[X]
     q = Z(isone(c) ? copy(p) : p / c)
     x = monom(Z)
-    q, e = stripzeros!(q)
+    q, e = stripzeros(q)
     res = Pair{Z,Int}[]
     isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
@@ -402,7 +403,7 @@ function dividecheck(u::P, unp, vv, d) where {T,P<:UnivariatePolynomial{T}}
 end
 
 """
-    coeffbounds(u::Polygon, m)::Vector{<:Integer}
+    coeffbounds(u::UnivariatePolynomial, m)::Vector{<:Integer}
 
 Assuming `u` is a univariate polynomial with integer coefficients and `LC(u) != 0 != u(0)`.
 If `u` has an integer factor polynom `v` with `deg(v) == m`,
@@ -437,14 +438,16 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
 end
 
 """
-    hensel_lift(u, v, a) -> V
+    hensel_lift(u, v::Vector, a::Vector) -> V
 
 Algorithm see "D. Knuth - TAoCP 2.Ed 4.6.2 Exercise 22" and "E. Kaltofen - Factorization of Polynomials"
 
 Assumptions fo the input
-u = prod(v) mod q
-sum( a .* prod(v) ./ v) = 1 mod p
-In the case u is not monic, the factor lc(u) has to be multiplied into v[1]. lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
+* `u = LC(u) * prod(v) mod q`
+* `sum( a .* prod(v) ./ v) = 1 mod p`
+
+In the case u is not monic, the factor lc(u) has to be multiplied into `v[1]`.
+lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
 
 The output vector V contains polynomials of same degree as corresponding v.
 """
@@ -464,6 +467,9 @@ function hensel_lift(
     lc = LC(u)
     lci = inv(Zq(lc))
 
+    @assert Pq(u) == prod(v) * lc
+    #@assert sum( a.* (prod(v) ./ v)) == 1
+
     V = liftmod.(Pqp, v)
     f = liftmod(Pqp, u) - prod(V) * Pqp(lc)
     fp = downmod(Zp, f, p) * lci
@@ -476,49 +482,38 @@ function hensel_lift(
     fi = rem.(a .* fp, v)
     A .-= liftmod.(Pqp, fi) * q
 
-    @assert bezout_sum(V, A) == 1
-    #println("lifted V ="); display([V A])
-    @assert prod(V) * Pqp(lc) == Pqp(u)
+    #@assert bezout_sum(V, A) == 1
+    #@assert prod(V) * Pqp(lc) == Pqp(u)
     V, A, qp
 end
 
 function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolynomial{T,X}}
     c = map(x -> Zp(value(x) ÷ q), f.coeff)
-    UnivariatePolynomial{Zp,X}(c)
+    UnivariatePolynomial{Zp,X}(c, f.first)
 end
 
 
-function liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
+function _liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
     Z(signed(T)(value(a)))
 end
-function liftmod(::Type{Z}, a::ZZ) where {X,T,Z<:ZZmod{X,T}}
+function _liftmod(::Type{Z}, a::ZZ) where {X,T,Z<:ZZmod{X,T}}
     Z(value(a))
 end
-function liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
+function _liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
     Z(signed(T)(a))
 end
-function liftmod(::Type{P}, a::Polynomial) where {Z,P<:Polynomial{Z}}
-    c = liftmod.(Z, a.coeff)
-    P(c)
+function liftmod(::Type{P}, a::UnivariatePolynomial) where {Z,P<:UnivariatePolynomial{Z}}
+    c = _liftmod.(Z, a.coeff)
+    P(c, a.first)
 end
 
 """
-    stripzeros!(q)
+    stripzeros(q)
 
 count and remove trailing zero coefficients.
 """
-function stripzeros!(p)
-    c = p.coeff
-    n = length(c)
-    e = 1
-    while e <= n && iszero(c[e])
-        e += 1
-    end
-    e -= 1
-    if e > 0
-        deleteat!(c, 1:e)
-    end
-    p, e
+function stripzeros(p::P) where P<:UnivariatePolynomial
+    P(p.coeff, 0), p.first
 end
 
 """
@@ -827,11 +822,11 @@ end
 function tomonic(u::P) where P<:UnivariatePolynomial
     un = LC(u)
     isone(un) && return u
-    c = copy(u.coeff)
+    c = coeff(u)
     n = deg(u)
     c[n+1] = one(un)
     s = un
-    for i = n-1:-1:1
+    for i = n:-1:1
         c[i] *= s
         s *= un
     end
@@ -840,7 +835,7 @@ end
 
 function frommonic(u::P, un) where P<:UnivariatePolynomial
     isone(un) && return u
-    c = copy(u.coeff)
+    c = coeff(u)
     n = deg(u)
     s = un
     for i = 2:n+1
@@ -863,18 +858,18 @@ function tominexp(u::P) where P<:UnivariatePolynomial
 end
 
 # x -> k * x
-function leftop!(u::UnivariatePolynomial, op, v)
+function leftop!(u::UnivariatePolynomial{R}, op, v) where R
     c = u.coeff
-    p = eltype(c)(v)
-    for i = 2:length(c)
+    p = R(v)^u.first
+    for i = 1:size(c, 1)
         c[i] = op(c[i], p)
         p *= v
     end
     u
 end
-function rightop!(u::UnivariatePolynomial, op, v)
+function rightop!(u::UnivariatePolynomial{R}, op, v) where R
     c = u.coeff
-    p = eltype(c)(v)
+    p = R(v)
     for i = length(c)-1:-1:1
         c[i] = op(c[i], p)
         p *= v

@@ -1,4 +1,4 @@
-module GaloisFieldTest
+module GaloisFieldsTest
 
 using CommutativeRings
 using Test
@@ -98,6 +98,7 @@ end
 
     @test sprint(show, g1) !== nothing
     @test sprint(show, q1) !== nothing
+    @test endswith(sprint(show, generator(G)), r"{(0°:)*1°:0°%[1-9]}")
 
     @test G(one(ZZ / p)) == one(G)
     @test length(modulus(G).(G)) == length(G)

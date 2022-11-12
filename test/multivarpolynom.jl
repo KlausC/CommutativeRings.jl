@@ -1,4 +1,6 @@
+module MultivarTest
 
+using Test
 using CommutativeRings
 import CommutativeRings: ord2expo, expo2ord, cbin, varnames
 
@@ -189,3 +191,5 @@ end
     @test derive((x + 2y)^4, (0, 0)) == (x + 2y)^4
     @test_throws ArgumentError derive(x * y, (-1, 0))
 end
+
+end # module

@@ -1,4 +1,7 @@
+module ZZmodTest
 
+using Test
+using CommutativeRings
 using Primes
 
 tm(T::Type{<:Integer}) = typemax(T)
@@ -22,12 +25,13 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test typeof(promote(ZZp(1), ZZ13(1))) == Tuple{ZZp, ZZp}
     @test ZZ(Int) / 13 == ZZmod{13,Int}
     @test BigInt/13 <: (ZZmod{X,BigInt} where X)
-    @test convert(ZZp, ZZ13(Int8(7))) == ZZp(-6) 
-    @test_throws DomainError convert(ZZp, ZZmod{23,Int}(Int8(7))) 
+    @test convert(ZZp, ZZ13(Int8(7))) == ZZp(-6)
+    @test_throws DomainError convert(ZZp, ZZmod{23,Int}(Int8(7)))
+    @test ZZp(ZZ(512)) == ZZp(512) == ZZp(5) == convert(ZZp, ZZ(512))
 end
 
 @testset "ZZmod{$m,$T}" for T in (UInt16, Int64, BigInt), m in (65, tm(T))
-    
+
     while T != BigInt && isprime(m)
         m -= 2
     end
@@ -67,17 +71,17 @@ end
     zp = ZZp(p)
     @test isunit(z1)
     @test z1 + z1 == ZZp(T(2n1))
-    
+
     @test z1 - z1 == z
     @test z1 - z2 == ZZp(m + mod(n1, m) - mod(n2, m))
     @test -z2 == ZZp(m - mod(n2, m))
-    
+
     @test z1 * z1 == ZZp(T(n1 * n1))
     @test z1 * n1 == ZZp(T(n1 * n1))
     @test n1 * z1 == ZZp(T(n1 * n1))
 
     @test z1^2 == ZZp(n1^2)
-    
+
     z3 = 2z1
     z4 = z3 + o
     @test z3 / z1 == ZZp(T(2))
@@ -110,7 +114,7 @@ end
     @test deg(z3) == 0
     @test div(z3, z3) == one(z3)
     @test rem(z3, z3) == zero(z3)
-  
+
     @test sprint(show, z1) == "$(Int(n1))°"
     @test sprint(show, -z1) in ("$(big(m-n1))°", "-$(Int(n1))°")
 end
@@ -140,3 +144,4 @@ end
     @test CommutativeRings._unsigned(big"-1") == big"-1"
 end
 
+end #module

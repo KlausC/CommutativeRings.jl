@@ -355,12 +355,13 @@ function tovalue(::Type{<:GaloisField{Id,V}}, num::Integer) where {Id,V<:Quotien
     toquotient(num, V)
 end
 
-function tonumber(a::Quotient, p::Integer)
+function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
     s = 0
-    for c in reverse(a.val.coeff)
+    u = a.val
+    for c in reverse(u.coeff)
         s = s * p + c.val
     end
-    s
+    s * p^u.first
 end
 
 function toquotient(g::G) where {Id,T<:Integer,Q,G<:GaloisField{Id,T,Q}}
@@ -445,7 +446,7 @@ function GFImpl(
     else
         m == 1 || throw(ArgumentError("given mod requires prime base"))
         # do not check if x is primitive here
-        gen = P(Z.(mod.coeff))
+        gen = P(Z.(mod.coeff), mod.first)
         if isirreducible(gen)
             return P / gen
         end
@@ -457,12 +458,10 @@ function Base.show(io::IO, g::G) where G<:GaloisField
 
     m = dimension(G)
     p = characteristic(G)
-    c = toquotient(g).val.coeff
-    n = length(c)
-    cc(i) = i > n ? 0 : c[i].val
-    print(io, '{', cc(m))
-    for k = m-1:-1:1
-        print(io, ':', cc(k))
+    cc = toquotient(g).val
+    print(io, '{', cc[m-1])
+    for k = m-2:-1:0
+        print(io, ':', cc[k])
     end
     print(io, '%', p, '}')
 end
@@ -489,10 +488,9 @@ function normalmatrix(
     m = m <= 0 ? r : m
     M = Matrix{Z}(undef, r, m)
     for i = 0:m-1
-        c = a.val.coeff
-        k = length(c)
+        c = a.val
         for j = 1:r
-            M[j, i+1] = j <= k ? c[j] : 0
+            M[j, i+1] = c[j-1]
         end
         a ^= p
     end
@@ -502,7 +500,7 @@ end
 """
     normalmatrix(::Type{Q}[, m])
 
-Return `normalmatrix(a, m)` for the first `a` in `Q` for which this ihas maximal rank.
+Return `normalmatrix(a, m)` for the first `a` in `Q` for which this has maximal rank.
 """
 function normalmatrix(
     ::Type{Q},
@@ -539,18 +537,19 @@ import Base: *
 
 Return a vector of length `r`, which starts with `a` and is filled up with zeros if required.
 """
-function sized(a::Vector{Z}, r::Integer) where Z
-    n = length(a)
-    n == r ? a : n < r ? vcat(a, zeros(Z, r - n)) : a[1:r]
+function sized(a::UnivariatePolynomial{Z}, r::Integer) where Z
+    n = deg(a) + 1
+    v = shiftleft(a.coeff, a.first)
+    n == r ? v : n < r ? vcat(v, zeros(Z, r - n)) : v[1:r]
 end
 
-mulsized(M::AbstractMatrix{Z}, a::Vector{Z}) where Z<:Ring = M * sized(a, size(M, 2))
+mulsized(M::AbstractMatrix{Z}, a::UnivariatePolynomial{Z}) where Z<:Ring = M * sized(a, size(M, 2))
 
 function *(
     M::AbstractMatrix{Z},
     a::Q,
 ) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
-    mulsized(M, a.val.coeff)
+    mulsized(M, a.val)
 end
 
 function monom(::Type{Q}, k::Integer) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
@@ -590,7 +589,7 @@ function _homomorphism(
 
     xr = monom(R, 1)
     L = ((xr^k)^pr for k = 0:s-1)
-    S = hcat(collect(sized(x.val.coeff, s) for x in L)...)
+    S = hcat(collect(sized(x.val, s) for x in L)...)
     for i = 1:s
         S[i, i] -= one(Z)
     end
@@ -605,7 +604,7 @@ function _homomorphism(
             deg(g.val) <= 0 && continue
             N = normalmatrix(g, r)
         end
-        if sized((g^k).val.coeff, s) == N * h
+        if sized((g^k).val, s) == N * h
             #if rank(N) != r
             #    throw(ErrorException("expected rank $r, but was $(rank(N)) $g"))
             #end

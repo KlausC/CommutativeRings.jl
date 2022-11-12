@@ -56,6 +56,8 @@ function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
     end
 end
 
+convert(::Type{Z}, a::ZZ) where Z <: ZZmod = Z(a)
+(::Type{Z})(a::ZZ) where Z <: ZZmod = Z(a.val % modulus(Z))
 (::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
 
 """

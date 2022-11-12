@@ -4,15 +4,15 @@ using CommutativeRings
 using Test
 using Polynomials
 
+import CommutativeRings: shiftleft, ismonic
+
 if !isdefined(Polynomials, :Poly)
     Poly = Polynomials.Polynomial
 end
 
-ismonic = CommutativeRings.ismonic
-
 import Base: ==
 function ==(a::UnivariatePolynomial, b::Poly)
-    va = getproperty.(a.coeff, :val)
+    va = getproperty.(shiftleft(a.coeff, a.first), :val)
     vb = coeffs(b)
     n = length(vb)
     while n > 0 && vb[n] == 0
@@ -31,7 +31,8 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
 @testset "constructors" begin
     @test basetype(P) == S
     @test depth(P) == 2
-    @test P([S(0), S(1)]).coeff[2] == S(1)
+    @test P([S(0), S(1)]).coeff[1] == S(1)
+    @test P([S(0), S(1)]).first == 1
     @test P([1]).coeff[1] == S(1)
     @test length(P(Int[]).coeff) == 0
     @test length(P(Int[0]).coeff) == 0
@@ -110,7 +111,7 @@ end
     @test zero(p)^0 == one(P)
 end
 
-hasunitlead(p::UnivariatePolynomial) = !iszero(p) && isunit(p.coeff[end])
+hasunitlead(p::UnivariatePolynomial) = isunit(LC(p))
 
 @testset "operation divrem($cp,$cq)" for cp in CP, cq in CP
     p = P(S.(cp))
@@ -225,7 +226,7 @@ end
     @test iszero(p * u + q * v - g * f)
 
     qq = [q, P([2, 1])]
-    a, r = divrem(p, qq)
+    a, r = divremv(p, qq)
     @test sum(a .* qq) + r == p
 
     x = UnivariatePolynomial{ZZ{Int},:x}([0, 1])

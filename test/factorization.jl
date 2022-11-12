@@ -1,4 +1,7 @@
+module FactorizationTest
 
+using Test
+using CommutativeRings
 
 @testset "irreducibles $p" for p in (2, 3)
     Z = ZZ / p
@@ -38,3 +41,5 @@ end
     p = -(x + 1)^3
     @test factor(p) == [-one(x) => 1, x + 1 => 3]
 end
+
+end # module

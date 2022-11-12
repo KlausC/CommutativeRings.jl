@@ -1,4 +1,7 @@
+module TypevarsTest
 
+using Test
+using CommutativeRings
 using CommutativeRings: sintern
 
 @testset "sintern" begin
@@ -16,3 +19,4 @@ end
     @test deg(modulus(GF(2, 5))) == 5
 end
 
+end # module

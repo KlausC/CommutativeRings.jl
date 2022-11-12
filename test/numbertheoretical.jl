@@ -1,4 +1,7 @@
+module NumbertheoreticalTest
 
+using Test
+using CommutativeRings
 using Primes
 
 let x = monom(QQ{Int}[:x], 1), P = ZZ{Int}[:x]
@@ -43,3 +46,5 @@ let x = monom(QQ{Int}[:x], 1), P = ZZ{Int}[:x]
         @test necklace(17, n) == r(17)
     end
 end
+
+end # module

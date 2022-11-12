@@ -1,3 +1,7 @@
+module FracTest
+
+using Test
+using CommutativeRings
 
 @testset "construction" begin
     P = UnivariatePolynomial{ZZ{Int},:x}
@@ -86,3 +90,5 @@ end
     @test abs(pa(1.0) - exp(1.0)) < 1e-7
     @test abs(pa(1.0) - p(1.0)) < 1e-10
 end
+
+end # module

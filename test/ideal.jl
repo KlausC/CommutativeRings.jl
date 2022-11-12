@@ -1,4 +1,7 @@
+module IdealTest
 
+using Test
+using CommutativeRings
 import CommutativeRings: pseudo_ideal
 
 @testset "basics" begin
@@ -72,3 +75,5 @@ end
     @test idb * x == x * idb
     @test rem((x + y)^2, idb) == x^2 + y^2
 end
+
+end # module

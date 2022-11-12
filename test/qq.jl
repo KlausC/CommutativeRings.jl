@@ -1,3 +1,7 @@
+module QQTest
+
+using Test
+using CommutativeRings
 
 @testset "construction" begin
     @test basetype(QQ{Int}) == ZZ{Int}
@@ -60,3 +64,5 @@ end
     @test gcdx(QQ((2 * 3) // (5 * 7)), QQ((2 * 5) // (3 * 7))) == (QQ(2, 3 * 5 * 7), -11, 4)
     @test lcm(QQ((2 * 3) // (5 * 7)), QQ((2 * 5) // (3 * 7))) == QQ(2 * 3 * 5, 7)
 end
+
+end # module

@@ -24,15 +24,21 @@ end
 
 ### access to polynomial coefficients
 function getindex(u::UnivariatePolynomial, i::Integer)
-    0 <= i <= deg(u) ? u.coeff[i+1] : zero(basetype(u))
+    f = u.first
+    f <= i <= deg(u) ? u.coeff[i+1-f] : zero(basetype(u))
 end
 
+#=
+Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
+nonzero coefficient. The degree of the zero polynomial is defined to be -1.
+=#
+deg(p::UnivariatePolynomial) = length(p.coeff) + p.first - 1
 """
     varname(P)
 
 Return variable name of univariate polynomial or polynomial type `P` as a symbol.
 """
-varname(::Type{T}) where {R,X,T<:UnivariatePolynomial{R,X}} = X
+varname(::Type{<:UnivariatePolynomial{R,X}}) where {R,X} = X
 varname(::T) where T<:Polynomial = varname(T)
 
 """
@@ -80,16 +86,19 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rationa
 (P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T} = P([S(a)])
 
 # convert coefficient vector to polynomial
-function UnivariatePolynomial{T,X}(v::Vector{S}) where {X,T<:Ring,S<:T}
+function UnivariatePolynomial{T,X}(v::Vector{S}, g::Integer = 0) where {X,T<:Ring,S<:T}
     x = Symbol(X)
-    n = length(v)
-    while n > 0 && iszero(v[n])
-        n -= 1
+    ff = findlast(!iszero, v)
+    if ff === nothing
+        w = S[]
+        f = 0
+        g = 0
+    else
+        f = findfirst(!iszero, v) - 1
+        n = length(v)
+        w = f != 0 ? v[f+1:ff] : ff < n ? resize!(v, ff) : v
     end
-    if n < length(v)
-        v = resize!(v, n)
-    end
-    UnivariatePolynomial{S,x}(v, NOCHECK)
+    UnivariatePolynomial{S,x}(f + g, w, NOCHECK)
 end
 # convert coefficient vector to polynomial, element type of vector determines class
 UnivariatePolynomial(x::Symbol, v::Vector{S}) where {S} = UnivariatePolynomial{S,x}(v)
@@ -100,7 +109,7 @@ UnivariatePolynomial{S,X}(p::UnivariatePolynomial{S,X}) where {X,S<:Ring} = p
 function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     if X == Y
         co = [S(c) for c in p.coeff]
-        UnivariatePolynomial{S,X}(co)
+        UnivariatePolynomial{S,X}(co, p.first)
     elseif S <: UnivariatePolynomial
         co = [S(p)]
         UnivariatePolynomial{S,X}(co)
@@ -111,16 +120,15 @@ function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     end
 end
 
-function monom(P::Type{<:UnivariatePolynomial}, xv::Vector{<:Integer})
+function monom(P::Type{<:UnivariatePolynomial}, xv::AbstractVector{<:Integer})
     length(xv) > 1 && throw(ArgumentError("univariate monom has only one variable"))
     monom(P, xv...)
 end
 
-function monom(P::Type{<:UnivariatePolynomial{S}}, k::Integer = 1) where S
+function monom(P::Type{<:UnivariatePolynomial{S,X}}, k::Integer = 1) where {S,X}
     k = max(k, -1)
-    v = zeros(S, k + 1)
-    v[k+1] = one(S)
-    P(v)
+    v = k < 0 ? S[] : [one(S)]
+    P(v, k)
 end
 
 """
@@ -139,40 +147,49 @@ end
 UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 
 # make new copy
-copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff))
+copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff), p.first)
 
+"""
+    coeff(p::UnivariatePolynomial)
+
+Return vector of length `deg(p)+1` with all coefficients of polynomial.
+First vecotr element s constant term of polynomial.
+"""
+coeff(p::UnivariatePolynomial) = shiftleft(p.coeff, p.first)
+
+function shiftleft(vp::AbstractVector, s::Integer)
+    n = size(vp, 1)
+    v = copyto!(similar(vp, n + s), 1 + s, vp, 1, n)
+    for i = 1:s
+        v[i] = 0
+    end
+    v
+end
 
 ### Arithmetic
 function +(p::T, q::T) where T<:UnivariatePolynomial
+    if deg(p) < deg(q)
+        p, q = q, p
+    end
+    nmin = min(p.first, q.first)
+    nmax = deg(p) + 1
     vp = p.coeff
     vq = q.coeff
     np = length(vp)
     nq = length(vq)
-    np >= nq || return +(q, p)
-    v = copyto!(similar(vp, np), 1, vp, 1, np)
+    v = shiftleft(vp, nmax - np - nmin)
+    k = q.first - nmin
     for i = 1:nq
-        v[i] += vq[i]
+        v[i+k] += vq[i]
     end
-    while np > 0 && iszero(v[np])
-        np -= 1
-    end
-    if np < length(v)
-        resize!(v, np)
-    end
-    T(v, NOCHECK)
+    T(v, nmin)
 end
 +(p::T, q::Integer) where {S,T<:UnivariatePolynomial{S}} = p + T([S(q)])
 +(q::Integer, p::T) where {S,T<:UnivariatePolynomial{S}} = +(p, q)
 +(q::S, p::T) where {S<:Ring,T<:UnivariatePolynomial{S}} = +(p, q)
 
 function -(p::T) where T<:UnivariatePolynomial
-    vp = p.coeff
-    np = length(vp)
-    v = similar(vp)
-    for i = 1:np
-        v[i] = -vp[i]
-    end
-    T(v, NOCHECK)
+    T(p.first, map(-, p.coeff), NOCHECK)
 end
 -(p::T, q::T) where T<:UnivariatePolynomial = +(p, -q)
 -(p::T, q::Ring) where T<:UnivariatePolynomial = +(p, -q)
@@ -190,9 +207,9 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
     if np == 0 || nq == 0
         return zero(T)
     elseif ismonom(p)
-        v = multmono(p, np, vp, q, nq, vq)
+        v = isone(LC(p)) ? vq : LC(p) .* vq
     elseif ismonom(q)
-        v = multmono(q, nq, vq, p, np, vp)
+        v = isone(LC(q)) ? vp : vp .* LC[q]
     else
         v = similar(vp, nv)
         for k = 1:nv
@@ -205,7 +222,7 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
             v[k] = vk
         end
     end
-    v === vp ? p : v === vq ? q : T(v, NOCHECK)
+    v === vp && q.first == 0 ? p : v === vq && p.first == 0 ? q : T(v, p.first + q.first)
 end
 
 function *(p::T, q::R) where {R<:Ring,T<:UnivariatePolynomial{R}}
@@ -213,7 +230,7 @@ function *(p::T, q::R) where {R<:Ring,T<:UnivariatePolynomial{R}}
         zero(p)
     else
         # make broadcast recognize q as scalar
-        T(p.coeff .* Ref(q))
+        T(p.coeff .* Ref(q), p.first)
     end
 end
 *(p::UnivariatePolynomial{S}, q::Integer) where {S} = *(p, S(q))
@@ -225,7 +242,7 @@ function /(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     iszero(r) ? d : throw(DomainError((p, q), "cannot divide a / b"))
 end
 function /(p::T, q::Ring) where {S,T<:UnivariatePolynomial{S}}
-    T(p.coeff ./ S(q), NOCHECK)
+    T(p.coeff ./ S(q), p.first)
 end
 /(p::UnivariatePolynomial{S}, q::Integer) where S = /(p, S(q))
 
@@ -266,25 +283,46 @@ function smul!(v::Vector{S}, r, m::S) where S
     v
 end
 
-# division and remainder algorithm. d, r = divrem(p, q) => d * q + r == p.
-# if the third argument is true, perform `pseudo-division` by multiplying
-# the divident by Ring element in order to allow division.
-# In the other case, divide by leading term of q. If remainder is not zero
-# the degree of d is not reduced (lower than that of q).
-# Attempt to divide by null polynomial throws DomainError.
-function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
+"""
+    _divremv(cp::Vector, fp::Int, cq::Vector, fq::Int, F::Val{Bool})
+
+Perform "long division" of polynamials over a ring, represented by `p = cp(x) * x^fp` etc.
+
+Division and remainder algorithm. `d, r = divrem(p, q) => d * q + r == p`.
+
+If the boolean argument is true, perform `pseudo-division` by multiplying
+the divident by Ring element in order to allow division.
+
+In the other case, divide by leading term of q. If remainder is not zero
+the degree of d is not reduced (lower than that of q).
+
+Attempt to divide by null polynomial throws DomainError.
+"""
+function _divrem(vp::Vector{S}, fp::Int, vq::Vector{S}, fq::Int, ::Val{F}) where {S<:Ring,F}
     np = length(vp)
     nq = length(vq)
+    nmin = min(fp, fq)
+    fp -= nmin
+    fq -= nmin
+    dp = np + fp - 1
+    dq = nq + fq - 1
     nq > 0 || throw(DomainError(vq, "Cannot divide by zero polynomial."))
     f = one(S)
-    if np < nq
-        return S[], vp, f
+    if dp < dq
+        return S[], 0, vp, fp, f
+    end
+    if dq == 0 && isone(vq[1])
+        return vp, fp, S[], 0, f
+    end
+    nn = fq
+    if fp > 0
+        vp = shiftleft(vp, fp)
+        np += fp
     end
     divi = vq[nq]
     fac = F && !isunit(divi)
-    n = fac ? nq - 1 : np
-    if nq == 1
-        isone(divi) && return vp, S[], f
+    n = fac ? nq - 1 + nn : np
+    if dq == 0
         vf = copy(vp)
         if fac
             f = divi / gcd(divi, gcd(vp))
@@ -295,9 +333,9 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
             vf[i], vr[i] = divrem(vf[i], divi)
         end
     else
-        vf = similar(vp, np - nq + 1)
+        vf = similar(vp, np - nq - nn + 1)
         vr = copy(vp)
-        for i = np:-1:nq
+        for i = np:-1:nq+nn
             vri = vr[i]
             multi, r = divrem(vri, divi)
             if fac && !iszero(r)
@@ -305,67 +343,53 @@ function divrem(vp::Vector{S}, vq::Vector{S}, ::Val{F}) where {S<:Ring,F}
                 f *= g
                 vri *= g
                 smul!(vr, 1:i-1, g)
-                smul!(vf, i-nq+2:np-nq+1, g)
+                smul!(vf, i-nq+2-nn:np-nq+1-nn, g)
                 multi = vri / divi
             end
             vr[i] = r
             for j = 1:nq-1
                 vr[j+i-nq] -= vq[j] * multi
             end
-            vf[i-nq+1] = multi
+            vf[i-nq-nn+1] = multi
         end
-    end
-    while n > 0 && iszero(vr[n])
-        n -= 1
     end
     resize!(vr, n)
-    n = length(vf)
-    while n > 0 && iszero(vf[n])
-        n -= 1
-    end
-    resize!(vf, n)
-    vf, vr, f
+    vf, 0, vr, nmin, f
 end
 
+# TODO - check old version of rem for difference !!! error in hensel_lift?
 function rem(p::T, q::T) where T<:UnivariatePolynomial
-    m = deg(p)
-    n = deg(q)
-    m < n && return p
-    uc = LC(q)
-    isunit(uc) || return divrem(p, q)[2]
-    n > 0 || return zero(typeof(q))
-    c = p.coeff[m-n+2:m+1]
     cp = p.coeff
     cq = q.coeff
-    for i = m-n+1:-1:1
-        fc = c[n] / uc
-        for k = n:-1:2
-            c[k] = c[k-1] - cq[k] * fc
-        end
-        c[1] = cp[i] - cq[1] * fc
-    end
-    typeof(q)(c)
+    _, _, r, fr = _divrem(cp, p.first, cq, q.first, Val(false))
+    tweak(r, fr, cp, p)
 end
 
 function divrem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff
     cq = q.coeff
-    d, r = divrem(cp, cq, Val(false))
-    tweak(d, cp, p), tweak(r, cp, p)
+    d, fd, r, fr = _divrem(cp, p.first, cq, q.first, Val(false))
+    tweak(d, fd, cp, p), tweak(r, fr, cp, p)
 end
 
-function tweak(d, cp, p::T) where T<:UnivariatePolynomial
-    d === cp ? p : T(d, NOCHECK)
+function tweak(d, fd, cp, p::T) where T<:UnivariatePolynomial
+    d === cp && fd == p.first ? p : T(d, fd)
 end
 
 function div(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff
     cq = q.coeff
-    d = divrem(cp, cq, Val(false))[1]
-    tweak(d, cp, p)
+    d, fd, = _divrem(cp, p.first, cq, q.first, Val(false))
+    tweak(d, fd, cp, p)
 end
 
-function divrem(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
+"""
+    divremv(p::P, v::Vector{T}) where T<:UnivariatePolynomial
+
+Find polynomials `a[i]` and remainder `r` with `p == sum(a[i] * v[i]) + r`
+with minimal degree of `r`.
+"""
+function divremv(f::T, g::AbstractVector{T}) where T<:UnivariatePolynomial
     n = length(g)
     a = zeros(T, n)
     r = copy(f.coeff)
@@ -413,8 +437,8 @@ The polynomial `a` is multiplied by a minimal factor `f ∈ R` with
 function pdivrem(p::T, q::T) where {S,T<:UnivariatePolynomial{S}}
     cp = p.coeff
     cq = q.coeff
-    vd, vr, f = divrem(cp, cq, Val(true))
-    tweak(vd, cp, p), tweak(vr, cp, p), f
+    vd, fd, vr, fr, f = _divrem(cp, p.first, cq, q.first, Val(true))
+    tweak(vd, fd, cp, p), tweak(vr, fr, cp, p), f
 end
 
 """
@@ -453,12 +477,6 @@ function primpart(p::UnivariatePolynomial{Q,X}) where {Q<:Union{QQ,Frac},X}
     (Z[X])(Z.(numerator.((p / content(p)).coeff)))
 end
 
-#=
-Return the degree of the polynomial p, i.e. the highest exponent in the polynomial that has a
-nonzero coefficient. The degree of the zero polynomial is defined to be -1.
-=#
-deg(p::UnivariatePolynomial) = length(p.coeff) - 1
-
 function inv(p::T) where T<:Polynomial
     if isunit(p)
         return T(inv(p[0]))
@@ -472,7 +490,7 @@ isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
 iszero(p::Polynomial) = deg(p) < 0
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
-==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff
+==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff && p.first == q.first
 function ==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial}
     (varname(S) == varname(T) || deg(p) == 0) && p.coeff == q.coeff
 end
@@ -487,7 +505,7 @@ end
 
 Return iff polynomial `p` is identical to its leading term.
 """
-ismonom(p::UnivariatePolynomial) = all(iszero.(view(p.coeff, 1:deg(p))))
+ismonom(p::UnivariatePolynomial) = length(p.coeff) <= 1
 
 """
     ismonic(p::Polynomial)
@@ -833,15 +851,17 @@ end
 function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     c = p.coeff
     n = length(c)
+    d = n + p.first - 1
     R = promote_type(S, eltype(T))
-    n == 0 && return x * zero(S)
-    n == 1 && return x^0 * c[1]
+    d < 0 && return one(x) * zero(R)
+    d == 0 && return one(x) * R(c[1])
+    iszero(x) && return one(x) * R(p[0])
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x
         a += c[k]
     end
-    a
+    a * x^p.first
 end
 (p::UnivariatePolynomial)(a, b...) = evaluate(p, a, b...)
 
@@ -854,48 +874,44 @@ For `k in 1:deg(p)` we have `derive(p)[k-1] = k * p[k]`.
 If `deg(p) * LC(p) == 0` degree: `deg(derive(p)) < deg(p) - 1`.
 """
 function derive(p::P) where P<:UnivariatePolynomial
-    n = deg(p)
-    n < 0 && return p
-    c = similar(p.coeff, n)
+    vp = p.coeff
+    n = length(vp)
+    f = p.first - 1
+    n <= 0 && return p
+    c = similar(vp, n)
     for k = 1:n
-        c[k] = p[k] * k
+        c[k] = vp[k] * (k + f)
     end
-    while n > 0 && iszero(c[n])
-        n -= 1
-    end
-    resize!(c, n)
-    P(c, NOCHECK)
+    P(c, f)
 end
 
 # efficient implementation of `p(x^m)`.
 function spread(p::P, m::Integer) where {T,P<:UnivariatePolynomial{T}}
-    P(_spread(p.coeff, m, T))
+    P(_spread(p.coeff, p.first, m, T)...)
 end
-function spread(p::P, m::Integer, Y, S) where {T,P<:UnivariatePolynomial{T}}
-    c = _spread(p.coeff, m, S)
-    UnivariatePolynomial(Y, c)
+function spread(p::P, m::Integer, Y, S) where {P<:UnivariatePolynomial}
+    c, f = _spread(p.coeff, p.first, m, S)
+    UnivariatePolynomial{eltype(typeof(c)),Y}(c, f)
 end
 
-function _spread(c::Vector{T}, m::Integer, ::Type{S}) where {T,S}
+function _spread(c::Vector{T}, fc::Int, m::Integer, ::Type{S}) where {T,S}
     n = length(c)
     R = promote_type(S, T)
     v = zeros(R, max(0, (n - 1) * m + 1))
     for k = 1:n
-        v[(k-1)*m+1] = c[k]
+        v[(k-1)*m+1] += c[k]
     end
-    v
+    v, fc * m
 end
 
 function isless(p::T, q::T) where T<:UnivariatePolynomial
-    cp = p.coeff
-    cq = q.coeff
-    lp = length(cp)
-    lq = length(cq)
-    lp < lq && return true
-    lq < lp && return false
-    for k = lp:-1:1
-        isless(cp[k], cq[k]) && return true
-        isless(cq[k], cp[k]) && return false
+    dp = deg(p)
+    dq = deg(q)
+    dp < dq && return true
+    dq < dp && return false
+    for k = dp:-1:0
+        isless(p[k], q[k]) && return true
+        isless(q[k], p[k]) && return false
     end
     false
 end
@@ -917,11 +933,15 @@ function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
     end
 end
 
-isconstterm(::UnivariatePolynomial, n::Integer) = n == 1
+isconstterm(p::UnivariatePolynomial, n::Integer) = n + p.first == 1
+
+offset(p::Polynomial) = 0
+offset(p::UnivariatePolynomial) = p.first
 
 function show(io::IO, p::Polynomial{T}) where T
     N = length(p.coeff)
     N <= 0 && return show(io, zero(T))
+    off = offset(p)
     start = true
     for n = N:-1:1
         el = p.coeff[n]
@@ -947,7 +967,7 @@ function show(io::IO, p::Polynomial{T}) where T
                 print(io, '*')
             end
         end
-        showvar(io, p, n)
+        showvar(io, p, n + off)
         start = false
     end
 end
@@ -973,8 +993,10 @@ end
 det!(a::AbstractMatrix{D}) where D<:Union{Ring,Number} = _det(a, category_trait(D))
 
 _det(a::AbstractMatrix, ::Type{<:IntegralDomainTrait}) = det_DJB!(a)
-_det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing = det_DJB!(a)
-_det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing = det_QR!(a)
+_det(a::AbstractMatrix{D}, ::Type{<:IntegralDomainTrait}) where D<:QuotientRing =
+    det_DJB!(a)
+_det(a::AbstractMatrix{D}, ::Type{<:CommutativeRingTrait}) where D<:QuotientRing =
+    det_QR!(a)
 _det(a::AbstractMatrix, ::Type{<:CommutativeRingTrait}) = det_Bird(a)
 
 """
@@ -1117,7 +1139,7 @@ Return gcd, index of a now unit element of the row, s * gcd
 """
 function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{Z}}
     n = size(b, 2)
-    g = gcd_generator(value(b[i,j]) for j in k:n)
+    g = gcd_generator(value(b[i, j]) for j = k:n)
     s *= g
     if !isone(g) && !iszero(g)
         for j = k:n

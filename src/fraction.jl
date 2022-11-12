@@ -40,7 +40,7 @@ function Frac(a::T, b::T) where T<:Polynomial
     s = lcunit(b)
     b /= s
     a /= s
-    Frac{T}(a, b, NOCHECK)
+    Frac{typeof(a)}(a, b, NOCHECK)
 end
 function Frac(a::T, b::T) where T<:ZZ
     g = pgcd(a, b)

@@ -4,7 +4,6 @@ using LinearAlgebra
 using Base.Checked
 using Primes
 using Random
-using GeneralizedCRT
 
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
@@ -15,7 +14,7 @@ export Hom, Ideal
 
 export isunit, deg, content, primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
-export isdiv, pdivrem, pgcd, pgcdx, resultant, discriminant
+export isdiv, pdivrem, divremv, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!
@@ -46,7 +45,7 @@ import Base: Rational, numerator, denominator
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)
-export det, isprime, factor, crt
+export det, isprime, factor
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
@@ -188,8 +187,9 @@ The variable name is specified as a `Symbol`.
 A convenience constructor `S[:x]` is the preferred way to construct this class.
 """
 struct UnivariatePolynomial{S<:Ring,X} <: Polynomial{S,UniPolyRingClass{X,S}}
+    first::Int
     coeff::Vector{S}
-    UnivariatePolynomial{S,X}(v::Vector{S}, ::NCT) where {X,S<:Ring} = new{S,X}(v)
+    UnivariatePolynomial{S,X}(f::Int, v::Vector{S}, ::NCT) where {X,S} = new{S,X}(f, v)
 end
 
 """
