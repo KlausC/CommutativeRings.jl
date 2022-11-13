@@ -323,4 +323,18 @@ Z = ZZ / (2^2 * 3 * 5)
     @test det_MV(A) == res
 end
 
+@testset "primpart and content" begin
+    x = monom(ZZ{Int}[:x])
+    p = 12x^3 + 3x
+    @test content(p) == 3
+    @test primpart(p) == p / content(p)
+    @test content_primpart(p) == (content(p), primpart(p))
+
+    x = monom(QQ{Int}[:x])
+    p = 12//5*x^3 + 3x
+    @test content(p) == 3//5
+    @test primpart(p) == p // content(p)
+    @test content_primpart(p) == (content(p), primpart(p))
 end
+
+end # module

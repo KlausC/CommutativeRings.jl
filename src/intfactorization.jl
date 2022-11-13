@@ -1,27 +1,4 @@
 
-function factor_must_try_all_factors_of_e(p::P) where P<:UnivariatePolynomial{<:ZZ}
-    q, e = tominexp(p)
-    res = factor_minexp(q)
-    if e == 1
-        res
-    else
-        x = monom(P)
-        [first(res[i])(x^e) => last(res[i]) for i = 1:length(res)]
-    end
-end
-
-"""
-    content_primpart(p::UnivariatePolynomial{<:QQ})
-
-Convert a polynomial over `QQ` to a (rational) content and a polynomial over `ZZ`
-"""
-function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
-    c = content(p)
-    Z = ZZ{T}
-    pp = Z[X](Z.(numerator.((p / c).coeff)), p.first)
-    c, pp
-end
-
 function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
@@ -116,17 +93,6 @@ return `gcd(u, v), u / g, v / g`.
 function GCD(u, v)
     t = pgcd(u, v)
     isone(t) ? (t, u, v) : (t, u / t, v / t)
-end
-
-function zassenhaus_unused_tomonic_etc(u)
-    un = LC(u)
-    v = tomonic(u)
-    vv = zassenhaus_monic(v)
-    if isone(un)
-        vv
-    else
-        primpart.(frommonic.(vv, un))
-    end
 end
 
 function zassenhaus(u; p0)
@@ -300,23 +266,6 @@ function lift!(fac, i)
     fac2 = combinefactors(u, V, A)
     splice!(fac, i, fac2)
     fac, p
-end
-
-"""
-    factormod(u::Polynomial[; p0])
-
-The procedure may be repeated with increased `p`.
-If the vector is empty, `p` was one of those rare "unlucky" primes, which are not useful for this polynomial.
-"""
-function factormod(u::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
-    fl = leftfactor(u)
-    fr = rightfactor(u)
-    u = rightop!(leftop!(copy(u), ÷, fl), ÷, fr)
-    res = zassenhaus(u; p0)
-    for (u, vv) in res
-        rightop!(leftop!(u, *, fl), *, fr)
-    end
-    res
 end
 
 """
@@ -517,23 +466,6 @@ function stripzeros(p::P) where P<:UnivariatePolynomial
 end
 
 """
-    reverse(p::UnivariatePolynomial)
-
-Revert the order of coefficients. decrease degree if `p(0) == 0`.
-"""
-Base.reverse(p::P) where P<:UnivariatePolynomial = reverse!(copy(p))
-function Base.reverse!(p::P) where P<:UnivariatePolynomial
-    c = p.coeff
-    n = length(c)
-    reverse!(c)
-    while n > 0 && iszero(c[n])
-        n -= 1
-    end
-    resize!(c, n)
-    p
-end
-
-"""
     pprod(v::Vector, n::{Integer,BitVector})
 
 Product of elements of `v`, with corresponding bit in `n` is set.
@@ -664,95 +596,6 @@ function divides_maybe(v::UnivariatePolynomial, u::UnivariatePolynomial)
     end
 end
 
-function partsums(s::Vector{<:Integer})
-    m = length(s)
-    n = Base.sum(s) ÷ 2 + 1
-    if n > 64
-        a = falses(n)
-        a[1] = true
-    else
-        a = UInt64(1)
-    end
-    pa = partsums!(a, s)
-    pv = zeros(Int, n)
-    pv[1] = 1
-    pv = partsums!(pv, s)
-    if m > 64
-        ps = fill(BitVector[], n)
-        ps[1] = [falses(m)]
-    else
-        ps = fill(UInt64[], n)
-        ps[1] = [0]
-    end
-    ps = partsums!(ps, s)
-    pa, pv, ps
-end
-
-function partsums!(a::BitVector, s::Vector)
-    for d in s
-        map!(|, a, a, a >> d)
-    end
-    a
-end
-function partsums!(a::Integer, s::Vector)
-    for d in s
-        a |= a << d
-    end
-    a
-end
-
-function partsums!(a::Vector{<:Integer}, s::Vector)
-    n = length(a)
-    for d in s
-        for k = n-d:-1:1
-            ak = a[k]
-            if ak > 0
-                a[k+d] += ak
-            end
-        end
-    end
-    a
-end
-
-function partsums!(a::Vector{<:Vector{BitVector}}, s::Vector)
-    n = length(a)
-    for (i, d) in enumerate(s)
-        for k = n-d:-1:1
-            ak = a[k]
-            if length(ak) > 0
-                bk = map(copy, ak)
-                for x in bk
-                    x[i] = true
-                end
-                if length(a[k+d]) > 0
-                    append!(a[k+d], bk)
-                else
-                    a[k+d] = bk
-                end
-            end
-        end
-    end
-    a
-end
-function partsums!(a::Vector{<:Vector{<:Integer}}, s::Vector)
-    n = length(a)
-    for (i, d) in enumerate(s)
-        for k = n-d:-1:1
-            ak = a[k]
-            if length(ak) > 0
-                bk = copy(ak)
-                bk .|= 1 << (i - 1)
-                if length(a[k+d]) > 0
-                    append!(a[k+d], bk)
-                else
-                    a[k+d] = bk
-                end
-            end
-        end
-    end
-    a
-end
-
 """
     enumx(n::Integer, bits)::Integer
 
@@ -794,109 +637,6 @@ function enumx(n::Integer, bits::Int)
     a
 end
 
-# From here experimental to simplify cases with: 1. p(x) = q(x^e) 2. p(x) = q(f*x)
-#=
-function tomonic(u::P) where P<:UnivariatePolynomial
-    un = LC(u)
-    isone(un) && return u
-    c = coeff(u)
-    n = deg(u)
-    c[n+1] = one(un)
-    s = un
-    for i = n:-1:1
-        c[i] *= s
-        s *= un
-    end
-    P(c)
-end
-
-function frommonic(u::P, un) where P<:UnivariatePolynomial
-    isone(un) && return u
-    c = coeff(u)
-    n = deg(u)
-    s = un
-    for i = 2:n+1
-        c[i] *= s
-        s *= un
-    end
-    P(c)
-end
-
-function common_exp(u::UnivariatePolynomial)
-    gcd(filter(i -> !iszero(u[i]), 0:deg(u)))
-end
-
-function tominexp(u::P) where P<:UnivariatePolynomial
-    e = common_exp(u)
-    e == 1 && return u, e
-    n = deg(u) ÷ e
-    c = [u[i*e] for i = 0:n]
-    P(c), e
-end
-
-# x -> k * x
-function leftop!(u::UnivariatePolynomial{R}, op, v) where R
-    c = u.coeff
-    p = R(v)^u.first
-    for i = 1:size(c, 1)
-        c[i] = op(c[i], p)
-        p *= v
-    end
-    u
-end
-function rightop!(u::UnivariatePolynomial{R}, op, v) where R
-    c = u.coeff
-    p = R(v)
-    for i = length(c)-1:-1:1
-        c[i] = op(c[i], p)
-        p *= v
-    end
-    u
-end
-
-"""
-    leftfactor(u)
-
-Find greatest integer `g` such that `g^k` divides `u[k]` for all `k = 1:deg(u)`
-"""
-leftfactor(u) = polyfactor(u, true)
-
-"""
-    rightfactor(u)
-
-Find greatest integer `g` such that `g^k` divides `u[deg(u)-k]` for all `k = 1:deg(u)`
-"""
-rightfactor(u) = polyfactor(u, false)
-
-function polyfactor(u::UnivariatePolynomial{ZZ{T}}, left::Bool) where T<:Integer
-    c = u.coeff
-    n = deg(u)
-    g = Vector{T}(undef, n)
-    gk = zero(T)
-    cc(k) = left ? c[k+1] : c[n-k+1]
-
-    for k = n:-1:1
-        gk = gcd(gk, value(cc(k)))
-        g[k] = gk
-        isone(gk) && return gk
-    end
-    for a in factors(gk)
-        a = gk ÷ a
-        b = a
-        isone(b) && break
-        ok = true
-        for k = 2:n
-            b *= a
-            if !iszero(rem(g[k], b))
-                ok = false
-                break
-            end
-        end
-        ok && return a
-    end
-    one(gk)
-end
-=#
 """
     allgcdx(v)
 
@@ -923,19 +663,6 @@ function allgcdx(v::AbstractVector{T}) where T
         c = aa * c / g + r * s
     end
     w
-end
-
-function check_mutual_coprime(v)
-    n = length(v)
-    for i = 1:n
-        for k = i+1:n
-            g = gcd(v[i], v[k])
-            if !isone(g)
-                println("not coprime: v[i], v[k], $g = gcd($(v[i]), $(v[k]))")
-            end
-        end
-    end
-    nothing
 end
 
 """

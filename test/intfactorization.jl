@@ -2,7 +2,7 @@ module IntfactorizationTest
 
 using Test
 using CommutativeRings
-using CommutativeRings: hensel_lift, partsums, subset, remove_subset!, allgcdx, enumx
+using CommutativeRings: hensel_lift, subset, remove_subset!, allgcdx, enumx
 
 x = monom(ZZ{Int}[:x])
 u = x^8 + x^6 - 3x^4 - 3x^3 + 8x^2 + 2x - 5
@@ -73,14 +73,6 @@ end
     =#
 end
 
-@testset "partsums" begin
-    s = [2, 3, 10]
-    @test partsums(s) ==
-          (0xb42d, [1, 0, 1, 1, 0, 1, 0, 0], [[0], [], [1], [2], [], [3], [], []])
-
-
-end
-
 @testset "enumx" begin
     @test issorted(count_ones.(enumx.(0:31, 5)))
     @test enumx_slow.(0:31, 5) == enumx.(0:31, 5)
@@ -103,6 +95,7 @@ end
     x = monom(P)
     p = (x^2 + 3)^4 * (x^3 + 1)^3
     f = factor(p)
+    @test prod(f) == p
     @test length(f) == 3
     @test f[1] == Pair(x + 1, 3)
     @test f[2] == Pair(x^2 - x + 1, 3)
@@ -111,8 +104,7 @@ end
     p = x^100 - 1
     f = factor(p)
     @test length(f) == 9
-    for i = 1:9
-        u = first(f[i])
+    for u in first.(f)
         @test isirreducible(u)
     end
 
@@ -151,6 +143,27 @@ end
     facq = factor(q)
     @test prod(facq) == q
     @test length(facp) == length(facq)
+end
+
+@testset "factor in QQ[x]" begin
+    P = QQ{Int}[:x]
+    x = monom(P)
+    p = (x^2 + 27 // 2)^4 * (x^3 + 1 // 27)^3 * (x - 1)
+    f = factor(p)
+    @test prod(f) == p
+    @test length(f) == 4
+    @test f[1] == Pair(x - 1, 1)
+    @test f[2] == Pair(x + 1 // 3, 3)
+    @test f[3] == Pair(x^2 - x / 3 + 1 // 9, 3)
+    @test f[4] == Pair(x^2 + 27 // 2, 4)
+
+    p = 2 * x^100 - 2 // 2^50
+    f = factor(p)
+    @test prod(f) == p
+    @test length(f) == 7
+    for u in first.(f)
+        @test isirreducible(u) || deg(u) == 0
+    end
 end
 
 end # module
