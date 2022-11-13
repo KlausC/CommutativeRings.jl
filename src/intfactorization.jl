@@ -753,29 +753,6 @@ function partsums!(a::Vector{<:Vector{<:Integer}}, s::Vector)
     a
 end
 
-# to be moved to test, once productive implementation is stable - used to verify results
-function enumx_slow(n::Integer, bits::Int)
-    nm = (oftype(n, 1) << bits) - 1
-    nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
-    bits == 0 && return zero(n)
-    if n >> (bits - 1) == 1
-        return nm - enumx_slow(nm - n, bits)
-    end
-    s = zero(n)
-    d = s
-    for k = 0:bits
-        t = s + binomial(bits, k)
-        mm = binomial(bits - 1, k - 1)
-        if n < t || t <= 0
-            m = n - s
-            return (enumx_slow(m + d, bits - 1) << 1) + (m < mm)
-        end
-        s = t
-        d += mm
-    end
-    s
-end
-
 """
     enumx(n::Integer, bits)::Integer
 
@@ -818,7 +795,7 @@ function enumx(n::Integer, bits::Int)
 end
 
 # From here experimental to simplify cases with: 1. p(x) = q(x^e) 2. p(x) = q(f*x)
-
+#=
 function tomonic(u::P) where P<:UnivariatePolynomial
     un = LC(u)
     isone(un) && return u
@@ -919,7 +896,7 @@ function polyfactor(u::UnivariatePolynomial{ZZ{T}}, left::Bool) where T<:Integer
     end
     one(gk)
 end
-
+=#
 """
     allgcdx(v)
 

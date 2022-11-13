@@ -2,10 +2,33 @@ module IntfactorizationTest
 
 using Test
 using CommutativeRings
-using CommutativeRings: hensel_lift, partsums, subset, remove_subset!, allgcdx
+using CommutativeRings: hensel_lift, partsums, subset, remove_subset!, allgcdx, enumx
 
 x = monom(ZZ{Int}[:x])
 u = x^8 + x^6 - 3x^4 - 3x^3 + 8x^2 + 2x - 5
+
+# recursively defined vanilla version of enumx
+function enumx_slow(n::Integer, bits::Int)
+    nm = (oftype(n, 1) << bits) - 1
+    nm >= n >= 0 || throw(ArgumentError("n is not in range [0, 2^$bits - 1]"))
+    bits == 0 && return zero(n)
+    if n >> (bits - 1) == 1
+        return nm - enumx_slow(nm - n, bits)
+    end
+    s = zero(n)
+    d = s
+    for k = 0:bits
+        t = s + binomial(bits, k)
+        mm = binomial(bits - 1, k - 1)
+        if n < t || t <= 0
+            m = n - s
+            return (enumx_slow(m + d, bits - 1) << 1) + (m < mm)
+        end
+        s = t
+        d += mm
+    end
+    s
+end
 
 @testset "integer polynomials over $T" for T in (Int64, BigInt)
     x = monom(ZZ{T}[:x])
@@ -56,6 +79,11 @@ end
           (0xb42d, [1, 0, 1, 1, 0, 1, 0, 0], [[0], [], [1], [2], [], [3], [], []])
 
 
+end
+
+@testset "enumx" begin
+    @test issorted(count_ones.(enumx.(0:31, 5)))
+    @test enumx_slow.(0:31, 5) == enumx.(0:31, 5)
 end
 
 @testset "subsets" begin
@@ -110,8 +138,8 @@ end
     @test prod(fac2) == p^3 * q^2 * x^100 * 2
     @test length(fac2) == length(fac) + 2
 
-    fac = factor(p, 40)
-    @test prod(fac) == p(x^40)
+    fac = factor(p, 37)
+    @test prod(fac) == p(x^37)
     @test length(fac) == 1
     @test isirreducible(p(x^10))
 

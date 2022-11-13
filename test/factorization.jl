@@ -8,6 +8,7 @@ using CommutativeRings
     n = 5
     irrn = collect(irreducibles(Z[:x], n))
     @test irreducible(Z[:x], n) == irrn[1]
+    @test irreducible(Z[:x], n, 4) == irrn[5]
     @test length(irrn) == necklace(p, n)
     m = 7
     irrm = collect(irreducibles(Z[:x], m))
@@ -22,6 +23,8 @@ using CommutativeRings
     @test length(irrm) == necklace(p, m)
 
     redn = collect(reducibles(Z[:x], n))
+    @test reducible(Z[:x], n) == redn[1]
+    @test reducible(Z[:x], n, 4) == redn[5]
     @test length(redn) + length(irrn) == p^n
 end
 
