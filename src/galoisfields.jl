@@ -361,7 +361,7 @@ function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
     for c in reverse(u.coeff)
         s = s * p + c.val
     end
-    s * p^u.first
+    s * p^nullity(u)
 end
 
 function toquotient(g::G) where {Id,T<:Integer,Q,G<:GaloisField{Id,T,Q}}
@@ -446,7 +446,7 @@ function GFImpl(
     else
         m == 1 || throw(ArgumentError("given mod requires prime base"))
         # do not check if x is primitive here
-        gen = P(Z.(mod.coeff), mod.first)
+        gen = P(Z.(mod.coeff), nullity(mod))
         if isirreducible(gen)
             return P / gen
         end
@@ -539,7 +539,7 @@ Return a vector of length `r`, which starts with `a` and is filled up with zeros
 """
 function sized(a::UnivariatePolynomial{Z}, r::Integer) where Z
     n = deg(a) + 1
-    v = shiftleft(a.coeff, a.first)
+    v = shiftleft(a.coeff, nullity(a))
     n == r ? v : n < r ? vcat(v, zeros(Z, r - n)) : v[1:r]
 end
 

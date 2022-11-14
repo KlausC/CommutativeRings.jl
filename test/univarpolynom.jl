@@ -12,7 +12,7 @@ end
 
 import Base: ==
 function ==(a::UnivariatePolynomial, b::Poly)
-    va = getproperty.(shiftleft(a.coeff, a.first), :val)
+    va = getproperty.(shiftleft(a.coeff, nullity(a)), :val)
     vb = coeffs(b)
     n = length(vb)
     while n > 0 && vb[n] == 0
@@ -32,7 +32,7 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
     @test basetype(P) == S
     @test depth(P) == 2
     @test P([S(0), S(1)]).coeff[1] == S(1)
-    @test P([S(0), S(1)]).first == 1
+    @test nullity(P([S(0), S(1)])) == 1
     @test P([1]).coeff[1] == S(1)
     @test length(P(Int[]).coeff) == 0
     @test length(P(Int[0]).coeff) == 0
@@ -331,10 +331,19 @@ end
     @test content_primpart(p) == (content(p), primpart(p))
 
     x = monom(QQ{Int}[:x])
-    p = 12//5*x^3 + 3x
-    @test content(p) == 3//5
+    p = 12 // 5 * x^3 + 3x
+    @test content(p) == 3 // 5
     @test primpart(p) == p // content(p)
     @test content_primpart(p) == (content(p), primpart(p))
+end
+
+@testset "reverse" begin
+    x = monom(ZZ{Int}[:x])
+    p = 2x^6 - 3x^4
+    @test nullity(p) == 4
+    @test reverse(reverse(p)) == p
+    k = nullity(p) + deg(p)
+    @test reverse(p) == p(1 // x) * x^k
 end
 
 end # module

@@ -43,7 +43,7 @@ end
 
     if T != BigInt || m <= typemax(UInt128)
         phi = totient(m)
-        p = factor(m).pe[end].first # the greatest prime factor of m
+        p = first(factor(m).pe[end]) # the greatest prime factor of m
     else
         phi = (m-1)*4
         m = m * T(5)

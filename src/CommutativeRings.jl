@@ -12,7 +12,7 @@ export GaloisField
 
 export Hom, Ideal
 
-export isunit, deg, content, primpart, content_primpart, isnegative, isproper
+export isunit, deg, nullity, content, primpart, content_primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv

@@ -262,14 +262,14 @@ function rand(
 end
 
 function Base.isless(p::T, q::T) where T<:Pair{<:Ring,<:Integer}
-    p.first < q.first || p.first == q.first && p.second == q.second
+    first(p) < first(q) || first(p) == first(q) && second(p) == second(q)
 end
 
 import Base: prod
 function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
     res = one(T)
     for p in ff
-        res *= p.first^p.second
+        res *= first(p)^p.second
     end
     res
 end

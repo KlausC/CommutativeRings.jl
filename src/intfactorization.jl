@@ -438,7 +438,7 @@ end
 
 function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolynomial{T,X}}
     c = map(x -> Zp(value(x) ÷ q), f.coeff)
-    UnivariatePolynomial{Zp,X}(c, f.first)
+    UnivariatePolynomial{Zp,X}(c, nullity(f))
 end
 
 
@@ -453,7 +453,7 @@ function _liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}
 end
 function liftmod(::Type{P}, a::UnivariatePolynomial) where {Z,P<:UnivariatePolynomial{Z}}
     c = _liftmod.(Z, a.coeff)
-    P(c, a.first)
+    P(c, nullity(a))
 end
 
 """
@@ -462,7 +462,7 @@ end
 count and remove trailing zero coefficients.
 """
 function stripzeros(p::P) where P<:UnivariatePolynomial
-    P(p.coeff, 0), p.first
+    P(p.coeff, 0), nullity(p)
 end
 
 """

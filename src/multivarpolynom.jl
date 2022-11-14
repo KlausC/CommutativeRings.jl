@@ -93,7 +93,7 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
     perm = Vector{Int}(undef, n)
     j = 0
     for i = 1:n
-        ii = i + a.first
+        ii = i + nullity(a)
         aci = ac[i]
         if !iszero(aci)
             j += 1
