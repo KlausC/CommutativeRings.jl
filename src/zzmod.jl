@@ -1,8 +1,11 @@
 
 # class constructors
-/(::Type{T}, m::Integer) where T<:Integer = new_class(ZZmod{sintern(m),T}, T(m))
-/(::Type{ZZ{T}}, m::Integer) where T<:Integer = T / T(m)
-/(::Type{ZZ}, m::Integer) = mintype_for(m, 1, false) / m
+function ZZmod(m::Integer, ::Type{T}) where T<:Integer
+    m > 0 || throw(DomainError(m, "modulus > 0 required."))
+    new_class(ZZmod{sintern(m),T}, T(m))
+end
+/(::Type{ZZ{T}}, m::Integer) where T<:Integer = ZZmod(T(m), T)
+/(::Type{ZZ}, m::Integer) = ZZmod(m, mintype_for(m, 1, false))
 
 # construction
 isprimemod(Z::Type{<:ZZmod}) = isprime(modulus(Z))
@@ -17,11 +20,10 @@ wsigned(a::T) where T<:Integer = convert(wsigned(T), a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
-    mo > 0 || throw(DomainError(m, "modulus > 0 required."))
     ZZmod{m,T}(T(mod(a, T(mo))), NOCHECK)
 end
 #ZZmod{m}(a::Integer) where {m} = ZZmod{m,typeof(m)}(oftype(m, a))
-ZZmod(a::T, m::S) where {T,S} = (S / m)(S(a))
+ZZmod(a::T, m::S) where {T<:Integer,S<:Integer} = ZZmod(m, S)(S(a))
 ZZmod{m,T}(a::ZZmod{m,T}) where {m,T} = a
 ZZmod{m,T}(a::ZZmod{m,S}) where {m,T,S} = ZZmod{m,T}(a.val)
 ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
@@ -75,7 +77,11 @@ function value(a::ZZmod{X,T}) where {X,T}
 end
 
 # get type variable
-modulus(t::Type{<:ZZmod{m,T}}) where {m,T} = m isa Integer ? T(m) : gettypevar(t).modulus
+function modulus(t::Type{<:ZZmod{m,T}}) where {m,T}
+    p = m isa Integer ? T(m) : gettypevar(t).modulus
+    p > 0 || throw(DomainError(m, "modulus must be > 0"))
+    p
+end
 modulus(::T) where T<:ZZmod = modulus(T)
 
 Base.isless(p::T, q::T) where T<:ZZmod = isless(p.val, q.val)

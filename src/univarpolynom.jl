@@ -1098,10 +1098,10 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
                 v, w = splitmod(u, m)
                 # println("splitmod($u, $m) = $v, $w")
                 @assert v != m && w != m
-                ZV = Z / v
+                ZV = Quotient(v, Z)
                 dv = det!(ZV.(a))
                 isone(w) && return dv
-                ZW = Z / w
+                ZW = Quotient(w, Z)
                 dw = det!(ZW.(a))
                 return _crt(D(value(dv)), D(value(dw)), v, w) * s
             end

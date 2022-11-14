@@ -8,8 +8,12 @@ tm(T::Type{<:Integer}) = typemax(T)
 tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
 
 @testset "construction and promotion" begin
-    ZZ13 = Int / 13
-    ZZ14 = Int / 14
+    @test_throws MethodError Int / 13
+    @test_throws DomainError ZZ / 0
+    ZZ13 = ZZ / 13
+    ZZ14 = ZZ / 14
+    @test ZZmod{-5, Int8} <: ZZmod
+    @test_throws DomainError modulus(ZZmod{-15, Int8})
     @test basetype(ZZmod{:p,Int}) == ZZ{Int}
     @test depth(ZZmod{13,BigInt}) == 2
     @test lcunit(ZZmod{13,Int}(7)) == 1
@@ -24,7 +28,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test typeof(ZZp(1) + ZZ13(1)) == ZZp
     @test typeof(promote(ZZp(1), ZZ13(1))) == Tuple{ZZp, ZZp}
     @test ZZ(Int) / 13 == ZZmod{13,Int}
-    @test BigInt/13 <: (ZZmod{X,BigInt} where X)
+    @test ZZ{BigInt}/13 <: (ZZmod{X,BigInt} where X)
     @test convert(ZZp, ZZ13(Int8(7))) == ZZp(-6)
     @test_throws DomainError convert(ZZp, ZZmod{23,Int}(Int8(7)))
     @test ZZp(ZZ(512)) == ZZp(512) == ZZp(5) == convert(ZZp, ZZ(512))
@@ -54,7 +58,7 @@ end
         n2 += T(1)
     end
 
-    ZZp = T / m
+    ZZp = ZZmod(m, T)
     @test typeof(modulus(ZZp)) == T
     isbitstype(T) && @test typeof(modulus(ZZmod{m,T})) == T
     @test typeof(modulus(ZZmod{3,T})) == T
@@ -127,11 +131,11 @@ end
     @test ZZp1(p2) !== p2
     @test ZZp1(p2).val == p2.val
     @test ZZp1(128) == ZZp1(9)
-    @test modulus(Int8/17) == 17
-    @test modulus(BigInt/31) == 31
-    @test (Int8/17)(1) == ZZp1(1)
+    @test modulus(ZZmod(17, Int8)) == 17
+    @test modulus(ZZmod(31, BigInt)) == 31
+    @test (ZZmod(17, Int8))(1) == ZZp1(1)
 
-    @test value((UInt8/17)(18)) === Int8(1)
+    @test value((ZZmod(17, UInt8))(18)) === Int8(1)
     @test value.((ZZ/255).(126:128)) == [126, 127, -127]
     @test value.((ZZ/254).(126:128)) == [126, -127, -126]
 end

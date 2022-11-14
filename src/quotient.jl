@@ -1,6 +1,7 @@
 
 # class constructors
-Quotient(X::Integer, ::Type{T}) where T<:Integer = T / T(X)
+Quotient(x::Integer, ::Type{T}) where T<:Integer = ZZmod(T(x), T)
+Quotient(x::Any, ::Type{T}) where T<:Ring = T / x
 Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
 
 # convenience type constructor
