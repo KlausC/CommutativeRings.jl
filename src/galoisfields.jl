@@ -539,7 +539,7 @@ Return a vector of length `r`, which starts with `a` and is filled up with zeros
 """
 function sized(a::UnivariatePolynomial{Z}, r::Integer) where Z
     n = deg(a) + 1
-    v = shiftleft(a.coeff, ord(a))
+    v = coeffs(a)
     n == r ? v : n < r ? vcat(v, zeros(Z, r - n)) : v[1:r]
 end
 

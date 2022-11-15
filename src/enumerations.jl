@@ -18,7 +18,7 @@ function iterate(::Type{Z}, s) where Z<:ZZmod
     iszero(v) ? nothing : (v, v)
 end
 function iterate(::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
-    c = shiftleft(s.val.coeff, ord(s.val))
+    c = coeffs(s.val)
     m = length(c)
     n = deg(modulus(Q))
     for i = 1:m
@@ -68,7 +68,7 @@ function Base.iterate(mo::Monic{Z,X}) where {X,Z<:Ring}
     p0, p0
 end
 function Base.iterate(mo::Monic{Z,X}, s) where {X,Z<:Ring}
-    c = shiftleft(s.coeff, ord(s))
+    c = coeffs(s)
     n = deg(s)
     for i = 1:n
         ci = next(c[i])

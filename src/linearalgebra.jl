@@ -385,7 +385,7 @@ function -(x::P, A::AbstractMatrix{<:Ring}) where P<:Ring
 end
 function -(A::AbstractMatrix{<:Ring}, x::P) where P<:Ring
     n = checksquare(A)
-    I(n) .* x - A
+    A - I(n) .* x
 end
 
 """

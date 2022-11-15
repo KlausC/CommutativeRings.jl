@@ -135,8 +135,7 @@ function monom(P::Type{<:UnivariatePolynomial}, xv::AbstractVector{<:Integer})
 end
 
 function monom(P::Type{<:UnivariatePolynomial{S,X}}, k::Integer = 1) where {S,X}
-    k = max(k, -1)
-    v = k < 0 ? S[] : [one(S)]
+    v = [one(S)]
     P(v, k)
 end
 
@@ -159,12 +158,12 @@ UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff), ord(p))
 
 """
-    coeff(p::UnivariatePolynomial)
+    coeffs(p::UnivariatePolynomial)
 
 Return vector of length `deg(p)+1` with all coefficients of polynomial.
-First vecotr element s constant term of polynomial.
+First vector element is constant term of polynomial.
 """
-coeff(p::UnivariatePolynomial) = shiftleft(p.coeff, ord(p))
+coeffs(p::UnivariatePolynomial) = shiftleft(p.coeff, ord(p))
 
 function shiftleft(vp::AbstractVector, s::Integer)
     n = size(vp, 1)
@@ -221,7 +220,7 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
         v = isone(LC(q)) ? vp : vp .* LC[q]
     else
         v = similar(vp, nv)
-        for k = 1:nv
+        @inbounds for k = 1:nv
             i1 = max(k + 1 - np, 1)
             i2 = min(k, nq)
             vk = vp[k-i1+1] * vq[i1]
@@ -307,28 +306,41 @@ the degree of d is not reduced (lower than that of q).
 
 Attempt to divide by null polynomial throws DomainError.
 """
-function _divrem(vp::Vector{S}, fp::Int, vq::Vector{S}, fq::Int, ::Val{F}) where {S<:Ring,F}
+function _divrem(vp::Vector{S}, op::Int, vq::Vector{S}, oq::Int, ::Val{F}) where {S<:Ring,F}
     np = length(vp)
     nq = length(vq)
-    nmin = min(fp, fq)
-    fp -= nmin
-    fq -= nmin
+    nmin = min(op, oq)
+    fp = op - nmin
+    fq = oq - nmin
     dp = np + fp - 1
     dq = nq + fq - 1
     nq > 0 || throw(DomainError(vq, "Cannot divide by zero polynomial."))
     f = one(S)
     if dp < dq
-        return S[], 0, vp, fp, f
+        return S[], 0, vp, op, f
     end
-    if dq == 0 && isone(vq[1])
-        return vp, fp, S[], 0, f
+    divi = vq[nq]
+    if nq == 1
+        if isone(divi)
+            if fq == 0
+                return vp, fp, S[], 0, f
+            elseif fq > 0
+                return vp[fq+1:np], fp, vp[1:fq], nmin, f
+            end
+        elseif isunit(divi)
+            multi = inv(divi)
+            if fq == 0
+                return vp .* multi, fp, S[], 0, f
+            elseif fq > 0
+                return vp[fq+1:np] ./ divi, fp, vp[1:fq], nmin, f
+            end
+        end
     end
     nn = fq
     if fp > 0
         vp = shiftleft(vp, fp)
         np += fp
     end
-    divi = vq[nq]
     fac = F && !isunit(divi)
     n = fac ? nq - 1 + nn : np
     if dq == 0
@@ -366,7 +378,13 @@ function _divrem(vp::Vector{S}, fp::Int, vq::Vector{S}, fq::Int, ::Val{F}) where
     vf, 0, vr, nmin, f
 end
 
-# TODO - check old version of rem for difference !!! error in hensel_lift?
+function div(p::T, q::T) where T<:UnivariatePolynomial
+    cp = p.coeff
+    cq = q.coeff
+    d, fd, = _divrem(cp, ord(p), cq, ord(q), Val(false))
+    tweak(d, fd, cp, p)
+end
+
 function rem(p::T, q::T) where T<:UnivariatePolynomial
     cp = p.coeff
     cq = q.coeff
@@ -383,13 +401,6 @@ end
 
 function tweak(d, fd, cp, p::T) where T<:UnivariatePolynomial
     d === cp && fd == ord(p) ? p : T(d, fd)
-end
-
-function div(p::T, q::T) where T<:UnivariatePolynomial
-    cp = p.coeff
-    cq = q.coeff
-    d, fd, = _divrem(cp, ord(p), cq, ord(q), Val(false))
-    tweak(d, fd, cp, p)
 end
 
 """
