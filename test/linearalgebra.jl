@@ -3,12 +3,12 @@ module LinearAlgebraTests
 using Test
 using CommutativeRings
 using LinearAlgebra
-
-const companion = CommutativeRings.companion
+import CommutativeRings: lu_total!, lu_rowpivot!, companion
 
 @testset "vector spaces" begin
 
     Z = ZZ/7
+    A = Z.([2 3 4 5 6; 0 -1 2 3 4; 0 0 2 3 4; 0 0 0 1 1; 0 0 0 0 3])
 
     xnull = VectorSpace(Matrix{Z}(undef, 5, 0))
     xall = VectorSpace(diagm(ones(Z, 5)))
@@ -27,6 +27,8 @@ const companion = CommutativeRings.companion
 
     vc = intersect(va, vb)
     @test Matrix(vc) == Matrix{Z}(undef,5,0)
+
+    @test A * vc isa VectorSpace
 
     vc = complement(vb)
     @test Matrix(vc) == Z[0 0 1; 0 1 0; 1 0 0; 0 0 0; 0 0 0]
@@ -63,6 +65,20 @@ const companion = CommutativeRings.companion
     @test xa ⊆ xa + xb
 end
 
+@testset "LU_total" begin
+    Z = ZZ/11
+
+    A = diagm(Z.([2, 3, 4, 5]))
+    lut = lu_total!(copy(A))
+    @test lut.L * lut.U == A[lut.pivr,lut.pivc]
+
+    A = diagm(5, 5, 1 => Z.([1, 2, 3, 4])); A[5,1] = 5
+    lut = lu_rowpivot!(copy(A))
+    @test lut.L * lut.U == A[lut.pivr,lut.pivc]
+
+    @test length(propertynames(lut)) == 10
+end
+
 @testset "determinant" begin
     G = ZZ/89
     A = G.([1 2 3; 4 5 6; 7 8 9])
@@ -77,4 +93,13 @@ end
     @test characteristic_polynomial(companion(p)) == p
 end
 
+@testset "A +/- scalar" begin
+    G = ZZ/7
+    A = G.([1 2; 3 4])
+    x = G(2)
+
+    @test A + x == x + A == A + I(2) * x
+    @test A - x == -(x - A) == A - I(2) * x
 end
+
+end #module
