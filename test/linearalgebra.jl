@@ -68,7 +68,7 @@ end
 @testset "LU_total" begin
     Z = ZZ/11
 
-    A = diagm(Z.([2, 3, 4, 5]))
+    A = Diagonal(Z.([2, 3, 4, 5]))
     lut = lu_total!(copy(A))
     @test lut.L * lut.U == A[lut.pivr,lut.pivc]
 
