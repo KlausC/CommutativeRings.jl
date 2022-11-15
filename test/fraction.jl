@@ -72,6 +72,13 @@ end
     @test p // q^2 == (x^2 + G[3] * x) // q
 end
 
+@testset "FSeries" begin
+    s = FSeries(i -> 1 // QQ(factorial(i)))
+    @test s[0] == 1
+    @test s[1] == 1
+    @test s[2] == 1// 2
+end
+
 @testset "Padé approximation" begin
     P = QQ{BigInt}[:x]
     x = monom(P)

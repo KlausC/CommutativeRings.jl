@@ -8,11 +8,11 @@ using Random
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
-export GaloisField
+export GaloisField, FSeries
 
 export Hom, Ideal
 
-export isunit, deg, nullity, content, primpart, content_primpart, isnegative, isproper
+export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx, resultant, discriminant
 export basetype, basetypes, depth, iszerodiv
@@ -263,14 +263,14 @@ struct VectorSpace{R,V}
 end
 
 """
-    Series{T,F}
+    FSeries{T,F}
 
 Represent a Taylor- or Laurent-series by a function over the integers.
 """
-struct Series{T,F}
+struct FSeries{T,F}
     f::F
-    Series{T}(f::F) where {T,F<:Function} = new{T,F}(f)
-    Series(f::F) where {F<:Function} = Series{typeof(f(0))}(f)
+    FSeries{T}(f::F) where {T,F<:Function} = new{T,F}(f)
+    FSeries(f::F) where {F<:Function} = FSeries{typeof(f(0))}(f)
 end
 
 # implementation

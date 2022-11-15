@@ -122,10 +122,10 @@ function derive(p::Ring, n::Integer)
     n == 0 ? p : derive(derive(p, n - 1))
 end
 
-Base.getindex(s::Series{T}, i::Integer) where T = T(s.f(i))
-deg(::Series) = typemax(Int)
-basetype(::Type{<:Series{T}}) where T = T
-varname(::Type{<:Series}) = :x
+Base.getindex(s::FSeries{T}, i::Integer) where T = T(s.f(i))
+deg(::FSeries) = typemax(Int)
+basetype(::Type{<:FSeries{T}}) where T = T
+varname(::Type{<:FSeries}) = :x
 
 """
     pade(m, n, p)
@@ -140,7 +140,7 @@ with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
 It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than
 or equal `m + n` at `0`.
 """
-function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,Series}
+function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,FSeries}
     (m >= 0 && n >= 0) || throw(
         ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"),
     )
