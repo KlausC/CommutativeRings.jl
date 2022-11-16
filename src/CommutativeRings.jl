@@ -10,6 +10,8 @@ export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField, FSeries
 
+export PowerSeries, RemTerm
+
 export Hom, Ideal
 
 export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
@@ -65,6 +67,7 @@ struct UniPolyRingClass{X,R} <: PolyRingClass end
 struct MultiPolyRingClass{X,R,N} <: PolyRingClass
     varnames::Vector{Symbol}
 end
+struct PowerSeriesRingClass{X,R} <: PolyRingClass end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     factors::Primes.Factorization # of order of multiplicative group
