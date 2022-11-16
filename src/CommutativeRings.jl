@@ -292,5 +292,6 @@ include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
 include("rationalcanonical.jl")
+include("powerseries.jl")
 
 end # module
