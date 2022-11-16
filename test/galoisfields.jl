@@ -94,6 +94,11 @@ end
     @test g1 * inv(g2) == g1 / g2
     @test (g1 - g1) - g2 == -g2
     @test_throws ArgumentError inv(G[0])
+    a = 10
+    @test G[0]^10 == 0
+    @test G[0]^0 == 1
+    @test G(0)^a == 0
+    @test G(0)^(a-a) == 1
     @test_throws ArgumentError G[0]^-2
 
     @test sprint(show, g1) !== nothing
@@ -126,6 +131,41 @@ end
     @test iso(Z1(0)) == Z2(0)
     @test iso(Z1(1)) == Z2(1)
     @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1
+end
+
+@testset "normalbase" begin
+    Z = ZZ/7
+    P = Z[:α]
+    x = monom(P)
+    Q = P / ((x+1)*(x+2))
+    @test_throws ArgumentError CommutativeRings.normalbase(Q)
+    q = irreducible(P, 6)
+    Q = P / q
+    @test CommutativeRings.normalbase(Q) == x^5 + x^4 + x^3 + x^2 + x + 1
+end
+
+@testset "Galois Field - Homomorphisms" begin
+
+    Z1 = GF(5, 2)
+    Z2 = GF(5, 6)
+    z1 = generator(Z1)
+    iso = homomorphism(Z1, Z2)
+    z2 = iso(z1)
+    @test z1 != z2
+    @test iso(z1) == z2
+    @test z1 + 1 == z1 + Z1(1)
+    @test iso(Z1(0)) == Z2(0)
+    @test iso(Z1(1)) == Z2(1)
+    @test iso(z1^17 + 2z1^12 + 1) == z2^17 + 2z2^12 + 1
+
+    @test modulus(Z1) == modulus(Quotient(Z1))
+    @test !issimpler(z2, z2)
+
+    x = monom(Z1[:x])
+    y = monom(Z2[:x])
+    p = x^2 + z1 * x
+    q = y^2 + z2 * y
+    @test iso(p) == q
 
     G = GF(47)
     h = homomorphism(x -> G(2x), Int, G)
@@ -158,6 +198,16 @@ end
     ord = order(G) - 1
     @test isprimitive.(gG) == (order.(gG) .== ord)
     @test isfield(G)
+end
+
+@testset "allzeros" begin
+    Z = ZZ / 7
+    P = Z[:x]
+    p = irreducible(P, 5)
+    G = GF(7, 5)
+    fa = findall(iszero, p.(G))
+    vx = G[first(fa)-1]
+    @test sort(collect(allzeros(p, vx))) == getindex.(Ref(G), fa .- 1)
 end
 
 end #module

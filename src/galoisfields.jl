@@ -189,7 +189,7 @@ import Base: ^, log
 function ^(a::G, x::Integer) where {Id,G<:GaloisField{Id,<:Integer}}
     ord = mult_order(G)
     if iszero(a)
-        return x > 0 ? a : division_error()
+        return x > 0 ? a : x == 0 ? one(G) : division_error()
     end
     T = typeof(a.val)
     v = log(a)
@@ -219,7 +219,7 @@ function log(a::G) where {Id,G<:GaloisField{Id,<:Quotient}}
         # here only a naive implementation
         g = generator(G)
         b = g^2
-        for e in 2:order(G)-2
+        for e = 2:order(G)-2
             b == a && return e
             b *= g
         end
@@ -267,6 +267,7 @@ division_error() = throw(ArgumentError("cannot invert zero"))
 *(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
 *(b::Integer, a::G) where G<:GaloisField = a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
+==(::G, ::H) where {G<:GaloisField,H<:GaloisField} = false
 
 function typedep(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
     ord = order(G)
@@ -344,7 +345,11 @@ function Base.show(io::IO, g::Type{<:GaloisField})
         catch
             "?"
         end
-    print(io, :GaloisField, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
+    if g isa UnionAll
+        Base._show_type(io, g)
+    else
+        print(io, :GaloisField, '{', sc(characteristic, g), ',', sc(dimension, g), '}')
+    end
 end
 
 function tovalue(::Type{G}, num::Integer) where G<:GaloisField
@@ -522,12 +527,15 @@ Find the first `a in Q` for which `normalmatrix(a)` is regular.
 """
 function normalbase(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
     bases = normalbases(Q)
-    isempty(bases) && throw(
-        ArgumentError(
-            "quotient type with modulus $(modulus(Q)) has no normal bases - probably modulus is not an irreducible polynomial",
-        ),
-    )
+    isempty(bases) && nonormalbaseserror(Q)
     first(bases)
+end
+
+function nonormalbaseserror(Q)
+    text =
+        "quotient type with modulus $(modulus(Q)) has no normal bases" *
+        " - probably modulus is not an irreducible polynomial"
+    throw(ArgumentError(text))
 end
 
 import Base: *
@@ -543,7 +551,8 @@ function sized(a::UnivariatePolynomial{Z}, r::Integer) where Z
     n == r ? v : n < r ? vcat(v, zeros(Z, r - n)) : v[1:r]
 end
 
-mulsized(M::AbstractMatrix{Z}, a::UnivariatePolynomial{Z}) where Z<:Ring = M * sized(a, size(M, 2))
+mulsized(M::AbstractMatrix{Z}, a::UnivariatePolynomial{Z}) where Z<:Ring =
+    M * sized(a, size(M, 2))
 
 function *(
     M::AbstractMatrix{Z},

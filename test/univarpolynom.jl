@@ -337,6 +337,12 @@ end
     @test content_primpart(p) == (content(p), primpart(p))
 end
 
+@testset "discriminant" begin
+    x = monom(ZZ{BigInt}[:x])
+    @test discriminant(5x^2 + 10x + 2) == 60
+    @test discriminant(3x^3 + x^2 + 4x + 10) == -22932
+end
+
 @testset "reverse" begin
     x = monom(ZZ{Int}[:x])
     p = 2x^6 - 3x^4

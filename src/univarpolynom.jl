@@ -553,7 +553,7 @@ ismonic(p::Polynomial) = isone(LC(p))
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::UnivariatePolynomial{<:R,X}) where {X,F,R,S}
-    UnivariatePolynomial{S,X}((h.f).(p.coeff))
+    UnivariatePolynomial{S,X}((h.f).(p.coeff), ord(p))
 end
 
 # auxiliary functions
