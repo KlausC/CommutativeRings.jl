@@ -16,7 +16,7 @@ category_trait_fraction(::Type{<:IntegralDomainTrait}) = FieldTrait
 category_trait_fraction(::Type) = CommutativeRingTrait
 
 basetype(::Type{<:Polynomial{T}}) where T = T
-depth(::Type{T}) where T<:Polynomial = depth(basetype(T)) + 1
+
 function lcunit(a::Polynomial)
     lco = LC(a)
     isunit(lco) ? lco : one(lco)

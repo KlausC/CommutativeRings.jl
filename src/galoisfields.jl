@@ -135,7 +135,6 @@ function isless(a::G, b::G) where G<:GaloisField
 end
 
 basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
-depth(G::Type{<:GaloisField}) = depth(basetype(G)) + 1
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
 dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
 order(G::Type{<:GaloisField}) = order(basetype(G))

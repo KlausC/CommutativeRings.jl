@@ -46,11 +46,6 @@ _promote_rule(
     ::Type{S},
 ) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} =
     MultivariatePolynomial{promote_type(R, S),N,X,T,B}
-promote_rule(
-    ::Type{P},
-    ::Type{S},
-) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} =
-    MultivariatePolynomial{promote_type(R, S),N,X,T,B}
 
 function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(
     a::MultivariatePolynomial{S,N,X,T,B},

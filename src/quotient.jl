@@ -22,7 +22,6 @@ category_trait_irr(::Type{<:Quotient{<:UnivariatePolynomial{F}}}) where F =
     category_trait(F) <: FieldTrait ? FieldTrait : IntegralDomainTrait
 
 basetype(::Type{<:Quotient{T}}) where T = T
-depth(::Type{<:Quotient{T}}) where T = depth(T) + 1
 
 function Quotient{R,I,X,Id}(a::R) where {I,X,R<:Ring,Id}
     m = modulus(Quotient{R,I,X,Id})
