@@ -24,7 +24,7 @@ export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
 export ofindex, index
-export log_zech, generator
+export generator
 export GF, homomorphism
 export num_primitives, isprimitive
 
@@ -34,7 +34,7 @@ export generators, varnames, varname, factors
 
 export characteristic_polynomial, adjugate, companion
 
-export coeffbounds
+export compose_inv
 
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials

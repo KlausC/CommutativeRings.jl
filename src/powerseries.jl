@@ -28,6 +28,7 @@ end
 
 Base.zero(::Type{<:RemTerm{R}}) where R = RemTerm(InfPrecision, zero(R), 0x0)
 Base.iszero(rt::RemTerm) = iszero(rt.mult)
+Base.copy(tp::S) where S<:PowerSeries = S(tp.poly, tp.rem)
 
 ord(p::PowerSeries) = ord(p.poly)
 precision(::Type{<:PowerSeries{R,X,Y}}) where {R,X,Y} = Y
@@ -39,6 +40,7 @@ convert(::Type{S}, p::P) where {P<:UnivariatePolynomial,S<:PowerSeries} = S(p)
 zero(::Type{S}) where {S<:PowerSeries} = S(zero(basetype(S)))
 iszero(s::PowerSeries) = iszero(s.poly)
 one(::Type{S}) where {S<:PowerSeries} = S(one(basetype(S)))
+isunit(tp::PowerSeries) = isunit(tp.poly[0])
 
 function splitpoly(::Type{<:PowerSeries{R,X,Y}}, p::UnivariatePolynomial{R,X}) where {R,X,Y}
     prec = Y
@@ -83,7 +85,8 @@ function evaluate(p::UnivariatePolynomial, tq::S) where S<:PowerSeries
     s, rt = splitpoly(S, p(tq.poly))
     S(s + 0, rt)
 end
-evaluate(p::PowerSeries, tq::S) where S<:PowerSeries = evaluate(p.poly, tq)
+evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
+
 (p::PowerSeries)(a, b...) = evaluate(p, a, b...)
 
 function +(p::P, q::P) where {R,P<:PowerSeries{R}}
@@ -110,6 +113,7 @@ function /(tp::P, tq::P) where {R,P<:PowerSeries{R}}
     x = monom(typeof(p))
     n = precision(P) + deg(q)
     s = reverse(div(reverse(p) * x^n, reverse(q)))
+    s = s / x^ord(s)
     s, rt = splitpoly(P, s)
     rt = combine(rt, combine(tp.rem, tq.rem, p[ord(p)], q[ord(q)]), one(R), one(R))
     P(s, rt)
@@ -121,7 +125,7 @@ end
 Compute composition inverse `g` of `f`.
 
 Condition: `f(0) == 0` and `f(x) / x` is invertible and ring has `characteristic(R) == 0`.
-Use the "Lagrange inversion formula".
+Use the ["Lagrange inversion formula"](https://en.wikipedia.org/wiki/Formal_power_series#The_Lagrange_inversion_formula).
 """
 function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{R,X,Y}}
     P = basetype(S)
@@ -138,4 +142,12 @@ function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{R,X,Y}}
         g += tgk.poly[k-1] * monom(P, k-1) / R(k)
     end
     T(g * x)
+end
+
+function derive(tp::S) where S<:PowerSeries
+    p = derive(tp.poly)
+    rt = tp.rem
+    prec = rt.prec == InfPrecision ? rt.prec : rt.prec - 1
+    rta = RemTerm(prec, rt.mult, hash(p))
+    S(p, rta)
 end
