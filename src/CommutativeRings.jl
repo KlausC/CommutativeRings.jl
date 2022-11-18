@@ -43,11 +43,11 @@ import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime
-import Base: Rational, numerator, denominator
+import Base: Rational, numerator, denominator, precision
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)
-export det, isprime, factor
+export det, isprime, factor, precision
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end
