@@ -14,7 +14,7 @@ struct PowerSeries{R,X,Y} <: Ring{PowerSeriesRingClass{X,R}}
     end
 end
 
-Base.copy(tp::S) where S<:PowerSeries = S(tp.poly, tp.prec)
+Base.copy(tp::S) where S<:PowerSeries = S(copy(tp.poly), tp.prec)
 
 ord(p::PowerSeries) = ord(p.poly)
 precision(::Type{<:PowerSeries{R,X,Y}}) where {R,X,Y} = Y
@@ -30,12 +30,26 @@ Return the actual relative precision of a power series object.
 The absolute precision of an element is `ord(s) + precision(s)`
 """
 precision(p::PowerSeries) = p.prec
+
+"""
+    absprecision(s::PowerSeries)
+
+Return absolute precision of a power series element.
+
+Essentially: `ord(s) + precision(s)`
+"""
+function absprecision(p::PowerSeries)
+    pr = precision(p)
+    pr == InfPrecision ? InfPrecision : ord(p) + pr
+end
+
 convert(::Type{S}, p::S) where S<:PowerSeries = p
 convert(::Type{S}, p::P) where {P<:UnivariatePolynomial,S<:PowerSeries} = S(p)
 zero(::Type{S}) where {S<:PowerSeries} = S(zero(basetype(S)))
 iszero(s::PowerSeries) = iszero(s.poly)
 one(::Type{S}) where {S<:PowerSeries} = S(one(basetype(S)))
-isunit(tp::PowerSeries) = isunit(tp.poly[0])
+isunit(s::PowerSeries) = !iszero(s)
+==(s::S, t::S) where S<:PowerSeries = s.poly == t.poly
 
 function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
     PowerSeries{R,X,Y}(p)
@@ -60,11 +74,13 @@ evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
 function +(p::P, q::P) where {R,P<:PowerSeries{R}}
     s = +(p.poly, q.poly)
     s, rt = splitpoly!(P, s)
+    rt = min(absprecision(p), absprecision(q)) - ord(s)
     P(s, rt)
 end
 function -(p::P, q::P) where {R,P<:PowerSeries{R}}
     s = -(p.poly, q.poly)
     s, rt = splitpoly!(P, s)
+    rt = min(absprecision(p), absprecision(q)) - ord(s)
     P(s, rt)
 end
 function *(tp::P, tq::P) where {R,P<:PowerSeries{R}}
