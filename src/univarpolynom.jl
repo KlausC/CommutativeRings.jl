@@ -974,7 +974,8 @@ issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
 issimple(p::Polynomial) = ismonom(p)
 issimple(::Any) = false
 
-function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
+function showvar(io::IO, p::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
+    n += ord(p)
     if n == 1
         print(io, X)
     elseif n != 0
@@ -991,12 +992,13 @@ show(io::IO, p::UnivariatePolynomial) = show(io, p, Val(true))
 
 function show(io::IO, p::P, or::Val{Z}) where {P<:Ring,Z}
     T = basetype(P)
-    N = deg(p)
+    c = p.coeff
+    N = length(p.coeff) - 1
     N < 0 && return show(io, zero(T))
     start = true
     ord = Z ? (N:-1:0) : (0:N)
     for n = ord
-        el = p[n]
+        el = c[n+1]
         iszero(el) && (!start || !Z) && continue
         !start && print(io, ' ')
         if isconstterm(p, n)

@@ -79,6 +79,9 @@ evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
 
 (p::PowerSeries)(a, b...) = evaluate(p, a, b...)
 
++(p::PowerSeries) = p
+-(p::S) where S<:PowerSeries = S(-p.poly, p.prec)
+
 function +(p::S, q::S) where {R,S<:PowerSeries{R}}
     s = +(p.poly, q.poly)
     rt = min(absprecision(p), absprecision(q)) - ord(s)
@@ -124,18 +127,16 @@ Use the ["Lagrange inversion formula"](https://en.wikipedia.org/wiki/Formal_powe
 function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{R,X,Y}}
     P = basetype(S)
     n = precision(S) - 1
-    T = S
     p = tp.poly
     x = monom(P)
-    tf = T(tp.poly / x)
-    tq = one(T)
-    tgk = tq / tf
+    tf = S(tp.poly / x)
+    tgk = inv(tf)
     g = P(inv(p[1]))
-    for k = 2:n
+    for k = 1:n
         tgk /= tf
-        g += tgk.poly[k-1] * monom(P, k - 1) / R(k)
+        g += tgk.poly[k] * monom(P, k) / R(k + 1)
     end
-    T(g * x)
+    S(g * x) + O(x^(n+2))
 end
 
 function derive(tp::S) where S<:PowerSeries

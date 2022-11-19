@@ -40,6 +40,8 @@ end
 
 @testset "arithmetic operations" begin
     s = S(1 - x)
+    @test +s == s
+    @test -s + s == 0
     @test s^2 + t == S(x^12 + x^2 - 2 * x + 1)
     @test inv(s) == S(sum(x^k for k = 0:PR))
     ex = P(sum(x^k / factorial(k) for k = 0:PR))
@@ -50,9 +52,10 @@ end
 end
 
 @testset "composition inverse" begin
-    emx = P(sum((-x)^k / factorial(k) for k = 0:PR))
-    lg = P(sum(x^k / k for k = 1:12))
-    @test compose_inv(1 - emx) == lg
+    exm1 = P(sum(x^k / factorial(k) for k = 1:PR))
+    lg = P(sum(-(-x)^k / k for k = 1:PR))
+    @test compose_inv(exm1) == lg
+    @test compose_inv(lg) == exm1
 end
 
 @testset "derive" begin
