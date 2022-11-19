@@ -77,6 +77,8 @@ end
     @test x + O(x) == O(x)
     @test x^10 * O(x^12) == O(x^22)
     @test O(x^2) / x == O(x)
+    @test (x^16 + O(x^31))^2 == x^32 + O(x^48)
+    @test (S(1+x^8) + O(x^17))^2 == 1 + 2*x^8 + O(x^16)
 end
 
 end # module
