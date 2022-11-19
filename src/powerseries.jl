@@ -3,15 +3,23 @@ Power Series (aka Taylor Series) are a generalization of polynomials.
 Calculation is restricted to a maximal "precision"(number of terms to be considered).
 All further terms are subsumed in a "remainder term".
 """
-
 const InfPrecision = typemax(Int)
 struct PowerSeries{R,X,Y} <: Ring{PowerSeriesRingClass{X,R}}
     poly::UnivariatePolynomial{R,X}
     prec::Int
-    PowerSeries{R,X,Y}(p, rem) where {R,X,Y} = new{R,X,Y}(p, rem)
+    PowerSeries{R,X,Y}(p, prec) where {R,X,Y} = new{R,X,Y}(p, prec)
     function PowerSeries{Y}(p::P, prec::Integer) where {R,X,P<:UnivariatePolynomial{R,X},Y}
         new{R,X,Y}(p, prec)
     end
+end
+
+function PowerSeries{R,X,Y}(s::PowerSeries{R,X,Z}) where {R,X,Y,Z}
+    PowerSeries{Y}(s.poly, s.prec)
+end
+
+function O(p::P) where P<:UnivariatePolynomial
+    n = deg(p)
+    PowerSeries{InfPrecision}(zero(P), n)
 end
 
 Base.copy(tp::S) where S<:PowerSeries = S(copy(tp.poly), tp.prec)
@@ -54,51 +62,54 @@ isunit(s::PowerSeries) = !iszero(s)
 function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
     PowerSeries{R,X,Y}(p)
 end
-function PowerSeries{R,X,Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
-    p, rt = splitpoly!(PowerSeries{R,X,Y}, copy(p))
-    PowerSeries{Y}(p, rt)
+function (::Type{S})(p::P) where {R,X,S<:PowerSeries{R,X},P<:UnivariatePolynomial{R,X}}
+    p, rt = splitpoly!(copy(p), precision(S), InfPrecision)
+    S(p, rt)
 end
 
 function evaluate(p::S, q::UnivariatePolynomial) where S<:PowerSeries
-    s, rt = splitpoly!(S, p.poly(q))
+    s, rt = splitpoly!(p.poly(q), precision(S), precision(p))
     S(s, rt)
 end
 function evaluate(p::UnivariatePolynomial, tq::S) where S<:PowerSeries
-    s, rt = splitpoly!(S, p(tq.poly))
+    s, rt = splitpoly!(p(tq.poly), precision(S), precision(tq))
     S(s, rt)
 end
 evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
 
 (p::PowerSeries)(a, b...) = evaluate(p, a, b...)
 
-function +(p::P, q::P) where {R,P<:PowerSeries{R}}
+function +(p::S, q::S) where {R,S<:PowerSeries{R}}
     s = +(p.poly, q.poly)
-    s, rt = splitpoly!(P, s)
     rt = min(absprecision(p), absprecision(q)) - ord(s)
-    P(s, rt)
+    s, rt = splitpoly!(s, precision(S), rt)
+    S(s, rt)
 end
-function -(p::P, q::P) where {R,P<:PowerSeries{R}}
+function -(p::S, q::S) where {R,S<:PowerSeries{R}}
     s = -(p.poly, q.poly)
-    s, rt = splitpoly!(P, s)
     rt = min(absprecision(p), absprecision(q)) - ord(s)
-    P(s, rt)
+    s, rt = splitpoly!(s, precision(S), rt)
+    S(s, rt)
 end
-function *(tp::P, tq::P) where {R,P<:PowerSeries{R}}
+function *(tp::S, tq::S) where {R,S<:PowerSeries{R}}
     p, q = tp.poly, tq.poly
     s = *(p, q)
-    s, rt = splitpoly!(P, s)
-    rt = min(rt, precision(tp), precision(tq))
-    P(s, rt)
+    rt = min(precision(tp), precision(tq))
+    s, rt = splitpoly!(s, precision(S), rt)
+    S(s, rt)
 end
 function /(tp::S, tq::S) where {R,S<:PowerSeries{R}}
     P = basetype(S)
     p, q = tp.poly, tq.poly
+    if iszero(p) && isunit(tq)
+        return S(p, precision(tp) + ord(tp) - ord(tq))
+    end
     x = monom(typeof(p))
-    n = precision(S) + deg(q)
+    n = precision(S) + deg(q) + 2
     s = reverse(div(reverse(p) * x^n, reverse(q)))
     s = P(s.coeff, ord(p) - ord(q))
-    s, rt = splitpoly!(S, s)
-    rt = min(rt, precision(tp), precision(tq))
+    rt = min(precision(tp), precision(tq))
+    s, rt = splitpoly!(s, precision(S), rt)
     S(s, rt)
 end
 
@@ -112,7 +123,7 @@ Use the ["Lagrange inversion formula"](https://en.wikipedia.org/wiki/Formal_powe
 """
 function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{R,X,Y}}
     P = basetype(S)
-    n = precision(S)
+    n = precision(S) - 1
     T = S
     p = tp.poly
     x = monom(P)
@@ -136,18 +147,48 @@ end
 
 # utility functions
 
-function splitpoly!(::Type{S}, p::UnivariatePolynomial{R}) where {R,S<:PowerSeries{R}}
-    prec = precision(S)
-    n = length(p.coeff) - 1
-    if n <= prec
-        rt = InfPrecision
-    else
-        n = prec + 1
-        while iszero(p.coeff[n])
-            n -= 1
+function splitpoly!(p::UnivariatePolynomial{R}, mprec::Integer, prec::Integer) where R
+    n = length(p.coeff)
+    if prec > mprec && n > mprec
+        k = mprec
+        n = min(n, prec)
+        while k < n && iszero(p.coeff[k+1])
+            k += 1
         end
-        resize!(p.coeff, n)
+        rt = k < n ? k : prec
+    else
         rt = prec
     end
+    n = min(mprec, prec, n)
+    while n >= 1 && iszero(p.coeff[n])
+        n -= 1
+    end
+    if n <= 0
+        rt += ord(p)
+        p = zero(p)
+    else
+        resize!(p.coeff, n)
+    end
     p, rt
+end
+
+function promote_rule(
+    ::Type{PowerSeries{R,X,Y}},
+    ::Type{PowerSeries{R,X,Z}},
+) where {R,X,Y,Z}
+    PowerSeries{R,X,min(Y, Z)}
+end
+
+function Base.show(io::IO, s::PowerSeries{R,X}) where {R,X}
+    haso = precision(s) != InfPrecision
+    if !iszero(s.poly) || !haso
+        Base.show(io, s.poly, Val(false))
+        if haso
+            print(io, " + ")
+        end
+    end
+    if haso
+        n = precision(s) + ord(s)
+        print(io, n == 1 ? "O(x)" : "O($X^$n)")
+    end
 end

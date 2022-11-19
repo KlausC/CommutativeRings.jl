@@ -10,7 +10,7 @@ export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField, FSeries
 
-export PowerSeries, RemTerm
+export PowerSeries, O, precision, absprecision
 
 export Hom, Ideal
 
@@ -47,7 +47,7 @@ import Base: Rational, numerator, denominator, precision
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)
-export det, isprime, factor, precision
+export det, isprime, factor
 
 # RingClass subtypes describe the different categories
 abstract type RingClass end

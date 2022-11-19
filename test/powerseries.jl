@@ -2,19 +2,23 @@ module PowerSeriesTest
 
 using Test
 using CommutativeRings
+using CommutativeRings: InfPrecision
 
 R = QQ{BigInt}
-x = monom(R[:x])
-P = PowerSeries{12}
-s = P(1 + 2x + 3x^13)
+X = :x
+x = monom(R[X])
+PR = 13
+P = PowerSeries{PR}
+s = P(1 + 2x + 3x^PR)
 t = P(x^12 + x^25)
 S = typeof(s)
+sx = S(x)
 
 @testset "construction" begin
-    @test S == PowerSeries{R,:x,12}
-    @test precision(typeof(s)) == precision(s) == 12
-    @test precision(t) == 12
-    @test precision(t / x^10) == 12
+    @test S == PowerSeries{R,X,PR}
+    @test precision(typeof(s)) == precision(s) == PR
+    @test precision(t) == PR
+    @test precision(t / x^10) == PR
     @test ord(t / x^15) == -3
 end
 
@@ -36,19 +40,43 @@ end
 
 @testset "arithmetic operations" begin
     s = S(1 - x)
-    @test s^2 + t == S(x^12 + x^2 - 2*x + 1)
-    @test inv(s) == S(sum(x^k for k = 0:13))
-    ex = P(sum(x^k / factorial(k) for k = 0:13))
-    emx = P(sum((-x)^k / factorial(k) for k = 0:13))
+    @test s^2 + t == S(x^12 + x^2 - 2 * x + 1)
+    @test inv(s) == S(sum(x^k for k = 0:PR))
+    ex = P(sum(x^k / factorial(k) for k = 0:PR))
+    emx = P(sum((-x)^k / factorial(k) for k = 0:PR))
     @test 1 / ex == emx
-    @test precision(emx) == 12
-    @test precision(emx - 1) == 11
+    @test precision(emx) == PR
+    @test precision(emx - 1) == PR - 1
 end
 
 @testset "composition inverse" begin
-    emx = P(sum((-x)^k / factorial(k) for k = 0:13))
+    emx = P(sum((-x)^k / factorial(k) for k = 0:PR))
     lg = P(sum(x^k / k for k = 1:12))
-    @test compose_inv(1-emx) == lg
+    @test compose_inv(1 - emx) == lg
+end
+
+@testset "derive" begin
+    emx = P(sum((-x)^k / factorial(k) for k = 0:PR))
+    @test precision(derive(emx) + emx) == PR - 1
+end
+
+@testset "show cases" begin
+    @test sprint(show, zero(S)) == "0"
+    @test sprint(show, x) == "x"
+    @test sprint(show, s) == "1 + 2*x + O(x^13)"
+    @test sprint(show, s - s) == "O(x^13)"
+end
+
+@testset "O-terms" begin
+    @test O(x^20) isa PowerSeries{R,X,InfPrecision}
+    @test x + O(x^20) isa PowerSeries{R,X,InfPrecision}
+    @test s - O(x^20) isa PowerSeries{R,X,PR}
+    @test x + O(x) == O(x)
+    @test x + O(x^2) == sx + O(x^2)
+    @test x + O(x^0) == O(x^0)
+    @test x + O(x) == O(x)
+    @test x^10 * O(x^12) == O(x^22)
+    @test O(x^2) / x == O(x)
 end
 
 end # module

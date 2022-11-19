@@ -975,26 +975,29 @@ issimple(p::Polynomial) = ismonom(p)
 issimple(::Any) = false
 
 function showvar(io::IO, ::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
-    if n == 2
+    if n == 1
         print(io, X)
-    elseif n != 1
-        print(io, string(X, '^', n - 1))
+    elseif n != 0
+        print(io, string(X, '^', n))
     end
 end
 
-isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 1
+isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 0
 
 offset(p::Polynomial) = 0
 offset(p::UnivariatePolynomial) = ord(p)
 
-function show(io::IO, p::Polynomial{T}) where T
-    N = length(p.coeff)
-    N <= 0 && return show(io, zero(T))
-    off = offset(p)
+show(io::IO, p::UnivariatePolynomial) = show(io, p, Val(true))
+
+function show(io::IO, p::P, or::Val{Z}) where {P<:Ring,Z}
+    T = basetype(P)
+    N = deg(p)
+    N < 0 && return show(io, zero(T))
     start = true
-    for n = N:-1:1
-        el = p.coeff[n]
-        iszero(el) && !start && continue
+    ord = Z ? (N:-1:0) : (0:N)
+    for n = ord
+        el = p[n]
+        iszero(el) && (!start || !Z) && continue
         !start && print(io, ' ')
         if isconstterm(p, n)
             showelem(io, el, start)
@@ -1016,7 +1019,7 @@ function show(io::IO, p::Polynomial{T}) where T
                 print(io, '*')
             end
         end
-        showvar(io, p, n + off)
+        showvar(io, p, n)
         start = false
     end
 end
