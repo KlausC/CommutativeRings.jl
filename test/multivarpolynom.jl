@@ -67,7 +67,7 @@ end
     a = 4 * x^3 + 3
     b = y + 5 * x^3
     @test 5a - 4b == -4y + 15
-    @test a + b == 5 * x^3 + 5 * y + 3
+    @test a + b == 9 * x^3 + y + 3
     @test deg(zero(P)) == -1
     @test deg(one(P)) == 0
     @test deg(x + 1) == 1

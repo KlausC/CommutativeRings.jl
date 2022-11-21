@@ -4,29 +4,35 @@ Calculation is restricted to a maximal "precision"(number of terms to be conside
 All further terms are subsumed in a "remainder term".
 """
 const InfPrecision = typemax(Int)
-struct PowerSeries{R,X,Y} <: Ring{PowerSeriesRingClass{X,R}}
+struct PowerSeries{Y,R,X} <: Ring{PowerSeriesRingClass{X,R}}
     poly::UnivariatePolynomial{R,X}
     prec::Int
-    PowerSeries{R,X,Y}(p, prec) where {R,X,Y} = new{R,X,Y}(p, prec)
+    PowerSeries{Y,R,X}(p, prec) where {Y,R,X} = new{Y,R,X}(p, prec)
     function PowerSeries{Y}(p::P, prec::Integer) where {R,X,P<:UnivariatePolynomial{R,X},Y}
-        new{R,X,Y}(p, prec)
+        new{Y,R,X}(p, prec)
     end
 end
 
-function PowerSeries{R,X,Y}(s::PowerSeries{R,X,Z}) where {R,X,Y,Z}
+function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
+    PowerSeries{Y,R,X}(p)
+end
+function (::Type{S})(p::P) where {Y,R,X,S<:PowerSeries{Y,R,X},P<:UnivariatePolynomial{R,X}}
+    p, rt = splitpoly!(copy(p), precision(S), InfPrecision)
+    S(p, rt)
+end
+function PowerSeries{Y,R,X}(s::PowerSeries{Z,R,X}) where {R,X,Y,Z}
     PowerSeries{Y}(s.poly, s.prec)
 end
 
-function O(p::P) where P<:UnivariatePolynomial
-    n = deg(p)
-    PowerSeries{InfPrecision}(zero(P), n)
-end
+O(p::P) where P<:UnivariatePolynomial = PowerSeries{-1}(zero(P), deg(p))
+O(s::S) where S<:PowerSeries = S(zero(basetype(s)), deg(s))
 
 Base.copy(tp::S) where S<:PowerSeries = S(copy(tp.poly), tp.prec)
 
-ord(p::PowerSeries) = ord(p.poly)
-precision(::Type{<:PowerSeries{R,X,Y}}) where {R,X,Y} = Y
-basetype(::Type{P}) where {R,X,P<:PowerSeries{R,X}} = UnivariatePolynomial{R,X}
+ord(s::PowerSeries) = ord(s.poly)
+deg(s::PowerSeries) = deg(s.poly)
+precision(::Type{<:PowerSeries{Y,R,X}}) where {Y,R,X} = Y
+basetype(::Type{P}) where {Y,R,X,P<:PowerSeries{Y,R,X}} = UnivariatePolynomial{R,X}
 
 """
     precision(::Type{<:PowerSeries})
@@ -59,13 +65,7 @@ one(::Type{S}) where {S<:PowerSeries} = S(one(basetype(S)))
 isunit(s::PowerSeries) = !iszero(s)
 ==(s::S, t::S) where S<:PowerSeries = s.poly == t.poly
 
-function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
-    PowerSeries{R,X,Y}(p)
-end
-function (::Type{S})(p::P) where {R,X,S<:PowerSeries{R,X},P<:UnivariatePolynomial{R,X}}
-    p, rt = splitpoly!(copy(p), precision(S), InfPrecision)
-    S(p, rt)
-end
+monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 
 function evaluate(p::S, q::UnivariatePolynomial) where S<:PowerSeries
     s, rt = splitpoly!(p.poly(q), precision(S), precision(p))
@@ -82,26 +82,42 @@ evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
 +(p::PowerSeries) = p
 -(p::S) where S<:PowerSeries = S(-p.poly, p.prec)
 
-function +(p::S, q::S) where {R,S<:PowerSeries{R}}
+function +(p::S, q::S) where {S<:PowerSeries}
     s = +(p.poly, q.poly)
-    rt = min(absprecision(p), absprecision(q)) - ord(s)
+    rt = pdiff(min(absprecision(p), absprecision(q)), ord(s))
     s, rt = splitpoly!(s, precision(S), rt)
     S(s, rt)
 end
-function -(p::S, q::S) where {R,S<:PowerSeries{R}}
+function -(p::S, q::S) where {S<:PowerSeries}
     s = -(p.poly, q.poly)
     rt = min(absprecision(p), absprecision(q)) - ord(s)
     s, rt = splitpoly!(s, precision(S), rt)
     S(s, rt)
 end
-function *(tp::S, tq::S) where {R,S<:PowerSeries{R}}
+function *(tp::S, tq::S) where {S<:PowerSeries}
     p, q = tp.poly, tq.poly
-    s = *(p, q)
-    rt = min(precision(tp), precision(tq))
-    s, rt = splitpoly!(s, precision(S), rt)
+    pp, pq = precision(tp), precision(tq)
+    izp, izq = iszero(p), iszero(q)
+    if izp || izq
+        rt = if izp && izq
+            psum(pp, pq)
+        elseif izp
+            pp + ord(q)
+        else
+            pq + ord(p)
+        end
+        return S(zero(basetype(S)), rt)
+    end
+    ps = precision(S)
+    pr = psum(precision(S), 10)
+    s = multiply(p, q, pr)
+    rt = min(length(p.coeff) + length(q.coeff) - 2, pr)
+    rt = rt < ps ? InfPrecision : rt
+    rt = min(pp, pq, rt)
+    s, rt = splitpoly!(s, ps, rt)
     S(s, rt)
 end
-function /(tp::S, tq::S) where {R,S<:PowerSeries{R}}
+function /(tp::S, tq::S) where {S<:PowerSeries}
     P = basetype(S)
     p, q = tp.poly, tq.poly
     if iszero(p) && isunit(tq)
@@ -124,19 +140,19 @@ Compute composition inverse `g` of `f`.
 Condition: `f(0) == 0` and `f(x) / x` is invertible and ring has `characteristic(R) == 0`.
 Use the ["Lagrange inversion formula"](https://en.wikipedia.org/wiki/Formal_power_series#The_Lagrange_inversion_formula).
 """
-function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{R,X,Y}}
+function compose_inv(tp::S) where {R,X,Y,S<:PowerSeries{Y,R,X}}
     P = basetype(S)
     n = precision(S) - 1
     p = tp.poly
     x = monom(P)
-    tf = S(tp.poly / x)
-    tgk = inv(tf)
-    g = P(inv(p[1]))
+    tf = inv(S(tp.poly / x)).poly
+    tgk = tf
+    g = tf[0]
     for k = 1:n
-        tgk /= tf
-        g += tgk.poly[k] * monom(P, k) / R(k + 1)
+        tgk = multiply(tgk, tf, n + 1)
+        g += (tgk[k] / R(k + 1)) * monom(P, k)
     end
-    S(g * x) + O(x^(n+2))
+    S(g * x) + O(monom(P, n + 2))
 end
 
 function derive(tp::S) where S<:PowerSeries
@@ -150,13 +166,20 @@ end
 
 function splitpoly!(p::UnivariatePolynomial{R}, mprec::Integer, prec::Integer) where R
     n = length(p.coeff)
+    if mprec <= 0
+        if n > 0
+            throw(ArgumentError("cannot convert to PowerSeries without known precision"))
+        else
+            return p, prec
+        end
+    end
     if prec > mprec && n > mprec
         k = mprec
         n = min(n, prec)
         while k < n && iszero(p.coeff[k+1])
             k += 1
         end
-        rt = k < n ? k : prec
+        rt = k
     else
         rt = prec
     end
@@ -173,14 +196,24 @@ function splitpoly!(p::UnivariatePolynomial{R}, mprec::Integer, prec::Integer) w
     p, rt
 end
 
-function promote_rule(
-    ::Type{PowerSeries{R,X,Y}},
-    ::Type{PowerSeries{R,X,Z}},
-) where {R,X,Y,Z}
-    PowerSeries{R,X,min(Y, Z)}
+function psum(pp::Int, pq::Int)
+    ps = pp + pq
+    ifelse(ps < 0, InfPrecision, ps)
 end
 
-function Base.show(io::IO, s::PowerSeries{R,X}) where {R,X}
+function pdiff(pp::Int, pq::Int)
+    ifelse(pp == InfPrecision, pp, pp - pq)
+end
+
+function promote_rule(
+    ::Type{PowerSeries{Y,R,X}},
+    ::Type{PowerSeries{Z,R,X}},
+) where {R,X,Y,Z}
+    M = max(Y, Z)
+    PowerSeries{M,R,X}
+end
+
+function Base.show(io::IO, s::PowerSeries{Y,R,X}) where {Y,R,X}
     haso = precision(s) != InfPrecision
     if !iszero(s.poly) || !haso
         Base.show(io, s.poly, Val(false))

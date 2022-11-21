@@ -38,7 +38,7 @@ deg(p::UnivariatePolynomial) = size(p.coeff, 1) + ord(p) - 1
 """
     ord(p::UnivariatePolynomial)
 
-Return the multiplcity of `0` as a root of `p`. For `p == 0` return `0`.
+Return the multiplicity of `0` as a root of `p`. For `p == 0` return `0`.
 """
 ord(p::UnivariatePolynomial) = p.first
 
@@ -165,6 +165,11 @@ First vector element is constant term of polynomial.
 """
 coeffs(p::UnivariatePolynomial) = shiftleft(p.coeff, ord(p))
 
+"""
+    shiftleft(vector, integer)
+
+Increase size of vector by `s`, copy content and fill lower indices with zeros.
+"""
 function shiftleft(vp::AbstractVector, s::Integer)
     n = size(vp, 1)
     v = copyto!(similar(vp, n + s), 1 + s, vp, 1, n)
@@ -206,18 +211,30 @@ end
 -(q::S, p::T) where {S<:Ring,T<:UnivariatePolynomial{S}} = +(-p, q)
 
 function *(p::T, q::T) where T<:UnivariatePolynomial
+    multiply(p, q, deg(p) + deg(q) + 1)
+end
+function multiply(p::T, q::T, m::Integer) where T<:UnivariatePolynomial
     vp = p.coeff
     vq = q.coeff
     np = length(p.coeff)
     nq = length(q.coeff)
-    np <= nq || return *(q, p)
-    nv = np + nq - 1
+    np <= nq || return multiply(q, p, m)
+    nw = np + nq - 1
+    nv = min(nw, m)
     if np == 0 || nq == 0
         return zero(T)
     elseif ismonom(p)
         v = isone(LC(p)) ? vq : LC(p) .* vq
+        v === vq && ord(p) == 0 && nv == nw && return q
+        if nv != nw
+            v = v === vq ? vq[1:nv] : resize!(vq, nv)
+        end
     elseif ismonom(q)
         v = isone(LC(q)) ? vp : vp .* LC[q]
+        v === vp && ord(q) == 0 && nv == nw && return p
+        if nv != nw
+            v = v === vp ? vp[1:nv] : resize!(vp, nv)
+        end
     else
         v = similar(vp, nv)
         @inbounds for k = 1:nv
@@ -230,7 +247,7 @@ function *(p::T, q::T) where T<:UnivariatePolynomial
             v[k] = vk
         end
     end
-    v === vp && ord(q) == 0 ? p : v === vq && ord(p) == 0 ? q : T(v, ord(p) + ord(q))
+    T(v, ord(p) + ord(q))
 end
 
 function *(p::T, q::R) where {R<:Ring,T<:UnivariatePolynomial{R}}
@@ -522,9 +539,9 @@ function inv(p::T) where T<:Polynomial
     end
 end
 
-isunit(p::Polynomial) = deg(p) == 0 && isunit(LC(p))
-isone(p::Polynomial) = deg(p) == 0 && isone(LC(p))
-iszero(p::Polynomial) = deg(p) < 0
+isunit(p::Polynomial) = deg(p) == 0 && ismonom(p) && isunit(LC(p))
+isone(p::Polynomial) = deg(p) == 0 && ismonom(p) && isone(LC(p))
+iszero(p::Polynomial) = isempty(p.coeff)
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 ==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff && ord(p) == ord(q)
@@ -540,9 +557,9 @@ end
 """
     ismonom(p::Polynomial)
 
-Return iff polynomial `p` is identical to its leading term.
+Return iff polynomial `p` is identical to its leading term ond not `0`.
 """
-ismonom(p::UnivariatePolynomial) = length(p.coeff) <= 1
+ismonom(p::UnivariatePolynomial) = length(p.coeff) == 1
 
 """
     ismonic(p::Polynomial)
@@ -685,12 +702,14 @@ function presultant_seq(
     b, cc, r * s / det
 end
 
+#= algorithm broken - TODO check that out
 """
     signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
 
-This code is taken from "Algorithm 8.76 (Signed Subresultant Polynomials)"
-"Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2016.
-Its use is restricted to the case of `S` is an integral domain (there is no non-trivial divisor of zero).
+This code is taken from "Algorithm 8.21 (Signed Subresultant Polynomials)"
+"Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2006.
+Its use is restricted to the case of `S` is an integral domain
+(there is no non-trivial divisor of zero).
 """
 function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
     # epsi(n) = (-1) ^ (n*(n-1)÷2)
@@ -701,19 +720,23 @@ function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolyn
     s = zeros(S, p + 1)
     t = zeros(S, p + 1)
     sresp[p+1] = P
-    s[p+1] = t[p+1] = 1
+    s[p+1] = t[p+1] = 1 # (sign(LC(P))
     sresp[p] = Q
     bq = LC(Q)
+    sq = bq
     t[p] = bq
     if p > q - 1
         bqp = bq^(p - q - 1)
-        sresp[q+1] = (epsi(p - q) * bqp) * Q
+        sq = bqp * epsi(p - q)
+        sresp[q+1] = sq * Q
     end
-    s[q+1] = LC(sresp[q+1])
+    s[q+1] = sq
     i = p + 1
     j = p
     while j > 0 && !iszero(sresp[j])
         k = deg(sresp[j])
+        println("i,j,k = $i, $j, $k")
+        println(sresp[j])
         if k == j - 1
             s[j] = t[j]
             if k > 0
@@ -728,17 +751,28 @@ function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolyn
             end
             s[k+1] = t[k+1]
             sresp[k+1] = s[k+1] * sresp[j] / t[j]
-            if k > 0
-                sresp[k] = -rem((t[j] * s[k+1]) * sresp[i], sresp[j]) / (s[j+1] * t[i])
+            for l = j-2:k
+                sresp[l+1] = 0
+                s[l+1] = 0
+                println("s[$(l+1)] := 0")
             end
+            #if k > 0
+                println("divide by sresp[$j], s[$(j+1)]")
+                sresp[k] = -rem((t[j] * s[k+1]) * sresp[i], sresp[j]) / (s[j+1] * t[i])
+            #end
         end
         if k > 0
             t[k] = LC(sresp[k])
         end
         i, j = j, k
     end
-    sresp
+    for l = 0:-1 #j-2
+        sresp[l+1] = 0
+        s[l+1] = 0
+    end
+    sresp, s
 end
+=#
 
 """
     g, u, v, f = pgcdx(a, b)
@@ -845,23 +879,6 @@ function invert(p::T, q::T) where T<:UnivariatePolynomial
     else
         throw(DomainError((p, q), "p is not invertible modulo q"))
     end
-end
-
-# multiply p * q with a monom p
-function multmono(p, np, vp, q, nq, vq)
-    fact = vp[np]
-    if isone(fact) && np == 1
-        return vq
-    end
-    v = similar(vq, np + nq - 1)
-    z = zero(fact)
-    for i = 1:np-1
-        v[i] = z
-    end
-    for i = 1:nq
-        v[i+np-1] = vq[i] * fact
-    end
-    v
 end
 
 """
@@ -985,19 +1002,16 @@ end
 
 isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 0
 
-offset(p::Polynomial) = 0
-offset(p::UnivariatePolynomial) = ord(p)
+show(io::IO, p::Polynomial) = show(io, p, Val(true))
 
-show(io::IO, p::UnivariatePolynomial) = show(io, p, Val(true))
-
-function show(io::IO, p::P, or::Val{Z}) where {P<:Ring,Z}
+function show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
     T = basetype(P)
     c = p.coeff
     N = length(p.coeff) - 1
     N < 0 && return show(io, zero(T))
     start = true
     ord = Z ? (N:-1:0) : (0:N)
-    for n = ord
+    for n in ord
         el = c[n+1]
         iszero(el) && (!start || !Z) && continue
         !start && print(io, ' ')
