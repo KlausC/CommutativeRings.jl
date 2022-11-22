@@ -3,7 +3,7 @@ category_trait(::Type{<:Ring}) = CommutativeRingTrait
 category_trait(::Type{<:Number}) = IntegralDomainTrait
 
 # promotions and conversions
-function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
+function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
     dts = depth(T) - depth(S)
     if dts < 0
         promote_rule(S, T)
@@ -19,12 +19,11 @@ function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:Ring}
     end
 end
 
+_promote_rule(::Type,::Type) = Any
 promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 _promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} =
     promote_rule(R, promote_type(basetype(R), S))
-
-depth(::Type{<:Number}) = 0
 
 for op in (
     :+,
@@ -53,7 +52,12 @@ end
 
 # generic operations
 basetype(::T) where T<:Ring = basetype(T)
-basetype(::Type{T}) where T = T
+basetype(::Type{T}) where T = Union{}
+basetype(::Type{Union{}}) = Union{}
+
+depth(::Type{Union{}}) = -1
+depth(::Type) = 0
+depth(::Type{R}) where R<:Ring = depth(basetype(R)) + 1
 
 convert(::Type{T}, a) where T = T(a)
 function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
@@ -69,7 +73,7 @@ end
 @generated function basetypes(a)
     _basetypes(::Type{a}) where a = begin
         b = basetype(a)
-        a == b ? [a] : [a; _basetypes(b)]
+        a == b ? [] : [a; _basetypes(b)]
     end
     bt = tuple(_basetypes(a.parameters[1])...)
     :($bt)

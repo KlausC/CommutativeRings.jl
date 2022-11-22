@@ -18,4 +18,5 @@ using CommutativeRings
 @testset "linearalgebra" begin include("linearalgebra.jl") end
 @testset "rationalnormal" begin include("rationalcanonical.jl") end
 @testset "intfactors" begin include("intfactorization.jl") end
+@testset "powerseries" begin include("powerseries.jl") end
 #@testset "gcd" begin include("gcd.jl") end

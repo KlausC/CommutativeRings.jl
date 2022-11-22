@@ -5,7 +5,7 @@ ZZ(::Type{T}) where T<:Integer = ZZ{T}
 # construction
 category_trait(::Type{<:ZZ}) = EuclidianDomainTrait
 basetype(::Type{<:ZZ{T}}) where T = T
-depth(::Type{<:ZZ}) = 1
+
 _lcunit(a::ZZ) = sign(a.val)
 issimpler(a::T, b::T) where T<:ZZ = abs(a.val) < abs(b.val)
 iscoprime(a::T, b::T) where T<:ZZ = gcd(a.val, b.val) == 1

@@ -10,11 +10,14 @@ export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField, FSeries
 
+export PowerSeries, O, precision, absprecision
+
 export Hom, Ideal
 
 export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
-export isdiv, pdivrem, divremv, pgcd, pgcdx, resultant, discriminant
+export isdiv, pdivrem, divremv, pgcd, pgcdx
+export resultant, discriminant, signed_subresultant_polynomials
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!
@@ -22,7 +25,7 @@ export isirreducible, irreducible, irreducibles, monic, factorise
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
 export ofindex, index
-export log_zech, generator
+export generator
 export GF, homomorphism
 export num_primitives, isprimitive
 
@@ -32,7 +35,7 @@ export generators, varnames, varname, factors
 
 export characteristic_polynomial, adjugate, companion
 
-export coeffbounds
+export compose_inv
 
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
@@ -41,7 +44,7 @@ import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime
-import Base: Rational, numerator, denominator
+import Base: Rational, numerator, denominator, precision
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)
@@ -65,6 +68,7 @@ struct UniPolyRingClass{X,R} <: PolyRingClass end
 struct MultiPolyRingClass{X,R,N} <: PolyRingClass
     varnames::Vector{Symbol}
 end
+struct PowerSeriesRingClass{X,R} <: PolyRingClass end
 
 struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     factors::Primes.Factorization # of order of multiplicative group
@@ -292,5 +296,6 @@ include("numbertheoretical.jl")
 include("galoisfields.jl")
 include("linearalgebra.jl")
 include("rationalcanonical.jl")
+include("powerseries.jl")
 
 end # module

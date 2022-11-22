@@ -6,7 +6,7 @@ Frac(::Type{R}) where R<:Integer = QQ{R}
 # construction
 category_trait(Z::Type{<:Frac}) = category_trait_fraction(category_trait(basetype(Z)))
 basetype(::Type{<:Frac{T}}) where T = T
-depth(::Type{<:Frac{T}}) where T = depth(T) + 1
+
 copy(a::Frac) = typeof(a)(a.num, a.den, NOCHECK)
 
 numerator(a::FractionRing) = a.num
@@ -60,6 +60,8 @@ _promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(
 _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S, T)}
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S, T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
+    Frac{promote_type(S, T)}
+promote_rule(::Type{Rational{S}}, ::Type{Frac{T}}) where {S<:Integer,T} =
     Frac{promote_type(S, T)}
 
 lcunit(a::Frac) = inv(lcunit(a.den))

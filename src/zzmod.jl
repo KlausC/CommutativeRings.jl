@@ -10,7 +10,7 @@ end
 # construction
 isprimemod(Z::Type{<:ZZmod}) = isprime(modulus(Z))
 basetype(::Type{<:ZZmod{m,T}}) where {m,T} = ZZ{wsigned(T)}
-depth(::Type{<:ZZmod}) = depth(ZZ) + 1
+
 _lcunit(a::ZZmod) = one(a)
 issimpler(a::T, b::T) where T<:ZZmod = deg(a) < deg(b)
 

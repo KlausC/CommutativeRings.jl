@@ -4,7 +4,7 @@ using CommutativeRings
 using Test
 using Polynomials
 
-import CommutativeRings: shiftleft, ismonic
+import CommutativeRings: shiftleft, ismonic, multiply
 
 if !isdefined(Polynomials, :Poly)
     Poly = Polynomials.Polynomial
@@ -29,6 +29,8 @@ x = P([0, 1])
 CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
 
 @testset "constructors" begin
+    @test P == S[:x]
+    @test_throws DomainError S[:y](x)
     @test basetype(P) == S
     @test depth(P) == 2
     @test P([S(0), S(1)]).coeff[1] == S(1)
@@ -69,6 +71,7 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
     @test P([0, 1]) != UnivariatePolynomial{ZZ{Int},:y}([0, 1])
     @test P(1) == UnivariatePolynomial{ZZ{Int},:x}(1)
     @test UnivariatePolynomial{ZZ{Int8},:x}([1]) == P([1])
+    @test UnivariatePolynomial(ZZ(1)) == 1
     @test hash(UnivariatePolynomial{ZZ{Int8},:x}([1])) == hash(P([1]))
 end
 
@@ -100,15 +103,25 @@ end
     @test op(p, q) == op(Poly(cp), Poly(cq))
 end
 
+@testset "multiply stripped" begin
+    x = monom(ZZ{Int}[:x])
+    @test multiply(x^2, x^2 + 1, 2) == x^2
+    @test multiply(x^2 + 1, x^2, 2) == x^2
+    @test multiply(x, x^2 + 1, 3) == x^3 + x
+    @test multiply(x^2 + 1, x, 3) == x^3 + x
+end
+
 @testset "operation unary - and ^ $cp" for cp in CP
     p = P(S.(cp))
     @test -p == -Poly(cp)
     @test p^10 == Poly(cp)^10
     @test p^0 == one(P)
-    !isunit(p) && @test_throws DomainError p^-1
+    !isunit(p) && @test_throws DomainError p^-2
     @test zero(p)^0 == one(P)
     @test one(p)^-1 == one(P)
     @test zero(p)^0 == one(P)
+    deg(p) > 0 && @test_throws DomainError p^-1
+    deg(p) > 0 && @test p != one(ZZ{Int}[:y])
 end
 
 hasunitlead(p::UnivariatePolynomial) = isunit(LC(p))

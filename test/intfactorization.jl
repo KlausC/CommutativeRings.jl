@@ -2,7 +2,7 @@ module IntfactorizationTest
 
 using Test
 using CommutativeRings
-using CommutativeRings: hensel_lift, subset, remove_subset!, allgcdx, enumx
+using CommutativeRings: hensel_lift, subset, remove_subset!, allgcdx, enumx, coeffbounds
 
 x = monom(ZZ{Int}[:x])
 u = x^8 + x^6 - 3x^4 - 3x^3 + 8x^2 + 2x - 5

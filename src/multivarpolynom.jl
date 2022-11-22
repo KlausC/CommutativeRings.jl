@@ -35,7 +35,7 @@ import Base: +, -, *, zero, one, ==, hash, isless, iszero, isone
 copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
 # promotion and conversion
-_promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} =
+# _promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} =
     Base.Bottom
 _promote_rule(
     ::Type{MultivariatePolynomial{R,N,X,T,B}},
@@ -45,11 +45,6 @@ _promote_rule(
     ::Type{P},
     ::Type{S},
 ) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} =
-    MultivariatePolynomial{promote_type(R, S),N,X,T,B}
-promote_rule(
-    ::Type{P},
-    ::Type{S},
-) where {R,N,X,T,B,S<:Union{Integer,Rational},P<:MultivariatePolynomial{R,N,X,T,B}} =
     MultivariatePolynomial{promote_type(R, S),N,X,T,B}
 
 function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(
@@ -241,7 +236,7 @@ function *(p::T, a::Integer) where T<:MultivariatePolynomial
 end
 
 *(a::Integer, p::T) where T<:MultivariatePolynomial = p * a
-==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == a.coeff
+==(a::T, b::T) where T<:MultivariatePolynomial = a.ind == b.ind && a.coeff == b.coeff
 function hash(a::MultivariatePolynomial, h::UInt)
     n = deg(a)
     n < 0 ? hash(0, h) : n == 0 ? hash(LC(a), h) : hash(a.ind, hash(a.coeff, h))
@@ -266,7 +261,7 @@ function +(a::T...) where T<:MultivariatePolynomial
     d = similar(a[1].ind)
     j = 0
     p = ones(Int, n)
-    pm = [getindex(x, 1) for x in a]
+    pm = [mindex(x, 1) for x in a]
     bound = maxindex(T)
 
     while true
@@ -274,12 +269,12 @@ function +(a::T...) where T<:MultivariatePolynomial
         m == bound && break
         cj = a[imin].coeff[p[imin]]
         p[imin] += 1
-        pm[imin] = getindex(a[imin], p[imin])
+        pm[imin] = mindex(a[imin], p[imin])
         for i = imin+1:n
             if pm[i] == m
                 cj += a[i].coeff[p[i]]
                 p[i] += 1
-                pm[i] = getindex(a[i], p[i])
+                pm[i] = mindex(a[i], p[i])
             end
         end
         if !iszero(cj)
@@ -570,7 +565,7 @@ function exposum(
     ntuple(k -> indexsum(ai[k], bi[k], vp[k]), length(ai))
 end
 
-function getindex(pa::P, i::Integer) where P<:MultivariatePolynomial
+function mindex(pa::P, i::Integer) where P<:MultivariatePolynomial
     isassigned(pa.ind, i) ? pa.ind[i] : maxindex(P)
 end
 
@@ -603,7 +598,7 @@ function varblocks(::Type{P}) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T
 end
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
-    ex = index2expo(var, n)
+    ex = index2expo(var, n + 1)
     vn = varnames(var)
     start = true
     for i = 1:N
@@ -617,7 +612,7 @@ function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,
 end
 
 function isconstterm(p::P, n::Integer) where P<:MultivariatePolynomial
-    n <= 0 || p.ind[n] == zeroindex(P)
+    n < 0 || p.ind[n+1] == zeroindex(P)
 end
 
 divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
@@ -627,11 +622,11 @@ function divrem(f::P, g::P) where P<:MultivariatePolynomial
         return P.(divrem(LC(f), LC(g)))
     end
     a, s, d = pdivrem(f, [g])
-    isunit(d) ? (a[1], s) : (zero(P), f)
+    isunit(d) ? (a[1] * inv(d), s * inv(d)) : (zero(P), f)
 end
 function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, g)
-    isunit(d) ? (a, s) : (zeros(P, length(g)), f)
+    isunit(d) ? (a .* inv(d), s * inv(d)) : (zeros(P, length(g)), f)
 end
 
 # division and Gröbner base calculation
