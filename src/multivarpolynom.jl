@@ -261,7 +261,7 @@ function +(a::T...) where T<:MultivariatePolynomial
     d = similar(a[1].ind)
     j = 0
     p = ones(Int, n)
-    pm = [getindex(x, 1) for x in a]
+    pm = [mindex(x, 1) for x in a]
     bound = maxindex(T)
 
     while true
@@ -269,12 +269,12 @@ function +(a::T...) where T<:MultivariatePolynomial
         m == bound && break
         cj = a[imin].coeff[p[imin]]
         p[imin] += 1
-        pm[imin] = getindex(a[imin], p[imin])
+        pm[imin] = mindex(a[imin], p[imin])
         for i = imin+1:n
             if pm[i] == m
                 cj += a[i].coeff[p[i]]
                 p[i] += 1
-                pm[i] = getindex(a[i], p[i])
+                pm[i] = mindex(a[i], p[i])
             end
         end
         if !iszero(cj)
@@ -565,7 +565,7 @@ function exposum(
     ntuple(k -> indexsum(ai[k], bi[k], vp[k]), length(ai))
 end
 
-function getindex(pa::P, i::Integer) where P<:MultivariatePolynomial
+function mindex(pa::P, i::Integer) where P<:MultivariatePolynomial
     isassigned(pa.ind, i) ? pa.ind[i] : maxindex(P)
 end
 

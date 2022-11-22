@@ -533,7 +533,7 @@ end
 
 function inv(p::T) where T<:Polynomial
     if isunit(p)
-        return T(inv(p[0]))
+        return T(inv(LC(p)))
     else
         throw(DomainError(p, "Only unit polynomials can be inverted"))
     end
