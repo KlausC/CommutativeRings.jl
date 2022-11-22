@@ -16,7 +16,8 @@ export Hom, Ideal
 
 export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
 export LC, LM, LT, lcunit, multideg, modulus, value
-export isdiv, pdivrem, divremv, pgcd, pgcdx, resultant, discriminant
+export isdiv, pdivrem, divremv, pgcd, pgcdx
+export resultant, discriminant, signed_subresultant_polynomials
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!

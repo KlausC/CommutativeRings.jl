@@ -34,7 +34,7 @@ end
     @test Z[[:x], [:y]] <: MultivariatePolynomial
 end
 
-@testset "varnames and generators $P " for P in (Z[:x, :y, :z], Z[[:x], [:y, :z]])
+@testset "varnames and generators" for P in (Z[:x, :y, :z], Z[[:x], [:y, :z]])
     x, y, z = monom.(P, [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     @test [x, y, z] == generators(P)
     @test varnames(P) == [:x, :y, :z]
@@ -105,6 +105,8 @@ end
     a, r, d = pdivrem(h, G)
     @test d == 1
     @test sum(a .* G) + r == h
+
+    @test 256 * a / (-8) == -32 * a
 
     @test rem(x + y, one(P)) == 0
     s, r = divrem(x + y, one(P))
@@ -190,6 +192,23 @@ end
     @test derive(x * y^10, (1, 1)) == 10 * y^9
     @test derive((x + 2y)^4, (0, 0)) == (x + 2y)^4
     @test_throws ArgumentError derive(x * y, (-1, 0))
+end
+
+@testset "subresultant" begin
+    S = ZZ{BigInt}[:a, :b, :c]
+    P = S[:x]
+    a, b, c = generators(S)
+    x = monom(P)
+    p = x^4 + a * x^2 + b * x + c
+    sresp, sres = signed_subresultant_polynomials(p, derive(p))
+    @test LC.(sresp) == sres
+    @test sresp[5] == p
+    @test sresp[4] == derive(p)
+    @test sresp[3] == -8 * a * x^2 - 12 * b * x - 16 * c
+    @test sresp[2] == (-8 * a^3 - 36 * b^2 + 32 * a * c) * x - 4 * a^2 * b - 48 * b * c
+    @test sresp[1] ==
+          -4 * a^3 * b^2 + 16 * a^4 * c - 27 * b^4 + 144 * a * b^2 * c - 128 * a^2 * c^2 +
+          256 * c^3
 end
 
 end # module

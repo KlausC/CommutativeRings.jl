@@ -622,11 +622,11 @@ function divrem(f::P, g::P) where P<:MultivariatePolynomial
         return P.(divrem(LC(f), LC(g)))
     end
     a, s, d = pdivrem(f, [g])
-    isunit(d) ? (a[1], s) : (zero(P), f)
+    isunit(d) ? (a[1] * inv(d), s * inv(d)) : (zero(P), f)
 end
 function divrem(f::P, g::AbstractVector{P}) where P<:MultivariatePolynomial
     a, s, d = pdivrem(f, g)
-    isunit(d) ? (a, s) : (zeros(P, length(g)), f)
+    isunit(d) ? (a .* inv(d), s * inv(d)) : (zeros(P, length(g)), f)
 end
 
 # division and Gröbner base calculation

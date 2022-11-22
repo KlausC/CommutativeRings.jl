@@ -548,7 +548,7 @@ one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 function ==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial}
     (varname(S) == varname(T) || deg(p) == 0) && p.coeff == q.coeff
 end
-==(p::Polynomial, q::Polynomial) = false
+
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
     n == 0 ? hash(zero(S), h) : n == 1 ? hash(p[0], h) : hash(X, hash(p.coeff, h))
@@ -702,7 +702,7 @@ function presultant_seq(
     b, cc, r * s / det
 end
 
-#= algorithm broken - TODO check that out
+# algorithm broken - TODO check that out
 """
     signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
 
@@ -729,14 +729,13 @@ function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolyn
         bqp = bq^(p - q - 1)
         sq = bqp * epsi(p - q)
         sresp[q+1] = sq * Q
+        sq *= bq
     end
     s[q+1] = sq
     i = p + 1
     j = p
     while j > 0 && !iszero(sresp[j])
         k = deg(sresp[j])
-        println("i,j,k = $i, $j, $k")
-        println(sresp[j])
         if k == j - 1
             s[j] = t[j]
             if k > 0
@@ -748,31 +747,28 @@ function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolyn
             for d = 1:j-k-1
                 t[j-d] = (t[j] * t[j-d+1]) / s[j+1] * sig
                 sig = -sig
+                s[k+1] = t[k+1]
+                sresp[k+1] = s[k+1] * sresp[j] / t[j]
             end
-            s[k+1] = t[k+1]
-            sresp[k+1] = s[k+1] * sresp[j] / t[j]
-            for l = j-2:k
+            for l = j-2:-1:k+1
                 sresp[l+1] = 0
                 s[l+1] = 0
-                println("s[$(l+1)] := 0")
             end
-            #if k > 0
-                println("divide by sresp[$j], s[$(j+1)]")
+            if k > 0
                 sresp[k] = -rem((t[j] * s[k+1]) * sresp[i], sresp[j]) / (s[j+1] * t[i])
-            #end
+            end
         end
         if k > 0
             t[k] = LC(sresp[k])
         end
         i, j = j, k
     end
-    for l = 0:-1 #j-2
+    for l = 0:j-2
         sresp[l+1] = 0
         s[l+1] = 0
     end
     sresp, s
 end
-=#
 
 """
     g, u, v, f = pgcdx(a, b)
@@ -801,7 +797,7 @@ function pgcdx(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
         γ = LC(b)
         γd = γ^(d + 1)
         a = a * γd
-        q, c = divrem(a, b)
+        q, c, h = pdivrem(a, b)
         c /= β
         a, b = b, c
         iszero(b) && break
