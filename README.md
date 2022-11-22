@@ -9,19 +9,21 @@ W.I.P
 This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
 fractional `ℚ`, polynomials `ℤ[x]`. Also multivariate polynomials `ℤ[x,y,...]` and Galois fields `GF(p^r)` are supported.
+The polynomials may be extended to quotient rings like `ℤ[:x] / (x^2 + 1)`.
 
-This is not seen as a replacement of `Nemo.jl` or `AbstractAlgebra.jl`, which should be used for serious work.
+This package is not seen as a replacement of `Nemo.jl` or `AbstractAlgebra.jl`, which should be used for serious work.
 It is understood more like a sandbox to try out a simpler API.
 
 It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the quotient ring for a prime number `p`),
 `Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
-The quotient rings include ideals, which are of major importance with multivariate polynomials.
+The quotient rings include `Ideal`s, which are of major importance with multivariate polynomials.
 
 The mentioned examples are elementary examples for ring structures. The can be
 liberately combined to fractional fields, quotient rings, and polynomials of previously defined structures.
 
-So it is possible to work with rational functions, which are fractions of polynomials, where the polynomial coefficients are in ℤ/p, for example.
-The the current standard library we have modules `Rational` and `Polynomial` besides the numeric subtypes of `Number` and some support for modular calculations with integers.
+So it is possible to work with rational functions, which are fractions of polynomials, where the polynomial coefficients are in `ℤ/p`,
+for example.
+In the current standard library we have modules `Rational` and `Polynomial` besides the numeric subtypes of `Number` and some support for modular calculations with integers.
 
 The original motivation for writing this piece of sofware, when I tried to handle polynomials over a quotient ring. There was no obvious way of embedding my ring elements
 into the `Julia` language and for example exploit polynomial calculations from the `Polynomial` package for that. There seems to be a correspondence between `Julia` types and structures and the algebraic stuctures I want to work with. So the idea was born to define
@@ -39,9 +41,9 @@ Correspondence between algebraic and Julia categories:
 | algebraic                            | Julia          | example
 |-------------------------------------|----------------|------------------------------|
 | category **Ring**                   |abstract type   | `abstract type Ring ...`
-| algebraic structure **ℤ/m**         |concrete type   | `struct ZZmod{m,Int} <: Ring`
+| algebraic structure **ℤ/m**         |concrete type   | `struct ZZmod{m,Int} == ZZ/m`  
 | specialisation **ℤ** is a **Ring**  | type inclusion | `ZZ{Int] <: Ring`
-| ring element **a** of **R**| object | `a` isa `R`    |
+| ring element **a** of **R**         | object         | `a` isa `R`
 | basic binary operations **a + b**   | binary operator| `a + b`
 | homomorphism **h** : **R** -> **S** | method         | `h(::R)::S = ...`
 | canonical **h** : **R** -> **S**    | constructor    | `S(::R) = ...`
@@ -55,27 +57,28 @@ julia> using CommutativeRings
 
 julia> m = 31
 31
-julia> ZZp = Int8/m
+julia> ZZp = ZZ/m
 ZZmod{31,Int8}
 julia> modulus(ZZp)
 31
 julia> z1 = ZZp(12)
 12°
 julia> z2 = ZZp(17)
--14°
+17°
 julia> z1 + z2
--2°
+29°
 julia> z1 * z2
--13°
+18°
 julia> inv(z1)
 13°
 julia> 13z1
 1°
 
- # using a big prime as parameter, the class is identified by an arbitrary symbol (:p)
+ # using a big prime number as parameter, the class is identified by an arbitrary symbol (:p)
 
-julia> ZZbig = BigInt / (big(2)^521 - 1)
-ZZmod{Symbol("##361"),BigInt}
+julia> ZZbig = ZZ / (big(2)^521 - 1)
+ZZmod{Symbol("686479766013060971498190079908139321726943530014330540939446345918554318339765
+              6052122559640661454554977296311391480858037121987999716643812574028291115057151"), BigInt}
 
 julia> modulus(ZZbig)
 686479766013060971498190079908139321726943530014330540939446345918554318339765
@@ -86,15 +89,15 @@ julia> zb^(modulus(ZZbig)-1) # Fermat's little theorem for primes
 1°
 
 
-... # now polynomials with element type of Z/31
+... # now polynomials with element type of ZZ/31
 
-julia> P = UnivariatePolynomial{:x,ZZp}
-UnivariatePolynomial{:x,ZZmod{31,Int8}}
-julia> x = P([0, 1])
+julia> P = ZZp[:x]
+UnivariatePolynomial{ZZmod{31, Int8}, :x}
+julia> x = monom(P)
 x
 
-julia> p = (x + 2)^2 * (x-1)
-x^3 + 3°⋅x^2 - 4°
+julia> p = (x + 2)^2 * (x - 1)
+x^3 + 3°*x^2 + 27°
 julia> p.coeff
 4-element Array{ZZmod{31,Int8},1}:
  -4°
@@ -102,39 +105,34 @@ julia> p.coeff
  3°
  1°
 julia> 1 + p
-x^3 + 3°⋅x^2 - 3°
+x^3 + 3°*x^2 + 28°
 
 
 julia> gcd(p, x-1)
-x - 1°
+x + 30°
 julia> p / (x-1)
 x^2 + 4°⋅x + 4°
 julia> p / (x+2)
-x^2 + x - 2°
+x^2 + x + 29°
 
 
 julia> p / (x + 3) * (x + 1)
-ERROR: DomainError with (x^3 + 3°⋅x^2 - 4°, x + 3°):
-not dividable a/b.
+ERROR: DomainError with (x^3 + 3°*x^2 + 27°, x + 3°):
+cannot divide a / b
+Stacktrace:
 
 ```
 
 ## Installation of this WIP version
 
 ``` julia
-    $ cd ~/.julia/dev
 
-    $ git clone https://github.com/KlausC/CommutativeRings.jl.git CommutativeRings
-
-    $ julia
-
-     ...
     # press "]"
-    (v1.3) pkg> activate CommutativeRings
-    Activating environment at `~/.julia/dev/CommutativeRings/Project.toml`
-
-    (CommutativeRings) pkg>
-
+    (@v1.8) pkg> add CommutativeRings
+    Updating registry at `~/.julia/registries/General.toml`
+   Resolving package versions...
+  No Changes to `~/.julia/environments/v1.8/Project.toml`
+  No Changes to `~/.julia/environments/v1.8/Manifest.toml`
      # press backspace
 
 julia> using CommutativeRings
@@ -198,21 +196,15 @@ linearalgebra |   23     23
 
 ### class construction
 
-Each complete `Julia` type (with all type parameters specified) defines a singlton algebraic class. Sometimes it is necessary to use distinguishing symbols as a first type parameter if the parameter value cannot be used directly.
-For that purpose, there is a special function `new_class`:
+Each complete `Julia` type (with all type parameters specified) defines a singleton algebraic class.
 
 ``` julia
-    m = big"....."
-    Zm = new_class(ZZmod{:p,BigInt}, m)
-
- # as opposed to
-
     p = Int128(2)^127 - 1
     Zp = ZZmod{p,Int128}
 ```
 
 For general quotient classes and for polynomials there are convenient constructors, which
-look like the typical mathematical notation `R[:x,:y,...]` and `R/I`.
+look like the typical mathematical notation `R[:x,:y,...]` and `R / I`.
 Here the symbols `:x, :y` define the name of the variables of a uni-
 or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
 `R`, which represents the corresponding principal ideal.
@@ -221,22 +213,22 @@ or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
     S = ZZ{Int}
     P = S[:x]
     x = monom(P, 1) # same as P([0,1])
-    Q = P/(x^2 + 1)
+    Q = P / (x^2 + 1)
 ```
 
-The `/` notion is also implemented for `Julia` integer types,
-so this works:
+The `/` notion is not implemented for `Julia` integer types (would be type piracy)
+so this doesn't work:
 
 ``` julia
-    Z31 = Int8/31    # equivalent to ZZmod{31,Int8}
-    Zbig = BigInt/(big"2"^521-1) # equivalent to new_class(ZZmod{gensym(),BigInt}, m)
+    julia> Int / 31
+ERROR: MethodError: no method matching /(::Type{Int64}, ::Int64)
 ```
 
 ### Ideals
 
-Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` or
+Ideals are can be denoted as `Ideal([a, ...])` where `a,` ... are elements of `R` or
 `Ideal(a)`. For convenience, principal ideals support also `a * R == Ideal(a)` and
-`p*R == Ideal(R(p))`, where p is an integer.
+`p*R == Ideal(R(p))`, where `p` is an integer.
 
 ``` julia
     Z = ZZ{Int8}
@@ -249,15 +241,15 @@ Ideals are can be denoted as `Ideal([a, ...])` where a, ... are elements of `R` 
 ```
 
 It may be noted, that `0R` is the zero ideal (containing only the zero element of `R`) and `u*R == R` for all unit elements `u` of `R`.
-We also have `R/0R == R` and `R/1R` == `0R`.
+Currently the expression `R / I` works only for polynomial rings `R`.
 
-If there is one generating element of an ideal, `a*R`, internally a
+If there is one generating element of an ideal, `a * R`, internally a
 unit multiple of `a` is stored to achieve a standard form, for
 example a monic univariate polynomial.
 
 In the case of multiple generating elements, `a, b...`, an attempt
 is made to standardize and reduce the stored base. For example if
-`R` is an integral domain, then `gcd(a, b...)` is stored.
+`R` is a unique factorization domain, then `gcd(a, b...)` is stored.
 
 Ideals are most useful with multivariate polynomials, when they
 are best represented by a minimal base - see below.
@@ -283,38 +275,47 @@ cases `monom(P, i, j, ...)`.
 | integer power | ^ | use `Base.power_by_squares`|
 | divide    | / | only if dividable without remainder|
 | divrem    || complete integer division
-| div       |÷|quotient integer division
-| rem       |%|remainder integer division
-| gcd       ||classical Euclid's algorithm
-| gcdx      ||extended Euclid's algorithm
-| pdivrem   ||pseudo division for polynomials over rings `d, r = divrem(p, q) => q * d + r = f * p` where`f` is in the base ring
-| pgcd      ||pseudo gcd `g, f = pgcd(p, q)`
-| pgcdx     ||pseudo gcdx `g, u, v, f = pgcdx(p, q) => p * u + q * v = g * f` where f is in base ring
+| div       |÷| quotient integer division
+| rem       |%| remainder integer division
+| gcd       || classical Euclid's algorithm
+| gcdx      || extended Euclid's algorithm
+| pdivrem   || pseudo division for polynomials over rings `d, r, f = pdivrem(p, q) => q * d + r = f * p` where `f` is in the base ring
+| pgcd      || pseudo gcd `g, f = pgcd(p, q)`
+| pgcdx     || pseudo gcdx `g, u, v, f = pgcdx(p, q) => p * u + q * v = g * f` where f is in base ring
 | iszero    || test if element is zero-element of its ring
 | zero      || zero element of ring
 | isone     || test if element is one-element of its ring
 | one       || one element of ring
 | isunit    || test if element is invertible in its ring
 | deg       || degree of polynomial, `-1` for zero. For non-polynomials always `0`.
-| lc        || leading coefficient of polynomial, otherwise identity
-| ismonomial|| short for `isone(lc(x))`
-| ismonic   || polynomials of the form `c * x^k` for `c` in the base ring, k >= 0 integer
+| ord       || order of univariate polynomial (power of first nozero term)
+| LC        || leading coefficient of polynomial, otherwise identity
+| ismonom   || short for `isone(lc(x))`
+| ismonic   || polynomials of the form `c * x^k` for `c != 0` in the base ring, `k` integer
 | monom     || return monomial polygon with given degree
 | isirreducible || polynomial cannot be split into non-trivial factors
 | irreducibles  || generate all irreducible polynomials of given degree
+| factor    || factorize univariate polynomials over finite fields or integers
 | modulus   || for quotient rings and Galois fields the defining polynomial
 | characteristic || of ring: smallest positive integer `c` with `c * one(G) == 0`, otherwise `0`
 | dimension || of Galois fields or vector spaces
 | order  || of ring: number of all elements of ring; `0` if infinite
 | order  || of element `x`: smallest positive integer `c` with `x^c == 1`, otherwise `0`
-| basetype || of ring: type of representative. If no a nested type, the type itself
+| basetype || of ring: type of representative. If `basetype(R)` is a ring, it is naturally embedded in `R`.
 | depth  || of ring: nesting depth
 | value  || representant of element. For `R/I` the stored value from `R`. For Galois fields the polynomial.
+| derive || formal derivation of a polynomial or power series
+| inv    || inverse: `isunit(a) => inv(a) * a == 1`
+| compose_inv || composition inverse in the case of power series. `f(0) == 0 && dervive(f) != 0 => compose_inv(f)(f(x)) == x`
+| det    || detminant of a matrix of ring elements
+| resultant || resultant of two univariate polynomials
+| discriminant || discriminant of a univariate polynomial
+| signed_subresultant_polynomials || efficient algorithm for subresultant polynomials
 ||||
 
 ### Associated classes
 
-Each algebraic structure corresponds to a parameterized `Julia` type or struct. For example, to represent Z/m, there is
+Each algebraic structure corresponds to a parameterized `Julia` type or struct. For example, to represent `ZZ/m`, there is
 
 ``` julia
     abstract type Ring{<:RingClass} end
@@ -322,14 +323,16 @@ Each algebraic structure corresponds to a parameterized `Julia` type or struct. 
     struct ZZmod{m,T<:Integer} <: Ring{ZZmodRingClass}; val::T; end
 ```
 
-The subtypes of `RingClass` are currently only containers for constant type variables. It may be necessary to hold values, which are specific for the algebraic structure, and cannot be stored in as type paramters. That is for example the case, when the modulus `m` in the example above is a `BigInt`.
-In other cases, the classes are unused. The user needs not deal with those types.
-Access to the type variable is used within the implementation by method `owner(::Type{<:Ring}}` which provides the `RingClass` object, when the complete type is known.
-Preferred operation mode is to take the type parameters directly.
+The subtypes of `RingClass` are used as containers for constant type variables. It may be necessary to hold values, which are specific for the algebraic structure, and cannot be stored in as type paramters. That happens for example, if the modulus `m` in the example above is a `BigInt` or a polynomial.
+In other cases, the classes are unused. The user needs not deal with those types as long as he does not define
+own ring structures.
+
+Access to the type variables is used within the implementation by method `gettypevar(::Type{<:Ring}}` which provides the `RingClass` object, when the complete type is known.
+The ring types typically provide accessor functions to obtain the type specific values, like `modulus`, `order`, `characteristic`, `dimension`, etc.. Try `@code_typed dimension(GF(25))` to see how efficient the generated code is.
 
 ## Univariate Polynomials
 
-For each ring type `R` the class of polynomials over `R` is created like `P = R[:x]` where the symbol `:x` defines the variable name.
+For each ring type `R` the class of polynomials over `R` is created like `P = R[:x]` where the symbol `:x` defines the name of the indeterminate.
 
 Polynomials of this class are obtained by the constructor
  `g = UnivariatePolynomial{R,:x}([1, 2, 3])`
@@ -344,9 +347,9 @@ If `R` is a finite Field (that means `ZZ/p` or GaloisField - see below) the foll
 
 Univariate polynomials may be checked by `isirreducible(p)` for their irreducibility
 and `factor(g)` delivers the list of irreducible factors of `g`.
-The factorization is also implemented for univariate polynomials over the integers (for example of type `UnivariatePolynomials{ZZ{BigInt}[:x]}`)
+The factorization is also implemented for univariate polynomials over the integers (for example of type `ZZ{BigInt}[:x]`)
 
-The function `irreducible(P, r)` delivers the first irreducible polynomial with degree `r`.
+For finite fields, the function `irreducible(P, r)` delivers the first irreducible polynomial with degree `r`.
 All irreducible polynomials of `P` with degree `r` are obtained by `irreducibles(P, r)`
 which is an iterator. That allows to apply  `Iterators.filter` or `find` on this list.
 
@@ -355,13 +358,13 @@ irreducibles has order `num_irreducibles(P, r)`.
 
 ## Galois Fields
 
-All finite field have order `p^r` where `p` is a prime number and `r >= 1` an integer.
+All finite fields have order `p^r` where `p` is a prime number and `r >= 1` an integer.
 It can be represented as a quotient ring of univariate polynomials over `ZZ/p` by an irreducible monic polynomial `g` of degree `r`.
 In short, if `g` is known, we have `(ZZ/p)[:x] / g` as a working implementation of a Galois field.
-For `r == 1` this can be identified with `ZZ/p` (using `g(x) = x`).
+For `r == 1` this can be identified with `ZZ/p` (using `g(x) = x`). The `modulus` method return the polynomial which is actually used by the implementation.
 
 `g` can be any monic polynomial of degree `r`. When constructing the class `GF(p^r) = GaloisField{p,r}` a brute force search for such polynomials is
-performed using an efficient method to detect irreducibility. For `r > 1` the monom `x ∈ (ZZ/p)[:x] / g` with `0` and `1` generates the field by
+performed using an efficient method to detect irreducibility. For `r > 1` the monom `x ∈ (ZZ/p)[:x] / g` together with `0` and `1` generates the field by
 applying addition and multiplication operations. Calculated in `GF`, we have always `g(x) = 0`.
 We restrict the selection of `g` in order to `x` let generate the multiplicative subgroup of `GF` by multiplication. That is possible for all `p, r`.
 
@@ -380,25 +383,25 @@ julia> G = GF(5^6) # GF(5, 6) is also possible
 GaloisField{5,6}
 
 julia> g = modulus(G) # the selected irreducible polynomial
-γ^6 + γ + 2°
+α^6 + α + 2° # we use a distinct name for indeterminate
 
 julia> order(G) # `p^r`
 15625
 
-julia> x = G(p) # an easy way to obtain the standard monom
+julia> x = G[5] # an easy way to obtain the standard monom
 {0:0:0:0:1:0%5}
 
 julia> order(x) # `x` generates the multiplicative subgroup
 15624
 
-julia> G.(0:p) # element number `p` is `x`
+julia> G.(0:p) # the integers are mapped into the field G(5) == 0
 6-element Array{GaloisField{5,6},1}:
  {0:0:0:0:0:0%5}
  {0:0:0:0:0:1%5}
  {0:0:0:0:0:2%5}
  {0:0:0:0:0:3%5}
  {0:0:0:0:0:4%5}
- {0:0:0:0:1:0%5}
+ {0:0:0:0:0:0%5}
 
 julia> g(x) # the monom `x` is a root of `g`
 {0:0:0:0:0:0%5}
@@ -509,6 +512,51 @@ julia> groebnerbase(I)
 
 ```
 
+## Power Series are Laurent Series
+
+For `F` a field with characteristic `0` (for example `QQ`), it is possible to define
+a formal power series of a given "precision" over `F`. You can use them like univariate polynomials. Mind the `O(x^n)` terms, which indicate, the precision of the expression. We support "relative precision", that means the number of non-zero coefficients is capped by the precision indicator. Lower degree polynomials are exact.
+The inverse is defined for all power series elements the first coefficient of which is invertible. In the case of `QQ`, that means all except `0`. So this implementation actually supports formal Laurent series.
+
+ The `compose_inv` function delivers the power series expansion for functions `f` with `f(0) == 0 and f'(0) != 0`.
+
+``` julia
+
+P = PowerSeries{10,QQ{BigInt},:x}
+PowerSeries{10, QQ{BigInt}, :x}
+
+julia> x = monom(P)
+x
+
+julia> 1 / (1 + x)
+1 - x + x^2 - x^3 + x^4 - x^5 + x^6 - x^7 + x^8 - x^9 + O(x^10)
+
+julia> ex = P(sum((x)^k / factorial(k) for k = 0:13))
+1 + x + 1/2*x^2 + 1/6*x^3 + 1/24*x^4 + 1/120*x^5 + 1/720*x^6 + 1/5040*x^7 + 1/40320*x^8 + 1/362880*x^9 + O(x^10)
+
+julia> inv(ex)
+1 - x + 1/2*x^2 - 1/6*x^3 + 1/24*x^4 - 1/120*x^5 + 1/720*x^6 - 1/5040*x^7 + 1/40320*x^8 - 1/362880*x^9 + O(x^10)
+
+julia> inv(ex) * ex
+1 + O(x^10)
+
+julia> ex / x
+x^-1 + 1 + 1/2*x + 1/6*x^2 + 1/24*x^3 + 1/120*x^4 + 1/720*x^5 + 1/5040*x^6 + 1/40320*x^7 + 1/362880*x^8 + O(x^9)
+
+julia> exm1 = P(sum(x^k / factorial(k) for k = 1:11))
+x + 1/2*x^2 + 1/6*x^3 + 1/24*x^4 + 1/120*x^5 + 1/720*x^6 + 1/5040*x^7 + 1/40320*x^8 + 1/362880*x^9 + 1/3628800*x^10 + O(x^11)
+
+julia> compose_inv(exm1)
+x - 1/2*x^2 + 1/3*x^3 - 1/4*x^4 + 1/5*x^5 - 1/6*x^6 + 1/7*x^7 - 1/8*x^8 + 1/9*x^9 - 1/10*x^10 + O(x^11)
+
+julia> lg = (sum(-(-x)^k / k for k = 1:12))
+x - 1/2*x^2 + 1/3*x^3 - 1/4*x^4 + 1/5*x^5 - 1/6*x^6 + 1/7*x^7 - 1/8*x^8 + 1/9*x^9 - 1/10*x^10 + O(x^11)
+
+julia> compose_inv(lg) == exm1
+true
+
+```
+
 ## Acknowledgements
 
 This package was inspired by the `C++` library `CoCoALib`, which can be found
@@ -516,12 +564,15 @@ here: [CoCoALib](http://cocoa.dima.unige.it/cocoalib/).
 
 The factorization of integer polynomials follows the D. Knuths infamous book "The Art of Computer Programming" chapter 4.6.2.
 
-### Copyright © 2019-2021 by Klaus Crusius. This work is released under The MIT License
+The `signed_resultant_polynomials` are from the book "Algorithms and Computation
+in Mathematics" of Basu, et. al.
+
+The power series algorithms are partially from this wikipedia article [Formal Power Series](https://en.wikipedia.org/wiki/Formal_power_series)
+
+### Copyright © 2019-2022 by Klaus Crusius. This work is released under The MIT License
 
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
 
-[coveral-img]: https://coveralls.io/repos/github/KlausC/CommutativeRings.jl/badge.svg?branch=main
-[coveral-url]: https://coveralls.io/github/KlausC/CommutativeRings.jl?branch=main
 [codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl
