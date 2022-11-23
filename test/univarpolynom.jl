@@ -73,6 +73,9 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
     @test UnivariatePolynomial{ZZ{Int8},:x}([1]) == P([1])
     @test UnivariatePolynomial(ZZ(1)) == 1
     @test hash(UnivariatePolynomial{ZZ{Int8},:x}([1])) == hash(P([1]))
+    @test P(co, 0) != P(co, 1)
+    @test S[:y](co) != P(co)
+    @test one(S[:y]) == one(P)
 end
 
 @testset "varnames and generators" for P in (S[:x],)
@@ -286,14 +289,14 @@ end
     G = GF(7, 3)
     GX = G[:x]
     x = monom(GX)
-    p = x^3 + G[(7*2+1)*7+5]x + 1
-    q = x^3 + 1 + G[200] * x
+    p = x^3 + ofindex((7*2+1)*7+5, G)x + 1
+    q = x^3 + 1 + ofindex(200,G) * x
     @test isirreducible(p)
     @test factor(q) |> length == 3
     @test deg(p^2) == 6
     @test p * q == q * p
     @test p + q - p == q
-    @test q / (x + G[28]) |> deg == 2
+    @test q / (x + ofindex(28, G)) |> deg == 2
 end
 
 x = monom(ZZ{BigInt}[:x])

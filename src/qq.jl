@@ -19,7 +19,7 @@ QQ{T}(a::Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 QQ(a::QQ{T}) where T = a
 QQ(a::ZZ{T}) where T = QQ{T}(a)
 QQ(a::T) where T = QQ{T}(a)
-QQ(a::Rational{T}) where T = QQ{T}(a)
+QQ(a::Rational{T}) where T<:Integer = QQ{T}(a)
 
 function QQ{T}(num::Integer, den::Integer) where T<:Integer
     iszero(num) &&

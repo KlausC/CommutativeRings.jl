@@ -303,7 +303,7 @@ function combinefactors(
             end
             if dividecheck(uu, unp, vv, d)
                 w = pprod(vv, d)
-                v = Z(w * unp)
+                v = stripmod(Z, w * unp)
                 # println("pprod = $v  inv = $(Z(pprod(vv, ~d) * unp))")
                 qd, rd = divrem(uu, v)
                 if iszero(rd)
@@ -337,6 +337,15 @@ function combinefactors(
     !isone(uu) && push!(res, (uu, subset_with_a(vv, -1, aa)...))
     res
 end
+
+function stripmod(
+    ::Type{P},
+    a::UnivariatePolynomial{<:ZZmod},
+) where {Z<:ZZ,P<:UnivariatePolynomial{Z}}
+    P(stripmod.(Z, a.coeff), ord(a))
+end
+stripmod(::Type{Z}, a::ZZmod) where Z<:ZZ = Z(value(a))
+
 
 function subset_with_a(v, d, a)
     vs = subset(v, d)

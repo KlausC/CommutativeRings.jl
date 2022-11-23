@@ -554,7 +554,41 @@ x - 1/2*x^2 + 1/3*x^3 - 1/4*x^4 + 1/5*x^5 - 1/6*x^6 + 1/7*x^7 - 1/8*x^8 + 1/9*x^
 
 julia> compose_inv(lg) == exm1
 true
+```
 
+## Comparison with [AbstractAlgebra]()
+
+``` julia
+
+julia> using CommuatativeRings
+
+julia> using BenchmarkTools
+
+julia> R = GF(7)
+ZZmod{7, Int8}
+
+julia> S = R[:y] # S, y = PolynomialRing(R, "y")
+UnivariatePolynomial{ZZmod{7, Int8}, :y}
+
+julia> y = monom(S);
+
+julia> T = S / ( y^3 + 3y + 1); # ResidueRing(S, y^3 + 3y + 1)
+
+julia> U = T[:z]; #U, z = PolynomialRing(T, "z")
+
+julia> z = monom(U);
+
+julia> f = (3y^2 + y + 2)*z^2 + (2*y^2 + 1)*z + 4y + 3;
+
+julia> g = (7y^2 - y + 7)*z^2 + (3y^2 + 1)*z + 2y + 1;
+
+julia> s = f^4;
+
+julia> t = (s + g)^4;
+
+julia> @btime resultant(s, t)
+  10.442 ms (259556 allocations: 15.48 MiB)
+-y^2 + 3°*y + 4° mod(y^3 + 3°*y + 1°)
 ```
 
 ## Acknowledgements

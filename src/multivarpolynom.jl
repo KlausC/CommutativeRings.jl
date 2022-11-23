@@ -1,4 +1,6 @@
 
+import Base: length
+
 # class constructors
 # convenience type constructor:
 # enable `R[:x,:y,:z,...]` as short for `MultivariatePolynomial{R,N,Id}`
@@ -8,6 +10,7 @@ function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
     Id = sintern(vs)
     new_class(MultivariatePolynomial{R,N,Id,Int,Tuple{N}}, vs)
 end
+# enable `R[[:x,:y],[:z]]` for non-standard monomial orderings
 function getindex(R::Type{<:Ring}, s::AbstractVector{Symbol}, t::AbstractVector{Symbol}...)
     blocks = collect((s, t...))
     construct(R, blocks)
@@ -191,6 +194,10 @@ function LT(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
     n = length(p.ind)
     n == 0 && return zero(P)
     P([p.ind[n]], [p.coeff[n]])
+end
+
+function CC(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
+    getindex(p, zeros(Int,N)...)
 end
 
 """
@@ -525,8 +532,8 @@ function fillindex(
 end
 function fillindex(
     f,
-    ::Type{<:P},
-) where {R,N,X,T,M,P<:MultivariatePolynomial{R,N,X,NTuple{M,T}}}
+    ::Type{<:MultivariatePolynomial{R,N,X,Tuple{Vararg{T,M}}}},
+) where {R,N,X,M,T}
     ft = f(T)
     ntuple(x -> ft, M)
 end
@@ -567,6 +574,17 @@ end
 
 function mindex(pa::P, i::Integer) where P<:MultivariatePolynomial
     isassigned(pa.ind, i) ? pa.ind[i] : maxindex(P)
+end
+
+function Base.getindex(p::P, a::Integer...) where {S,N,P<:MultivariatePolynomial{S,N}}
+    length(a) == N || throw(ArgumentError("wrong number of indices"))
+    xp = expo2ordblock(P, collect(a))
+    i = findfirst(x -> x >= xp, p.ind)
+    if i !== nothing && p.ind[i] == xp
+        p.coeff[i]
+    else
+        zero(S)
+    end
 end
 
 function divides(x::V, y::V) where V<:AbstractVector{<:Integer}

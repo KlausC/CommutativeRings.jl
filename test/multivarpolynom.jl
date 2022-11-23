@@ -34,7 +34,7 @@ end
     @test Z[[:x], [:y]] <: MultivariatePolynomial
 end
 
-@testset "varnames and generators" for P in (Z[:x, :y, :z], Z[[:x], [:y, :z]])
+@testset "varnames and generators $P" for P in (Z[:x, :y, :z], Z[[:x], [:y, :z]])
     x, y, z = monom.(P, [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     @test [x, y, z] == generators(P)
     @test varnames(P) == [:x, :y, :z]
@@ -46,6 +46,9 @@ end
     @test LC(p) == 3
     @test LM(p) == x^3 * y
     @test LT(p) == 3 * x^3 * y
+    @test CC(p) == 0
+    @test p[2,2,0] == 4
+    @test_throws ArgumentError p[2,2]
 
     @test basetype(p) == Z
     @test copy(p) == p

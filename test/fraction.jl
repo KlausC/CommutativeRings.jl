@@ -67,9 +67,9 @@ end
     GX = G[:x]
     x = monom(GX)
     p = (x + 1)^3 + 1
-    q = x + G[2]
+    q = x + ofindex(2, G)
     @test p // q == p / q
-    @test p // q^2 == (x^2 + G[3] * x) // q
+    @test p // q^2 == (x^2 + ofindex(3, G) * x) // q
 end
 
 @testset "FSeries" begin

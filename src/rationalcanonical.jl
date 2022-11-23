@@ -108,7 +108,7 @@ end
 function RNF(p::UnivariatePolynomial{R}, t::AbstractMatrix{R}) where R<:Ring
     RNF{R}([p], t)
 end
-function RNF(p::Vector{UnivariatePolynomial{R}}, t::AbstractMatrix{R}) where R<:Ring
+function RNF(p::Vector{<:UnivariatePolynomial{R}}, t::AbstractMatrix{R}) where R<:Ring
     RNF{R}(p, t)
 end
 

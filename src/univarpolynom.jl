@@ -17,16 +17,22 @@ category_trait_fraction(::Type) = CommutativeRingTrait
 
 basetype(::Type{<:Polynomial{T}}) where T = T
 
+"""
+    lcunit(p::Polynomial)
+
+Returns iff the leading coefficient is a unit.
+"""
 function lcunit(a::Polynomial)
     lco = LC(a)
     isunit(lco) ? lco : one(lco)
 end
 
 ### access to polynomial coefficients
-function getindex(u::UnivariatePolynomial, i::Integer)
+function getindex(u::UnivariatePolynomial{T}, i::Integer) where T
     f = ord(u)
-    f <= i <= deg(u) ? u.coeff[i+1-f] : zero(basetype(u))
+    f <= i <= deg(u) ? u.coeff[i+1-f] : zero(T)
 end
+
 """
     deg(p::Polynomial)
 
@@ -69,6 +75,7 @@ function isinvertible(a::T, b::T) where T<:UnivariatePolynomial
     isunit(g) && isunit(f)
 end
 
+# simpler representation?
 function issimpler(a::T, b::T) where T<:Polynomial
     da, db = deg(a), deg(b)
     da < db || da == db && issimpler(LC(a), LC(b))
@@ -90,9 +97,8 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} =
     UnivariatePolynomial{promote_type(R, S),X}
 
-
 (P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])
-(P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T} = P([S(a)])
+(P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T<:RingInt} = P([S(a)])
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{T,X}(v::Vector{S}, g::Integer = 0) where {X,T<:Ring,S<:T}
@@ -146,9 +152,9 @@ Construct a new polynomial Ring-element.
 Allow all coefficient classes, which can be mapped to S, that means
 the canonical homomorphism is used.
 """
-function UnivariatePolynomial{S,X}(v::AbstractVector) where {X,S}
+function UnivariatePolynomial{S,X}(v::AbstractVector, g::Integer = 0) where {X,S}
     isempty(v) ? UnivariatePolynomial{S,X}(S[]) :
-    UnivariatePolynomial{S,X}([S(x) for x in v])
+    UnivariatePolynomial{S,X}([S(x) for x in v], g)
 end
 
 # canonical embedding homomorphism from base ring
@@ -252,7 +258,7 @@ end
 
 function *(p::T, q::R) where {R<:Ring,T<:UnivariatePolynomial{R}}
     if iszero(q)
-        zero(p)
+        zero(T)
     else
         # make broadcast recognize q as scalar
         T(p.coeff .* Ref(q), ord(p))
@@ -533,25 +539,31 @@ end
 
 function inv(p::T) where T<:Polynomial
     if isunit(p)
-        return T(inv(LC(p)))
+        return T(inv(CC(p)))
     else
         throw(DomainError(p, "Only unit polynomials can be inverted"))
     end
 end
 
-isunit(p::Polynomial) = deg(p) == 0 && ismonom(p) && isunit(LC(p))
-isone(p::Polynomial) = deg(p) == 0 && ismonom(p) && isone(LC(p))
+isunit(p::Polynomial) = deg(p) == 0 && ismonom(p) && isunit(CC(p))
+isone(p::Polynomial) = deg(p) == 0 && ismonom(p) && isone(CC(p))
 iszero(p::Polynomial) = isempty(p.coeff)
 zero(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T(S[])
 one(::Type{T}) where {S,T<:UnivariatePolynomial{S}} = T([one(S)])
 ==(p::T, q::T) where {T<:UnivariatePolynomial} = p.coeff == q.coeff && ord(p) == ord(q)
 function ==(p::S, q::T) where {S<:UnivariatePolynomial,T<:UnivariatePolynomial}
-    (varname(S) == varname(T) || deg(p) == 0) && p.coeff == q.coeff
+    (varname(S) == varname(T) || deg(p) == 0) && ord(p) == ord(q) && p.coeff == q.coeff
 end
 
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    n == 0 ? hash(zero(S), h) : n == 1 ? hash(p[0], h) : hash(X, hash(p.coeff, h))
+    if n == 0
+        hash(zero(S), h)
+    elseif n == 1 && deg(p) == 1
+        hash(CC(p), h)
+    else
+        hash(ord(p), hash(X, hash(p.coeff, h)))
+    end
 end
 
 """
@@ -581,18 +593,16 @@ end
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero. Return zero for zero polynomial.
 """
-function LC(p::Polynomial)
+function LC(p::Polynomial{T}) where T
     c = p.coeff
     n = length(c)
-    n == 0 ? zero(basetype(p)) : c[n]
+    n == 0 ? zero(T) : c[n]
 end
 
 function LM(p::P) where {S,P<:UnivariatePolynomial{S}}
     n = length(p.coeff)
     n == 0 && return zero(P)
-    coeff = zeros(S, n)
-    coeff[n] = one(S)
-    P(coeff)
+    P(ones(S, 1), n - 1)
 end
 
 """
@@ -603,15 +613,20 @@ Return leading term of polynomial `p`. Coefficient is taken from `p`.
 function LT(p::P) where {S,P<:UnivariatePolynomial{S}}
     n = length(p.coeff)
     n == 0 && return zero(P)
-    coeff = zeros(S, n)
-    coeff[n] = p.coeff[n]
-    P(coeff)
+    P([p.coeff[n]], n - 1)
 end
+
+"""
+    CC(p::UnivariatePolynomial)
+
+Return the constant coefficient of polynomial.
+"""
+CC(p::UnivariatePolynomial) = p[0]
 
 """
     pgcd(a, b)
 
-Pseudo gcd of univariate polynomials gcd`a` and `b`.
+Pseudo gcd of univariate polynomials `a` and `b`.
 Uses subresultant sequence to accomplish non-field coeffient types.
 """
 function pgcd(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
@@ -628,9 +643,17 @@ end
 Calculate resultant of two univariate polynomials of general coeffient types.
 """
 function resultant(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
+    _resultant(a, b, category_trait(S))
+end
+function _resultant(a::T, b::T, ::Type{<:EuclidianDomainTrait}) where {S,T<:UnivariatePolynomial{S}}
     _, _, r = presultant_seq(a, b, Val(true))
     r(0)
 end
+
+function _resultant(a::T, b::T, ::Type{<:CommutativeRingTrait}) where {S,T<:UnivariatePolynomial{S}}
+    resultant_naive(a, b)
+end
+
 resultant(a::T, b::T) where T = iszero(a) || iszero(b) ? zero(T) : oneunit(T)
 resultant(a, b) = resultant(promote(a, b)...)
 
@@ -687,7 +710,6 @@ function presultant_seq(
         # prepare for next turn
         if Usedet
             det = det * δ^db / γ^(da - dc) / β^db
-
         end
         if isodd(db) && isodd(dc)
             det = -det
@@ -702,14 +724,13 @@ function presultant_seq(
     b, cc, r * s / det
 end
 
-# algorithm broken - TODO check that out
 """
     signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
 
 This code is taken from "Algorithm 8.21 (Signed Subresultant Polynomials)"
 "Algorithms in Real Algebraic Geometry" by Basu, Pollak, Roy - 2006.
 Its use is restricted to the case of `S` is an integral domain
-(there is no non-trivial divisor of zero).
+(there is no non-trivial divisor of zero). Effort is `O(deg(p)*deg(q))`.
 """
 function signed_subresultant_polynomials(P::T, Q::T) where {S,T<:UnivariatePolynomial{S}}
     # epsi(n) = (-1) ^ (n*(n-1)÷2)
@@ -998,9 +1019,9 @@ end
 
 isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 0
 
-show(io::IO, p::Polynomial) = show(io, p, Val(true))
+show(io::IO, p::Polynomial) = _show(io, p, Val(true))
 
-function show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
+function _show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
     T = basetype(P)
     c = p.coeff
     N = length(p.coeff) - 1

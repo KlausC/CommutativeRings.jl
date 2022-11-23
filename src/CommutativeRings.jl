@@ -15,13 +15,13 @@ export PowerSeries, O, precision, absprecision
 export Hom, Ideal
 
 export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
-export LC, LM, LT, lcunit, multideg, modulus, value
+export LC, LM, LT, CC, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx
 export resultant, discriminant, signed_subresultant_polynomials
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!
-export isirreducible, irreducible, irreducibles, monic, factorise
+export isirreducible, irreducible, irreducibles
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
 export ofindex, index

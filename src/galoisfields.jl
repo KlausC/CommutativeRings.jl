@@ -68,32 +68,34 @@ function _GF(p::Integer, r::Integer; nr::Integer = 0, mod = nothing, maxord = 2^
 end
 
 """
-    G[num::Integer] where G <: GaloisField
+    ofindex(num::Integer, G) where G <: GaloisField
 
 Ring element constructor. `num` is *not* the canonical homomorphism, but enumerates
 all elements of `GF(p, r)` in `0:p^r-1`.
-The numbers `G[0:p-1]` correspond to the base field, and `G[p]` to the polynomial `x` in
-the representation of `Q`.
+The numbers `ofindex.(0:p-1,G)` correspond to the base field, and `ofindex(p, G)`
+to the polynomial `x` in the representation of `Q`.
 """
 function GaloisField end
-function Base.getindex(::Type{G}, num::Integer) where G<:GaloisField
+function ofindex(num::Integer, G::Type{<:GaloisField})
     G(tovalue(G, num), NOCHECK)
 end
 
 Base.firstindex(::Type{G}) where G<:GaloisField = 0
 Base.lastindex(::Type{G}) where G<:GaloisField = order(G) - 1
-Base.collect(::Type{G}) where G<:GaloisField = getindex.(Ref(G), firstindex(G):lastindex(G))
+Base.collect(::Type{G}) where G<:GaloisField = ofindex.(firstindex(G):lastindex(G), Ref(G))
 
-function GaloisField{Id,T,Q}(a::GaloisField{Id,T,Q}) where {Id,T,Q}
-    GaloisField{Id,T,Q}(a.val, NOCHECK)
+function (::Type{G})(a::G) where G<:GaloisField
+    G(a.val, NOCHECK)
 end
 function (::Type{G})(a::H) where {Id,T,Q,G<:GaloisField{Id,T,Q},P,H<:ZZmod{P,T}}
     characteristic(G) == characteristic(H) ||
         throw(ArgumentError("characteristic mismatch"))
     G(a.val)
 end
-(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = G[tonumber(q, characteristic(Q))]
-#(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = G[q.val]
+function (::Type{G})(q::Q) where {Id,T,Q<:RingInt,G<:GaloisField{Id,T,Q}}
+    ofindex(tonumber(q, characteristic(Q)), G)
+end
+#(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = ofindex(q.val,G)
 
 Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = quotient(Q, g)
 Polynomial(g::G) where G<:GaloisField = Quotient(g).val
@@ -102,7 +104,7 @@ Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
 monom(::Type{G}) where G<:GaloisField = G(monom(Quotient(G)))
 
 promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
-_promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q} = G
+_promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q<:QuotientRing} = G
 _promote_rule(
     G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}},
     ::Type{Q},
@@ -263,7 +265,7 @@ logmonom(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}} = Id[4]
 
 division_error() = throw(ArgumentError("cannot invert zero"))
 
-*(a::G, b::Integer) where G<:GaloisField = G[mod(b, characteristic(G))] * a
+*(a::G, b::Integer) where G<:GaloisField = G(b) * a
 *(b::Integer, a::G) where G<:GaloisField = a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
 ==(::G, ::H) where {G<:GaloisField,H<:GaloisField} = false
@@ -334,7 +336,7 @@ one(::Type{G}) where G<:GaloisField = G(1, NOCHECK)
 
 function rand(r::AbstractRNG, ::SamplerType{G}) where G<:GaloisField
     ord = order(G)
-    G[rand(r, 0:ord-1)]
+    ofindex(rand(r, 0:ord-1), G)
 end
 
 function Base.show(io::IO, g::Type{<:GaloisField})

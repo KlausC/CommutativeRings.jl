@@ -53,7 +53,8 @@ end
     @test dimension(G) == dimension(Q) == r
     @test deg(modulus(G)) == r
 
-    @test G[p^r-1] isa G
+    @test ofindex(p^r-1, G) isa G
+    @test G[p^r-1] isa Vector{G}
     @test G[0:p^r-1] isa Vector{G}
 
     g1, g2 = rand(rng, G, 2)
@@ -63,8 +64,8 @@ end
     @test convert(G, convert(Q, g1)) == g1
     q1, q2 = Quotient.((g1, g2))
     @test G(q1) == g1
-    @test G[1] == Q(1)
-    @test G[p] != Q(p)
+    @test ofindex(1, G) == Q(1)
+    @test ofindex(p, G) != Q(p)
     @test q1 == Q(g1)
     @test g1 == G(q1)
     @test g1 == q1
@@ -77,12 +78,12 @@ end
     @test -g1 == -q1
     @test inv(g1) == inv(q1)
 
-    @test iszero(G[0])
-    @test isone(G[1])
-    @test isunit(G[2])
+    @test iszero(ofindex(0, G))
+    @test isone(ofindex(1, G))
+    @test isunit(ofindex(2, G))
     @test zero(G) == 0
     @test one(G) == 1
-    @test G[10] / G[10] == 1
+    @test ofindex(10, G) / ofindex(10, G) == 1
     @test one(G) * g1 == g1
     @test zero(G) * g1 == 0
     @test g1 * 1 == g1
@@ -93,13 +94,13 @@ end
     @test g1 + (-g2) == g1 - g2
     @test g1 * inv(g2) == g1 / g2
     @test (g1 - g1) - g2 == -g2
-    @test_throws ArgumentError inv(G[0])
+    @test_throws ArgumentError inv(G(0))
     a = 10
-    @test G[0]^10 == 0
-    @test G[0]^0 == 1
+    @test G(0)^10 == 0
+    @test G(0)^0 == 1
     @test G(0)^a == 0
     @test G(0)^(a-a) == 1
-    @test_throws ArgumentError G[0]^-2
+    @test_throws ArgumentError G(0)^-2
 
     @test sprint(show, g1) !== nothing
     @test sprint(show, q1) !== nothing
@@ -189,7 +190,7 @@ end
     gen = generator(GF125)
     @test order(gen) == order(GF125) - 1
     @test monom(Quotient(GF125)) + 4 == Quotient(gen)
-    @test monom(Quotient(GF125)) == Quotient(GF125[characteristic(GF125)])
+    @test monom(Quotient(GF125)) == Quotient(ofindex(characteristic(GF125), GF125))
     @test_throws ArgumentError GF(11, mod = p) # p not irreducible in ZZ/11
 end
 
@@ -206,8 +207,8 @@ end
     p = irreducible(P, 5)
     G = GF(7, 5)
     fa = findall(iszero, p.(G))
-    vx = G[first(fa)-1]
-    @test sort(collect(allzeros(p, vx))) == getindex.(Ref(G), fa .- 1)
+    vx = ofindex(first(fa)-1, G)
+    @test sort(collect(allzeros(p, vx))) == ofindex.(fa .- 1, Ref(G))
 end
 
 end #module

@@ -47,18 +47,18 @@ function next(c)
 end
 
 function iterate(::Type{G}) where G<:GaloisField
-    G[0], 0
+    G(0), 0
 end
 
 function iterate(::Type{G}, s::Integer) where G<:GaloisField
     s += 1
     s >= order(G) && return nothing
-    G[s], s
+    ofindex(s, G), s
 end
 
 function next(g::G) where G<:GaloisField
     s = gettypevar(G).exptable[g.val+1] + 1
-    s >= order(G) ? nothing : G[s]
+    s >= order(G) ? nothing : ofindex(s, G)
 end
 
 Base.length(mo::Monic{Z,X}) where {X,Z<:Ring} = length(Z)^mo.n
@@ -155,9 +155,6 @@ function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
 end
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
     P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
-end
-function ofindex(a::Integer, G::Type{<:GaloisField})
-    G[mod(a, order(G))]
 end
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S<:ZZ,P<:UnivariatePolynomial{S}}
     P(hypercube(a, d, EnumPolynomial()))
