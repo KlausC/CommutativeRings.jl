@@ -114,6 +114,15 @@ end
     @test multiply(x^2 + 1, x, 3) == x^3 + x
 end
 
+@testset "derivation" begin
+    x = monom(ZZ{Int}[:x])
+    p = x^20 + 3x + 5
+    @test derive(p) == 20x^19 + 3
+    @test derive(p, 2) == 380x^18
+    @test p' == derive(p)
+    @test p'' == derive(p')
+end
+
 @testset "operation unary - and ^ $cp" for cp in CP
     p = P(S.(cp))
     @test -p == -Poly(cp)

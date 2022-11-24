@@ -32,6 +32,7 @@ function getindex(u::UnivariatePolynomial{T}, i::Integer) where T
     f = ord(u)
     f <= i <= deg(u) ? u.coeff[i+1-f] : zero(T)
 end
+getindex(u::UnivariatePolynomial, v::AbstractVector{<:Integer}) = [u[i] for i in v]
 
 """
     deg(p::Polynomial)
@@ -837,13 +838,12 @@ function pgcdx(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     a / (f / cc), s2 / cs, t2 / cs, f
 end
 
-import LinearAlgebra: sylvester
 """
-    sylvester(u::P, v::P) where P<:UnivariatePolynomial
+    sylvester_matrix(u::P, v::P) where P<:UnivariatePolynomial
 
 Return sylvester matrix of polynomials `u` and `v`.
 """
-function LinearAlgebra.sylvester(v::P, u::P) where {Z,P<:UnivariatePolynomial{Z}}
+function sylvester_matrix(v::P, u::P) where {Z,P<:UnivariatePolynomial{Z}}
     nu = deg(u)
     nv = deg(v)
     n = max(nu, 0) + max(nv, 0)
@@ -867,7 +867,7 @@ end
 Reference implementation of resultant (determinant of sylvester matrix)
 """
 function resultant_naive(u::P, v::P) where {Z,P<:UnivariatePolynomial{Z}}
-    S = sylvester(u, v)
+    S = sylvester_matrix(u, v)
     det(S)
 end
 
@@ -1016,6 +1016,9 @@ function showvar(io::IO, p::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
         print(io, string(X, '^', n))
     end
 end
+
+import Base: adjoint
+adjoint(p::UnivariatePolynomial) = derive(p)
 
 isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 0
 

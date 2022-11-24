@@ -43,6 +43,7 @@ end
 QQ(num::T, den::T) where T = QQ{T}(num, den)
 Base.Rational(a::QQ{T}) where T = Rational(a.num, a.den)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
+Base.float(a::QQ) = float(Rational(a))
 
 # promotion and conversion
 _promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}

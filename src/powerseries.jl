@@ -24,6 +24,15 @@ function PowerSeries{Y,R,X}(s::PowerSeries{Z,R,X}) where {R,X,Y,Z}
     PowerSeries{Y}(s.poly, s.prec)
 end
 
+# enable `R[[:x],n]` as a convenience constructor for power series
+function getindex(R::Type{<:Ring}, X::AbstractVector{Symbol}, n::Integer)
+    length(X) == 1 && n >= 0 || throw(ArgumentError("invalid power series constructor"))
+    PowerSeries{n,R,X[1]}
+end
+
+# accessing coefficients
+getindex(s::PowerSeries, n) = getindex(s.poly, n)
+
 O(p::P) where P<:UnivariatePolynomial = PowerSeries{-1}(zero(P), deg(p))
 O(s::S) where S<:PowerSeries = S(zero(basetype(s)), deg(s))
 
@@ -161,6 +170,8 @@ function derive(tp::S) where S<:PowerSeries
     prec = prec == InfPrecision ? prec : max(prec - 1, 0)
     S(p, prec)
 end
+
+adjoint(p::PowerSeries) = derive(p)
 
 # utility functions
 

@@ -58,6 +58,11 @@ end
     @test QQ(2 // 3) + QQ(1 // 2) == QQ(7 // 6)
 end
 
+@testset "float conversion" begin
+    @test float(QQ(1//10)) ≈ 0.1
+    @test typeof(float(QQ(1//big"2"))) == BigFloat
+end
+
 @testset "gcd calculations" begin
     @test gcd(QQ(1 // 3), QQ(2 // 5)) == 1 // 15
     @test gcd(QQ((2 * 3) // (5 * 7)), QQ((2 * 5) // (3 * 7))) == QQ(2, 3 * 5 * 7)

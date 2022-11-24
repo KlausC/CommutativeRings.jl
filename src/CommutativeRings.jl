@@ -17,7 +17,7 @@ export Hom, Ideal
 export isunit, deg, ord, content, primpart, content_primpart, isnegative, isproper
 export LC, LM, LT, CC, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx
-export resultant, discriminant, signed_subresultant_polynomials
+export resultant, discriminant, signed_subresultant_polynomials, sylvester_matrix
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!
@@ -40,7 +40,7 @@ export compose_inv
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 
-import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite
+import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite, adjoint
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime

@@ -195,10 +195,12 @@ function evaluate(
     float(Rational(evaluate(p, rationalize(x))))
 end
 
+adjoint(f::Frac) = derive(f)
+
 function show(io::IO, a::Frac)
     if isone(a.den)
         show(io, a.num)
     else
-        print(io, '(', a.num, ") \u2044(", a.den, ')')
+        print(io, '(', a.num, ") // (", a.den, ')') # \u2044 or \u29f8
     end
 end

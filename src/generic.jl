@@ -59,6 +59,8 @@ depth(::Type{Union{}}) = -1
 depth(::Type) = 0
 depth(::Type{R}) where R<:Ring = depth(basetype(R)) + 1
 
+adjoint(a::Ring) = a
+
 convert(::Type{T}, a) where T<:Ring = T(a)
 function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     if !(S <: basetype(T)) && depth(T) > depth(S)
