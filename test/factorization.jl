@@ -31,6 +31,8 @@ end
 @testset "factor non-monic" begin
     Z = ZZ / 3
     x = monom(Z[:x])
+    p = x^0*2
+    @test CommutativeRings.ddf(p) == [(ZZ/3)(2) => 1]
     p = (-x + 1)^9
     @test prod(factor(p)) == p
     p = zero(p)
@@ -43,6 +45,15 @@ end
     @test factor(p) == [-one(x) => 1, x - 1 => 1]
     p = -(x + 1)^3
     @test factor(p) == [-one(x) => 1, x + 1 => 3]
+end
+
+@testset "random polynomials" begin
+    P = (ZZ/31)[:x]
+    x = monom(P)
+    p = x^5 + 1
+    Q = P / p
+    @test rand(Q) isa Q
+    @test deg(value(rand(Q))) == deg(p) - 1
 end
 
 end # module
