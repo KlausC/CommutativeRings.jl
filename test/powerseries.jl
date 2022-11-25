@@ -94,6 +94,7 @@ end
     @test O(sx^10) * O(x^11) == O(sx^21)
     @test O(sx^10) * sx == O(sx^11)
     @test sx^-3 * O(x^10) == O(x^7)
+    @test zero(x) + O(x^12) isa PowerSeries{-1}
 end
 
 end # module

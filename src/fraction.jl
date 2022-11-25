@@ -130,9 +130,9 @@ basetype(::Type{<:FSeries{T}}) where T = T
 varname(::Type{<:FSeries}) = :x
 
 """
-    pade(m, n, p)
+    pade(p, m, n)
 
-Calculate Padé approximation of order `n / m` for polynomial or series `p`.
+Calculate Padé approximation of order `m / n` for polynomial or series `p`.
 
 If `deg(p)` is greater than `m + n`, the higher terms of `p` are ignored.
 
@@ -142,6 +142,7 @@ with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
 It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than
 or equal `m + n` at `0`.
 """
+pade(p::PowerSeries, m, n) = pade(p.poly, m, n)
 function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,FSeries}
     (m >= 0 && n >= 0) || throw(
         ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"),

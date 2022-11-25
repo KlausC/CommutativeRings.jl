@@ -19,7 +19,7 @@ function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
     end
 end
 
-_promote_rule(::Type,::Type) = Any
+_promote_rule(::Type, ::Type) = Any
 promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 _promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} =
@@ -71,7 +71,7 @@ function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     end
 end
 
-function(G::Type{<:Ring})(a::Any)
+function (G::Type{<:Ring})(a::Any)
     G !== basetype(G) ? G(convert(basetype(G), a)) : throw(MethodError(G, a))
 end
 
@@ -92,8 +92,11 @@ end
 function /(a::T, b::T) where T<:Union{FractionRing,QuotientRing}
     a * inv(b)
 end
+
+import Base: literal_pow, power_by_squaring
+
 \(a::T, b::T) where T<:Ring = b / a
-^(a::Ring, n::Integer) = Base.power_by_squaring(a, n)
+^(a::Ring, n::Integer) = power_by_squaring(a, n)
 zero(x::Ring) = zero(typeof(x))
 one(x::Ring) = one(typeof(x))
 inv(a::Ring) = isunit(a) ? 1 / a : throw(DomainError(a, "cannot divide by non-unit."))
@@ -102,11 +105,39 @@ abs(a::Ring) = isunit(a) ? 1 : 0
 value(a::Ring) = a
 isfinite(a::Ring) = true
 
-import Base: literal_pow
 @inline literal_pow(::typeof(^), x::Ring, ::Val{0}) = one(x)
 @inline literal_pow(::typeof(^), x::Ring, ::Val{1}) = x
+@inline literal_pow(::typeof(^), x::Ring, ::Val{-1}) = inv(x)
 @inline literal_pow(::typeof(^), x::Ring, ::Val{2}) = x * x
 @inline literal_pow(::typeof(^), x::Ring, ::Val{3}) = x * x * x
+
+function power_by_squaring(x::Ring, p::Integer)
+    if p == 1
+        return x
+    elseif p == 0
+        return one(x)
+    elseif p == 2
+        return x * x
+    elseif p < 0
+        x = inv(x)
+        p = -p
+    end
+    t = trailing_zeros(p) + 1
+    p >>= t
+    while (t -= 1) > 0
+        x *= x
+    end
+    y = x
+    while p > 0
+        t = trailing_zeros(p) + 1
+        p >>= t
+        while (t -= 1) >= 0
+            x *= x
+        end
+        y *= x
+    end
+    return y
+end
 
 numerator(a::Ring) = a
 denominator(::R) where R<:Ring = one(R)

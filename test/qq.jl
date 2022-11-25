@@ -4,6 +4,11 @@ using Test
 using CommutativeRings
 
 @testset "construction" begin
+    @test QQ(Int) == QQ{Int}
+    @test QQ(ZZ{Int8}) == QQ{Int8}
+    @test QQ(QQ(1)) == 1
+    @test QQ(1, 3) == 1 // 3
+    @test abs(QQ(-1, 3)) == 1 // 3
     @test basetype(QQ{Int}) == ZZ{Int}
     @test lcunit(QQ(-1, 3)) == 1
     @test lcunit(QQ(0)) == 1
