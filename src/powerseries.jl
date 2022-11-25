@@ -1,17 +1,5 @@
-"""
-Power Series (aka Taylor Series) are a generalization of polynomials.
-Calculation is restricted to a maximal "precision"(number of terms to be considered).
-All further terms are subsumed in a "remainder term".
-"""
+
 const InfPrecision = typemax(Int)
-struct PowerSeries{Y,R,X} <: Ring{PowerSeriesRingClass{X,R}}
-    poly::UnivariatePolynomial{R,X}
-    prec::Int
-    PowerSeries{Y,R,X}(p, prec) where {Y,R,X} = new{Y,R,X}(p, prec)
-    function PowerSeries{Y}(p::P, prec::Integer) where {R,X,P<:UnivariatePolynomial{R,X},Y}
-        new{Y,R,X}(p, prec)
-    end
-end
 
 function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
     PowerSeries{Y,R,X}(p)

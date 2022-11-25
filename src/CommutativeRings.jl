@@ -210,6 +210,20 @@ struct MultivariatePolynomial{S<:Ring,N,Id,T,B} <: Polynomial{S,MultiPolyRingCla
     coeff::Vector{S}
 end
 
+"""
+Power Series (aka Taylor Series) are a generalization of polynomials.
+Calculation is restricted to a maximal "precision"(number of terms to be considered).
+All further terms are subsumed in a "remainder term".
+"""
+struct PowerSeries{Y,R,X} <: Ring{PowerSeriesRingClass{X,R}}
+    poly::UnivariatePolynomial{R,X}
+    prec::Int
+    PowerSeries{Y,R,X}(p, prec) where {Y,R,X} = new{Y,R,X}(p, prec)
+    function PowerSeries{Y}(p::P, prec::Integer) where {R,X,P<:UnivariatePolynomial{R,X},Y}
+        new{Y,R,X}(p, prec)
+    end
+end
+
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
     GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))

@@ -20,4 +20,8 @@ end
     @test sqrt(1 + z) ≈ fx(z)
 end
 
+@testset "versine" begin
+    @test cos(x) == 1 - ver(x)
+end
+
 end # module

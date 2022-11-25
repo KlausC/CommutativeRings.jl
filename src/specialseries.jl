@@ -57,7 +57,7 @@ sech(z) = sum(E(2k) * z^2k / fac(2k) for k = 0:p2(z))
 
 Return the versine of `z`
 """
-ver(z) = sum(-(-1)^k * z^2k / fac(2k) for k = 1:p2(z))
+ver(z) = sum(-(-1)^k * z^2k / fac(2k) for k = 1:p2(z)+1)
 
 asin(z) = sum(fac(2k) * z * z^2k / (2^2k * fac(k)^2 * (2k + 1)) for k ∈ 0:p2(z))
 asinh(z) = sum((-1)^k * fac(2k) * z * z^2k / (2^2k * fac(k)^2 * (2k + 1)) for k ∈ 0:p2(z))
