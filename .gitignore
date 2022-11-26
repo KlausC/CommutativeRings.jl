@@ -6,3 +6,6 @@ deps/deps.jl
 Manifest.toml
 .vscode
 lcov.info
+*.dat
+*.gz
+*.tgz
