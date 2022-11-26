@@ -39,6 +39,7 @@ export compose_inv
 
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
+export mfactor, killmemo!, memoize
 
 import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite, adjoint
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm

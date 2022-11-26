@@ -17,6 +17,7 @@ function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
 end
 
 function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
+    #println("factor($p)")
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
