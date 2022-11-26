@@ -99,9 +99,9 @@ function *(tp::S, tq::S) where {S<:PowerSeries}
         rt = if izp && izq
             psum(pp, pq)
         elseif izp
-            pp + ord(q)
+            psum(pp, ord(q))
         else
-            pq + ord(p)
+            psum(pq, ord(p))
         end
         return S(zero(basetype(S)), rt)
     end
