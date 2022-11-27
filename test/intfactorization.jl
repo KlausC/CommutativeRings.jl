@@ -166,4 +166,11 @@ end
     end
 end
 
+@testset "mfactor" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    p = (x^50 - 1)^2
+    @test prod(mfactor(p)) == p
+end
+
 end # module

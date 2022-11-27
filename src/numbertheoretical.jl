@@ -7,9 +7,9 @@ using Primes
 """
     cyclotomic(P, n)
 
-Calculate cylotomic polynomial of degree `n` in polynom ring `P`.
-This polynom is defined to be the disisor of `x^n - 1`, which is coprime to
-all `x^k - 1` with `k < n`.
+Calculate `n`th cylotomic polynomial in polynom ring `P` over the integers.
+This polynom is defined to be the unique irreducible disisor of `x^n - 1`,
+which is coprime to all `x^k - 1` with `k < n`.
 
 If `n` is prime, `cyclotomic(P, n) = (x^n - 1) / (x - 1).
 

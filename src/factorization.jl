@@ -131,7 +131,7 @@ function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     end
 
     if deg(c) > 0
-        c = shrink(c, p)
+        c = compress(c, p)
         for (g, i) in sff(c)
             push!(R, Pair(g, i * p))
         end
@@ -139,14 +139,33 @@ function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     R
 end
 
-# assuming p(x) = q(x^p), return q. Formally q(x) = p(x^(1/p)).
-function shrink(a::P, p::Integer) where P<:UnivariatePolynomial
-    n = deg(a)
-    c = similar(a.coeff, (n ÷ p) + 1)
-    for k = 0:n÷p
-        c[k+1] = a.coeff[p*k+1]
+"""
+    compress(p, n)
+
+Return polynomial `q` with `q(x^n) == p(x)`.
+
+Assuming `p` has this form. `compress(uncompress(p) == p`.
+"""
+function compress(p::P, n::Integer) where P<:UnivariatePolynomial
+    r = (length(p.coeff) - 1) ÷ n
+    nc = [p.coeff[k*n+1] for k ∈ 0:r]
+    P(nc, ord(p) ÷ n)
+end
+
+"""
+    uncompress(p, n)
+
+Return polynomial `p(x^n)`.
+
+Same as [`spread`](@ref)
+"""
+function uncompress(p::P, n::Integer) where {R,P<:UnivariatePolynomial{R}}
+    r = length(p.coeff)
+    nc = zeros(R, (r - 1) * n + 1)
+    for k = 0:r-1
+        nc[k*n+1] = p.coeff[k+1]
     end
-    P(c)
+    P(nc, ord(p) * n)
 end
 
 """

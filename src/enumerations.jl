@@ -197,6 +197,16 @@ factors(f::AbstractVector) = Factors(f)
 factors(n::Integer) = factors(factor(n).pe)
 
 """
+    primefactors(n::Integer)
+
+Return an iterator over the prime factors of `n`, sorted.
+"""
+function primefactors(n::Integer)
+    f = factor(n).pe
+    first.(f)
+end
+
+"""
     select_k_from_n(x, n, k)
 
 For `x` in the range `0:binomial(n,k)-1` find subset of size `k` of `1:n` with number `x`.

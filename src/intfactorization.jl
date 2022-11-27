@@ -704,3 +704,97 @@ function bezout_sum(u::AbstractVector{T}, a::AbstractVector{T}) where T
         one(T)
     end
 end
+
+"""
+    reduction(p::Polynomial)
+
+Return polynomial `q` and integers `nord`, `g`, `nex` with `p == q * x^ord`
+and `q(x) == qq(x^g)` for some `qq`. `nex` is the number of nonzero coefficients of `q`.
+"""
+function reduction(p::P) where P<:UnivariatePolynomial
+    expos = findall(!iszero, p.coeff) .- 1
+    nex = length(expos)
+    nex <= 1 && return P(LC(p)), ord(p), 1, nex
+    best = gcd(expos)
+    kbest = ord(p)
+    P(p.coeff, 0), kbest, best, nex
+end
+
+function ffactor(p::P) where P<:UnivariatePolynomial{<:ZZ}
+    #println("ffactor($p)")
+    q, nord, n, nex = reduction(p)
+    n == 1 && return factor(p)
+    ff = Pair{P,Int}[]
+    nord != 0 && push!(ff, monom(P) => nord)
+    if nex == 2 && iszero(CC(q) + LC(q))
+        cyc = cyclotomic(P, deg(q))
+        pushmemo!(mfactor, cyc, [cyc =>1])
+        append!(ff, mfactor(q / cyc))
+        push!(ff, cyc => 1)
+        return ff
+    end
+    for kk ∈ primefactors(n)
+        if 1 < kk < n
+            k = n ÷ kk
+            r = compress(q, k)
+            fr = mfactor(r)
+            if !(length(fr) == 1 && last(fr[1]) == 1)
+                return cfactors!(ff, uncompress.(first.(fr), k) .=> last.(fr))
+            end
+        end
+    end
+    return append!(ff, factor(q))
+end
+
+function cfactors!(ff::V, f::V) where {P,V<:Vector{<:Pair{P}}}
+    for (p, ex) in f
+        fp = mfactor(p)
+        append!(ff, first.(fp) .=> last.(fp) .* ex)
+    end
+    ff
+end
+
+"""
+    memoize(f)
+
+Return a memoized version of one-arg function `f`.
+
+If used recursively make sure that the new function is called.
+It can be stored in a global constant to keep the data accessible.
+"""
+function memoize(f)
+    MEMORY = Dict()
+    p -> get!(MEMORY, p) do
+        f(p)
+    end
+end
+
+"""
+    mfactor(p::UnivariatePolynomial)
+
+Like [`factor`](@ref). Memoize all intermediate results.
+
+Memory is reset using `killmemo!(mfactor)`.
+"""
+const mfactor = memoize(ffactor)
+
+"""
+    killmemo!(mf::Function)
+
+Empty memory of memoized function `mf`.
+"""
+function killmemo!(f::Function)
+    empty!(f.MEMORY)
+end
+
+"""
+    pushmemo!(f::Function, v)
+
+Push `v` to memory of memoized function.
+"""
+function pushmemo!(f::Function, k::Any, v::Any)
+    get!(f.MEMORY, k) do
+        v
+    end
+    nothing
+end
