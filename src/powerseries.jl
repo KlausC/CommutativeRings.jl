@@ -116,6 +116,31 @@ function *(tp::S, tq::S) where {S<:PowerSeries}
 end
 function /(tp::S, tq::S) where {S<:PowerSeries}
     P = basetype(S)
+    R = basetype(P)
+    p, q = tp.poly, tq.poly
+    if iszero(p) && isunit(tq)
+        return S(p, precision(tp) + ord(tp) - ord(tq))
+    end
+    b = p.coeff
+    a = q.coeff
+    na = length(a)
+    nb = length(b)
+    a0 = inv(q[ord(q)])
+    m = precision(S)
+    c = Vector{R}(undef, m)
+    for n = 0:m-1
+        s = n < nb ? b[n+1] : zero(R)
+        for k ∈ 1:min(n, na - 1)
+            s -= a[k+1] * c[n-k+1]
+        end
+        c[n+1] = s * a0
+    end
+    rt = ord(p) - ord(q)
+    return S(P(c, rt), min(precision(tp), precision(tq)))
+end
+function divi(tp::S, tq::S) where {S<:PowerSeries}
+    P = basetype(S)
+    R = basetype(P)
     p, q = tp.poly, tq.poly
     if iszero(p) && isunit(tq)
         return S(p, precision(tp) + ord(tp) - ord(tq))
