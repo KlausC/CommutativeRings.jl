@@ -138,21 +138,6 @@ function /(tp::S, tq::S) where {S<:PowerSeries}
     rt = ord(p) - ord(q)
     return S(P(c, rt), min(precision(tp), precision(tq)))
 end
-function divi(tp::S, tq::S) where {S<:PowerSeries}
-    P = basetype(S)
-    R = basetype(P)
-    p, q = tp.poly, tq.poly
-    if iszero(p) && isunit(tq)
-        return S(p, precision(tp) + ord(tp) - ord(tq))
-    end
-    x = monom(typeof(p))
-    n = precision(S) + deg(q) + 2
-    s = reverse(div(reverse(p) * x^n, reverse(q)))
-    s = P(s.coeff, ord(p) - ord(q))
-    rt = min(precision(tp), precision(tq))
-    s, rt = splitpoly!(s, precision(S), rt)
-    S(s, rt)
-end
 
 """
     compose_inv(f::PowerSeries{R}) -> g::PowerSeries
