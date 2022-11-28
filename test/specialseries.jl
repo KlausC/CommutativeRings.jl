@@ -8,6 +8,8 @@ const Names = names(CommutativeRings.SpecialPowerSeries) ∩ names(Base.Math)
 const Funcs = eval.(Names)
 
 x = monom(QQ{BigInt}[[:x], 100])
+z = monom(QQ{BigInt}[[:z], 20])
+
 @testset "Base.Math function $fn" for (fn, f) in zip(Names, Funcs)
     fx = f(x)
     z = 0.1
@@ -22,6 +24,12 @@ end
 
 @testset "versine" begin
     @test cos(x) == 1 - ver(x)
+end
+
+@testset "Li Ei" begin
+    lg = log1p(z)
+    @test lin1pe(lg) == lin1p(z)
+    @test Li(z, 2)(1) == 17299975731542641//10838475198270720
 end
 
 end # module

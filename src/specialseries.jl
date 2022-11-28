@@ -2,7 +2,8 @@ module SpecialPowerSeries
 
 using CommutativeRings
 export bernoulli_number, euler_number
-export Li, exp, expm1, log1p, sqrt1p
+export Li, Ein, lin1p, lin1pe
+export exp, expm1, log1p, sqrt1p
 export sin, cos, tan, cot, csc, sec, asin, atan, ver
 export sinh, cosh, tanh, coth, csch, sech, asinh, atanh
 
@@ -17,7 +18,48 @@ B(k::Integer) = bernoulli_number(k)
 E(k::Integer) = euler_number(k)
 fac(k::Integer) = factorial(big(k))
 
+"""
+    Li(z, n)
+
+Return value of "polylogarithmic" function`Li` of order `n`.
+"""
 Li(z::PowerSeries, n::Integer) = sum(z^k / k^n for k ∈ 1:p1(z))
+
+"""
+    Ein(z)
+
+Return "exponential integral" normalizing function.
+
+We have also
+ * `Ei(z) = γ + log(|z|) - Ein(-z)` for `z != 0`
+ * `E_1(z) = -γ -log(z) + Ein(z)` for `|arg(z)| < π`
+"""
+Ein(z) = sum(-(-1)^k * z^k / (k * fac(k)) for k ∈ 1:p1(z))
+
+"""
+    lin1p(z) = lin(1 + z) = Ein(-log(1 + z))
+
+Return "logarithmic integral" normalizing function.
+
+We have:
+ * `lin(z) = lin1p(z - 1)`
+ * `li(z) = Ei(log(z))`
+ * `li(z) = γ + log(|log(z)|) + lin(z)` for `z > 0`
+"""
+lin1p(z) = -Ein(-log1p(z))
+
+"""
+    lin1pe(u) = lin1p(expm112(u))
+
+Return "logarithmic integral" variant.
+
+Faster converging series, if applied to `log(z)` devoted to Ramanujan.
+
+ * lin1pe(log1p(z)) == lin1p(z)
+"""
+lin1pe(z) = exp(z / 2) * Ein2(z)
+hsum(n::Integer) = sum(1 // k for k = 1:2:n)
+Ein2(z) = sum(-(-1)^n * z^n / (fac(n) * 2^(n - 1)) * hsum(n) for n = 1:p1(z))
 
 exp(z) = sum(z^k / fac(k) for k = 0:p1(z))
 

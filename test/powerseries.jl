@@ -108,6 +108,7 @@ end
     @test precision(sqrt(1 + 2z^((PR-1)÷2) + z^(PR-1))) == precision(z)
     @test sqrt(ex) == ex(z / 2)
     @test precision(sqrt(ex)) == precision(ex)
+    @test sqrt(z^2 * (1 - 2z + z^2)) == z * (1 - z)
 end
 
 end # module

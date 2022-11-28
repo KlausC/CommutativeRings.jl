@@ -35,7 +35,7 @@ export generators, varnames, varname, factors
 
 export characteristic_polynomial, adjugate, companion
 
-export compose_inv
+export compose_inv, Li, Ein, lin1p, lin1pe, ver
 
 export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
@@ -314,4 +314,5 @@ include("rationalcanonical.jl")
 include("powerseries.jl")
 include("specialseries.jl")
 
+using .SpecialPowerSeries
 end # module

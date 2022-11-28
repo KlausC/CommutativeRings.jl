@@ -152,8 +152,9 @@ powerseries `p` with `p^2 == s` and constant term `1`.
 """
 function Base.sqrt(s::S) where {Y,R,X,S<:PowerSeries{Y,R,X}}
     iszero(s) && return s
-    if ord(s) != 0 || !isone(CC(s))
-        throw(ArgumentError("sqrt of power series requires constant term one"))
+    P = basetype(S)
+    if isodd(ord(s)) || !isone(s[ord(s)])
+        throw(ArgumentError("sqrt of power series requires first even term of `1`"))
     end
     sqe = one(R)
     c = s.poly.coeff
@@ -178,7 +179,7 @@ function Base.sqrt(s::S) where {Y,R,X,S<:PowerSeries{Y,R,X}}
     end
     ps = precision(s)
     pr = kmax <= m ÷ 2 ? ps : min(m, ps)
-    S(a, pr)
+    S(P(a, ord(s) ÷ 2), pr)
 end
 
 """
