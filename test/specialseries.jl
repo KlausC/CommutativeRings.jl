@@ -26,10 +26,17 @@ end
     @test cos(x) == 1 - ver(x)
 end
 
+@testset "log and pade" begin
+    lg = log1p(z)
+    plg = pade(lg, 10, 10)
+    @test abs(lg(1.0) - log1p(1.0)) > 1e-2
+    @test abs(plg(1.0) - log1p(1.0)) < 1e-10
+end
+
 @testset "Li Ei" begin
     lg = log1p(z)
     @test lin1pe(lg) == lin1p(z)
-    @test Li(z, 2)(1) == 17299975731542641//10838475198270720
+    @test Li(z, 2)(1) == 17299975731542641 // 10838475198270720
 end
 
 end # module

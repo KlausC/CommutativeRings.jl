@@ -213,6 +213,7 @@ function derive(tp::S) where S<:PowerSeries
 end
 
 adjoint(p::PowerSeries) = derive(p)
+pade(p::PowerSeries, a...) = pade(p.poly, a...)
 
 # utility functions
 

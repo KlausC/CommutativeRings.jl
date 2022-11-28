@@ -136,4 +136,8 @@ end
     @test op(y, x) == op(y, Z(x))
 end
 
+@testset "floats" begin
+    @test 1.5 * QQ(2//3) + ZZ(0) == ZZ(1)
+end
+
 end # module

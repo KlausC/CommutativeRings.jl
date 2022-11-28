@@ -22,8 +22,12 @@ end
 _promote_rule(::Type, ::Type) = Any
 promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
 promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
-_promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} =
+function _promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}
     promote_rule(R, promote_type(basetype(R), S))
+end
+
+promote_rule(::Type{A}, ::Type{<:QQ{B}}) where {A<:AbstractFloat,B} = promote_rule(A, B)
+promote_rule(::Type{A}, ::Type{<:ZZ{B}}) where {A<:AbstractFloat,B} = promote_rule(A, B)
 
 for op in (
     :+,
@@ -49,6 +53,12 @@ for op in (
         ($op)(a::Union{Integer,Rational}, b::Ring) = ($op)(promote(a, b)...)
     end
 end
+for op in (:+, :-, :*, :/, :\, :(==))
+    @eval begin
+        ($op)(a::Union{QQ,ZZ}, b::AbstractFloat) = ($op)(promote(a, b)...)
+        ($op)(a::AbstractFloat, b::Union{QQ,ZZ}) = ($op)(promote(a, b)...)
+    end
+end
 
 # generic operations
 basetype(::T) where T<:Ring = basetype(T)
@@ -69,6 +79,10 @@ function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     else
         T(a)
     end
+end
+
+function convert(::Type{A}, a::Union{ZZ,QQ}) where {A<:AbstractFloat}
+    convert(A, value(a))
 end
 
 function (G::Type{<:Ring})(a::Any)
