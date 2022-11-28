@@ -45,7 +45,7 @@ import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite,
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime
-import Base: Rational, numerator, denominator, precision
+import Base: Rational, numerator, denominator, precision, sqrt
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)

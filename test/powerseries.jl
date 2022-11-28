@@ -13,6 +13,7 @@ s = P(1 + 2x + 3x^PR)
 t = P(x^12 + x^25)
 S = typeof(s)
 sx = monom(S)
+ex = sum(sx^k / factorial(k) for k = 0:PR)
 
 @testset "construction" begin
     @test P{R,X} == S
@@ -33,8 +34,8 @@ end
     @test isunit(t)
     @test !isunit(zero(S))
     @test t[12] == 1
-    @test t[[0,12,25]] == [0, 1, 0]
-    @test s[0:PR] == [1; 2; zeros(Int,PR-1)]
+    @test t[[0, 12, 25]] == [0, 1, 0]
+    @test s[0:PR] == [1; 2; zeros(Int, PR - 1)]
 end
 
 @testset "evaluation" begin
@@ -96,6 +97,17 @@ end
     @test sx^-3 * O(x^10) == O(x^7)
     @test zero(x) + O(x^12) isa PowerSeries{-1}
     @test precision(sx * 0) == precision(sx)
+end
+
+@testset "sqrt" begin
+    z = sx
+    p = 1 + z
+    @test_throws ArgumentError sqrt(z)
+    @test sqrt(1 + z)^2 == 1 + z
+    @test sqrt(1 + 2z + z^2) == 1 + z
+    @test precision(sqrt(1 + 2z^((PR-1)÷2) + z^(PR-1))) == precision(z)
+    @test sqrt(ex) == ex(z / 2)
+    @test precision(sqrt(ex)) == precision(ex)
 end
 
 end # module

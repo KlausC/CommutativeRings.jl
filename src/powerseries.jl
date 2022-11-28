@@ -63,6 +63,7 @@ isunit(s::PowerSeries) = !iszero(s)
 ==(s::S, t::S) where S<:PowerSeries = s.poly == t.poly
 
 monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
+CC(s::PowerSeries) = CC(s.poly)
 
 function evaluate(p::S, q::UnivariatePolynomial) where S<:PowerSeries
     s, rt = splitpoly!(p.poly(q), precision(S), precision(p))
@@ -135,8 +136,49 @@ function /(tp::S, tq::S) where {S<:PowerSeries}
         end
         c[n+1] = s * a0
     end
+    pr = min(precision(tp), precision(tq))
+    if !iszero(view(c, max(1, m - na + 1):m))
+        pr = min(pr, m)
+    end
     rt = ord(p) - ord(q)
-    return S(P(c, rt), min(precision(tp), precision(tq)))
+    return S(P(c, rt), pr)
+end
+
+"""
+    sqrt(s::PowerSeries)
+
+For power series `s` with constant term `1` calculate the
+powerseries `p` with `p^2 == s` and constant term `1`.
+"""
+function Base.sqrt(s::S) where {Y,R,X,S<:PowerSeries{Y,R,X}}
+    iszero(s) && return s
+    if ord(s) != 0 || !isone(CC(s))
+        throw(ArgumentError("sqrt of power series requires constant term one"))
+    end
+    sqe = one(R)
+    c = s.poly.coeff
+    n = length(c)
+    m = precision(S)
+    a = Vector{R}(undef, m)
+    a[1] = sqe
+    kmax = 0
+    for k = 1:m-1
+        t = k < n ? c[k+1] : zero(R)
+        if iseven(k)
+            t -= a[k÷2+1]^2
+        end
+        t /= 2
+        for i = 1:(k-1)÷2
+            t -= a[i+1] * a[k-i+1]
+        end
+        if !iszero(t)
+            kmax = k
+        end
+        a[k+1] = t
+    end
+    ps = precision(s)
+    pr = kmax <= m ÷ 2 ? ps : min(m, ps)
+    S(a, pr)
 end
 
 """
