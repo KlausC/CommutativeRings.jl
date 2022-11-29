@@ -41,7 +41,8 @@ export minimal_polynomial
 export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 export mfactor, killmemo!, memoize
 
-import Base: +, -, *, /, inv, ^, \, //, ==, hash, getindex, sign, log, isfinite, adjoint
+import Base: +, -, *, /, inv, ^, \, //, ==, hash, isapprox
+import Base: getindex, sign, log, isfinite, adjoint
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime

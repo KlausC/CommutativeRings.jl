@@ -53,7 +53,7 @@ for op in (
         ($op)(a::Union{Integer,Rational}, b::Ring) = ($op)(promote(a, b)...)
     end
 end
-for op in (:+, :-, :*, :/, :\, :(==))
+for op in (:+, :-, :*, :/, :\, :isapprox)
     @eval begin
         ($op)(a::Union{QQ,ZZ}, b::AbstractFloat) = ($op)(promote(a, b)...)
         ($op)(a::AbstractFloat, b::Union{QQ,ZZ}) = ($op)(promote(a, b)...)
