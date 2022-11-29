@@ -3,6 +3,8 @@ module FracTest
 using Test
 using CommutativeRings
 
+import CommutativeRings.mult_by_monom
+
 @testset "construction" begin
     P = UnivariatePolynomial{ZZ{Int},:x}
     p = P([1, -2])
@@ -96,6 +98,9 @@ end
 
     @test abs(pa(1.0) - exp(1.0)) < 1e-7
     @test abs(pa(1.0) - p(1.0)) < 1e-10
+
+    sh = 1000000
+    @test mult_by_monom(pade(p), sh) == pade(p * x^sh)
 end
 
 end # module

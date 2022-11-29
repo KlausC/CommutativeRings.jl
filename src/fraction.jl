@@ -9,6 +9,29 @@ basetype(::Type{<:Frac{T}}) where T = T
 
 copy(a::Frac) = typeof(a)(a.num, a.den, NOCHECK)
 
+"""
+    mult_by_monom(p, k)
+
+Return a new fraction of polynomials, multipled by `x^k`.
+"""
+function mult_by_monom(p::Frac{P}, k::Integer) where {P<:UnivariatePolynomial}
+    k == 0 && return p
+    pnum = p.num
+    pden = p.den
+    ordn = ord(pnum)
+    ordd = ord(pden)
+    sumord = ordn - ordd + k
+    newn = max(sumord, ordn)
+    newd = max(-sumord, ordd)
+    if newn != ordn
+        pnum = mult_by_monom(pnum, newn - ordn)
+    end
+    if newd != ordd
+        pden = mult_by_monom(pden, newd - ordd)
+    end
+    Frac{P}(pnum, pden, NOCHECK)
+end
+
 numerator(a::FractionRing) = a.num
 denominator(a::FractionRing) = a.den
 deg(a::Frac{<:Polynomial}) = (deg(a.num), deg(a.den))
@@ -137,13 +160,37 @@ Calculate Padé approximation of order `m / n` for polynomial or series `p`.
 If `deg(p)` is greater than `m + n`, the higher terms of `p` are ignored.
 
 The Padé approximant is a rational function `R(x) = P(x) / Q(x)` with polynomials
-with `deg(P) ≤ m`, `deg(Q) ≤ n` and `Q(0) = 1`.
+with `deg(P) ≤ m + ord(p)`, `deg(Q) ≤ n` and `Q(0) = 1`.
 
 It is defined by the coincidence of the derivatives of `p` and `R` of degrees less than
-or equal `m + n` at `0`.
+or equal `m + n + ord(p)` at `0`.
+
+If `m` or `n` are not given, in the case of univariate polynomials, appropriate default
+values are provided.
 """
-pade(p::PowerSeries, m, n) = pade(p.poly, m, n)
-function pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,FSeries}
+pade(p::PowerSeries, m::Integer=-1, n::Integer=-1) = pade(p.poly, m, n)
+pade(p::FSeries, m::Integer, n::Integer) = _pade(p.poly, m, n)
+
+function pade(p::P, m::Integer=-1, n::Integer=-1) where P<:UnivariatePolynomial
+    sh = ord(p)
+    if sh != 0
+        p = mult_by_monom(p, -sh)
+    end
+    mn = deg(p) # >= 0 by the shift
+    if m < 0
+        m = (mn + 1) ÷ 2
+    end
+    if n < 0
+        n = mn - m
+    end
+    m < 0 && throw(ArgumentError("numerator degree must be $sh at least"))
+
+    f = _pade(p, m, n)
+
+    return sh == 0 ? f : mult_by_monom(f, sh)
+end
+
+function _pade(s::S, m::Integer, n::Integer) where S<:Union{UnivariatePolynomial,FSeries}
     (m >= 0 && n >= 0) || throw(
         ArgumentError("numerator and denumerator degrees must not be negative ($m, $n)"),
     )

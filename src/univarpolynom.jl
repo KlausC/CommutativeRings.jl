@@ -165,6 +165,13 @@ UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff), ord(p))
 
 """
+    mult_by_monom(p, k)
+
+Return a new polynomial with the same coefficient vector, and `ord` increased by `k`.
+"""
+mult_by_monom(p::UnivariatePolynomial, k::Integer) = typeof(p)(p.coeff, ord(p) + k)
+
+"""
     coeffs(p::UnivariatePolynomial)
 
 Return vector of length `deg(p)+1` with all coefficients of polynomial.
@@ -308,6 +315,7 @@ Return vector of variable exponents of the leading monomial of `p`.
 """
 multideg(p::UnivariatePolynomial) = [deg(p)]
 
+# scalar multiplication of part of vector
 function smul!(v::Vector{S}, r, m::S) where S
     for i in r
         v[i] *= m
