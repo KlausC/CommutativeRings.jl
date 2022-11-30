@@ -60,7 +60,10 @@ zero(::Type{S}) where {S<:PowerSeries} = S(zero(basetype(S)))
 iszero(s::PowerSeries) = iszero(s.poly)
 one(::Type{S}) where {S<:PowerSeries} = S(one(basetype(S)))
 isunit(s::PowerSeries) = !iszero(s)
-==(s::S, t::S) where S<:PowerSeries = s.poly == t.poly
+function ==(s::S, t::S) where S<:PowerSeries
+    precision(s) == precision(t) == InfPrecision && s.poly == t.poly
+end
+isapprox(s::PowerSeries, t::PowerSeries) = s.poly == t.poly
 
 monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 CC(s::PowerSeries) = CC(s.poly)
