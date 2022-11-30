@@ -308,46 +308,6 @@ end
     @test q / (x + ofindex(28, G)) |> deg == 2
 end
 
-x = monom(ZZ{BigInt}[:x])
-@testset "resultant($a,$b)" for (a, b, c) in (
-    (0, 0, 0),
-    (0, 1, 0),
-    (0, x, 0),
-    (3, 0, 0),
-    (3, 2, 1),
-    (3, x, 3),
-    (3, 5x^2 + 1, 3^2),
-    (7, 5x^7 - 1, 7^7),
-    (2x^32 + 1, 3 * x^11 + 13, 906811932214969750127235270540901107329),
-    (2x^31 + 1, 3x^11 + 1, -617673396281899),
-)
-
-    @test resultant(a, b) == c
-    @test resultant(b, a) == c * (-1)^(deg(a) * deg(b) + 2)
-    @test resultant(11a, 13b) == (a * b == 0 ? 0 : c * big(11)^deg(b) * big(13)^deg(a))
-
-    ref = CommutativeRings.resultant_naive
-    @test a * b == 0 || ref(a * x^0, b * x^0) == c
-    @test a * b == 0 || ref(b * x^0, a * x^0) == c * (-1)^(deg(a) * deg(b) + 2)
-end
-
-import CommutativeRings: det_DJB, det_QR, det_Bird, det_MV
-
-Z = ZZ / (2^2 * 3 * 5)
-@testset "determinant division free $i" for (i, a) in enumerate((
-    [2 3 5; 3 3 2; 10 2 3],
-    [2 3 3 4; 4 0 4 2; 2 3 0 4; 3 3 4 2],
-    [-6 4 -11 9; -2 21 -16 25; 21 2 24 -25; 24 -23 2 2],
-))
-
-    A = Z.(a)
-    res = det_Bird(A)
-    @test res isa Z
-    @test_throws AssertionError("category_trait(D) <: IntegralDomainTrait") det_DJB(A)
-    @test det_QR(A) == res
-    @test det_MV(A) == res
-end
-
 @testset "primpart and content" begin
     x = monom(ZZ{Int}[:x])
     p = 12x^3 + 3x
@@ -360,12 +320,6 @@ end
     @test content(p) == 3 // 5
     @test primpart(p) == p // content(p)
     @test content_primpart(p) == (content(p), primpart(p))
-end
-
-@testset "discriminant" begin
-    x = monom(ZZ{BigInt}[:x])
-    @test discriminant(5x^2 + 10x + 2) == 60
-    @test discriminant(3x^3 + x^2 + 4x + 10) == -22932
 end
 
 @testset "reverse" begin

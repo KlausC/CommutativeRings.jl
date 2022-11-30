@@ -53,7 +53,7 @@ end
     p = x^5 + 1
     Q = P / p
     @test rand(Q) isa Q
-    @test deg(value(rand(Q))) == deg(p) - 1
+    @test deg(value(rand(Q))) <= deg(p) - 1
 end
 
 end # module
