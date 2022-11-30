@@ -43,6 +43,7 @@ end
     @test t(t) isa S
     @test (x^2)(t) ≈ t * t
     @test t(1) == t.poly(1)
+    @test precision(t(x)) == precision(t)
 end
 
 @testset "arithmetic operations" begin
@@ -113,6 +114,9 @@ end
     @test sx^-3 * O(x^10) != O(x^7)
     @test zero(x) + O(x^12) isa PowerSeries{-1}
     @test precision(sx * 0) == precision(sx)
+    @test O(x^12) ≈ 0
+    @test 0 ≈ O(x^12)
+    @test O(x^12) != 0
 end
 
 @testset "sqrt" begin

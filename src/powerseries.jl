@@ -64,6 +64,11 @@ function ==(s::S, t::S) where S<:PowerSeries
     precision(s) == precision(t) == InfPrecision && s.poly == t.poly
 end
 isapprox(s::PowerSeries, t::PowerSeries) = s.poly == t.poly
+function isapprox(s::P, r::R) where {P<:PowerSeries,R<:RingInt}
+    B = basetype(P)
+    promote_type(B, R) == B && B(r) == s.poly
+end
+isapprox(r::R, s::P) where {P<:PowerSeries,R<:RingInt} = isapprox(s, r)
 
 monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 CC(s::PowerSeries) = CC(s.poly)
@@ -76,7 +81,13 @@ function evaluate(p::UnivariatePolynomial, tq::S) where S<:PowerSeries
     s, rt = splitpoly!(p(tq.poly), precision(S), precision(tq))
     S(s, rt)
 end
-evaluate(p::PowerSeries, tq::S) where S = evaluate(p.poly, tq)
+function evaluate(p::PowerSeries, tq::S) where S
+    r = evaluate(p.poly, tq)
+    if r isa PowerSeries && precision(r) == InfPrecision
+        r = typeof(r)(r.poly, min(precision(p), precision(tq)))
+    end
+    r
+end
 
 (p::PowerSeries)(a, b...) = evaluate(p, a, b...)
 
