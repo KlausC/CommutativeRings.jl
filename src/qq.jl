@@ -42,6 +42,10 @@ function QQ(a::S, b::T) where {S<:Integer,T<:Integer}
     QQ{R}(R(a), R(b))
 end
 QQ(num::T, den::T) where T = QQ{T}(num, den)
+function QQ(num::ZZ, den::ZZ)
+    num, den = promote(num, den)
+    QQ(value(num), value(den))
+end
 Base.Rational(a::QQ{T}) where T = Rational(a.num, a.den)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
 Base.float(a::QQ) = float(Rational(a))

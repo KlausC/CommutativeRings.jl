@@ -7,8 +7,9 @@ import CommutativeRings.mult_by_monom
 
 @testset "construction" begin
     P = UnivariatePolynomial{ZZ{Int},:x}
-    p = P([1, -2])
-    q = P([1, -1])
+    x = monom(P)
+    p = 1 - 2x
+    q = 1 - x
     pq = Frac(p, q)
     F = Frac{P}
     @test basetype(F) == P
@@ -48,9 +49,11 @@ import CommutativeRings.mult_by_monom
 
     @test sprint(show, F(p)) == "-2*x + 1"
     @test sprint(show, pq) == "(2*x - 1) // (x - 1)"
+    @test sprint(show, x // q) == "-x // (x - 1)"
 
     Q = Frac(ZZ{Int})
-    @test sprint(show, Q(12, 8)) == "(3) // (2)"
+    @test Q(1, 1) isa QQ{Int}
+    @test sprint(show, Q(12, 8)) == "3/2"
 
 end
 
