@@ -92,8 +92,10 @@ promote_rule(
     ::Type{UnivariatePolynomial{R,X}},
     ::Type{UnivariatePolynomial{S,X}},
 ) where {X,R,S} = UnivariatePolynomial{promote_type(R, S),X}
-_promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring} =
-    UnivariatePolynomial{promote_type(R, S),X}
+function _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring}
+    U = promote_type(R,S)
+    U <: Ring ? UnivariatePolynomial{U,X} : Base.Bottom
+end
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} =
     UnivariatePolynomial{promote_type(R, S),X}
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} =

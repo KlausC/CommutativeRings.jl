@@ -38,6 +38,8 @@ deg(a::Frac{<:Polynomial}) = (deg(a.num), deg(a.den))
 
 issimpler(a::T, b::T) where T<:Frac = issimpler(a.num, b.num)
 
+convert(::Type{Frac{T}}, a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
+
 Frac{T}(a::Frac{T}) where T = a
 Frac{T}(a::Frac{S}) where {T,S} = Frac{T}(T(a.num), T(a.den), NOCHECK)
 
@@ -48,6 +50,31 @@ Frac(a::T) where T<:Ring = Frac{T}(a)
 Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
 Frac(a::Rational{T}) where T<:Integer = Frac{ZZ{T}}(a)
 Frac{T}(a::Integer, b::Integer) where T = Frac(T(a), T(b))
+function Frac(a::T, b::T) where T<:UnivariatePolynomial
+    sh = ord(a) - ord(b)
+    a = mult_by_monom(a, -ord(a))
+    b = mult_by_monom(b, -ord(b))
+    cab = content(a) // content(b)
+    a = primpart(a)
+    b = primpart(b)
+    g = pgcd(a, b)
+    a /= g
+    b /= g
+    a *= numerator(cab)
+    b *= denominator(cab)
+    g = pgcd(a, b)
+    a /= g
+    b /= g
+    s = lcunit(b)
+    b /= s
+    a /= s
+    if sh > 0
+        a = mult_by_monom(a, sh)
+    elseif sh < 0
+        b = mult_by_monom(b, -sh)
+    end
+    Frac{typeof(a)}(a, b, NOCHECK)
+end
 function Frac(a::T, b::T) where T<:Polynomial
     cab = content(a) // content(b)
     a = primpart(a)
@@ -65,22 +92,18 @@ function Frac(a::T, b::T) where T<:Polynomial
     a /= s
     Frac{typeof(a)}(a, b, NOCHECK)
 end
-function Frac(a::T, b::T) where T<:ZZ
-    g = pgcd(a, b)
-    a /= g
-    b /= g
-    s = lcunit(b)
-    b /= s
-    a /= s
-    Frac{T}(a, b, NOCHECK)
-end
+Frac(a::T, b::T) where T<:ZZ = QQ(a, b)
+
 //(a::T, b::T) where T<:QQ = a / b
 //(a::T, b::T) where T<:Ring = Frac(a, b)
 //(a::T, b::T) where T<:FractionRing = (a.num * b.den) // (b.num * a.den)
 Frac{T}(a, b) where T = Frac(T(a), T(b))
 
 _promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S, T)}
-_promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T} = Frac{promote_type(S, T)}
+function _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T}
+    R = promote_type(S, T)
+    R <: Union{Polynomial, ZZ} ? Frac{R} : R
+end
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S, T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
     Frac{promote_type(S, T)}
@@ -249,6 +272,16 @@ function show(io::IO, a::Frac)
     if isone(a.den)
         show(io, a.num)
     else
-        print(io, '(', a.num, ") // (", a.den, ')') # \u2044 or \u29f8
+        snum = enparen(sprint(show, a.num))
+        sden = enparen(sprint(show, a.den))
+        print(io, snum, " // ", sden) # \u2044 or \u29f8
+    end
+end
+
+function enparen(s::String)
+    if findfirst(∈("*/+^"), s) !== nothing || ∈('-', SubString(s, 2:length(s)))
+        "(" * s * ")"
+    else
+        s
     end
 end

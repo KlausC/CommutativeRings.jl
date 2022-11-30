@@ -6,7 +6,7 @@ category_trait(::Type{<:Number}) = IntegralDomainTrait
 function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
     dts = depth(T) - depth(S)
     if dts < 0
-        promote_rule(S, T)
+        Base.Bottom
     elseif dts > 0
         B = basetype(T)
         if B == S
