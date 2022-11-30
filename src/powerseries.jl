@@ -64,11 +64,11 @@ function ==(s::S, t::S) where S<:PowerSeries
     precision(s) == precision(t) == InfPrecision && s.poly == t.poly
 end
 isapprox(s::PowerSeries, t::PowerSeries) = s.poly == t.poly
-function isapprox(s::P, r::R) where {P<:PowerSeries,R<:RingInt}
+function isapprox(s::P, r::R) where {P<:PowerSeries,R<:Union{RingInt,Rational}}
     B = basetype(P)
     promote_type(B, R) == B && B(r) == s.poly
 end
-isapprox(r::R, s::P) where {P<:PowerSeries,R<:RingInt} = isapprox(s, r)
+isapprox(r::R, s::P) where {P<:PowerSeries,R<:Union{RingInt,Rational}} = isapprox(s, r)
 
 monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 CC(s::PowerSeries) = CC(s.poly)

@@ -23,7 +23,7 @@ end
 end
 
 @testset "versine" begin
-    @test cos(x) == 1 - ver(x)
+    @test cos(x) ≈ 1 - ver(x)
 end
 
 @testset "log and pade" begin
@@ -35,7 +35,7 @@ end
 
 @testset "Li Ei" begin
     lg = log1p(z)
-    @test lin1pe(lg) == lin1p(z)
+    @test lin1pe(lg) ≈ lin1p(z)
     @test Li(z, 2)(1) == 17299975731542641 // 10838475198270720
 end
 

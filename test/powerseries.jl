@@ -115,7 +115,7 @@ end
     @test zero(x) + O(x^12) isa PowerSeries{-1}
     @test precision(sx * 0) == precision(sx)
     @test O(x^12) ≈ 0
-    @test 0 ≈ O(x^12)
+    @test 0 // 1 ≈ O(x^12)
     @test O(x^12) != 0
 end
 
