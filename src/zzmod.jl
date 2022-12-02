@@ -32,7 +32,9 @@ copy(p::ZZmod) = typeof(p)(p.val)
 
 #promotion and conversion
 function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
-    if modulus(ZT) == modulus(ZS)
+    mzt = modulus(ZT)
+    mzs = modulus(ZS)
+    if mzt == mzs
         R = promote_type(T, S)
         if m == n
             ZZmod{promote(n, m)[1],R}
@@ -42,7 +44,8 @@ function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S
             ZZmod{m,R}
         end
     else
-        Union{}
+        mn = gcd(m,n)
+        ZZmod(mn, mintype_for(mn, 1, false))
     end
 end
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}

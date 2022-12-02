@@ -20,7 +20,7 @@ tm(::Type{BigInt}) = big"1000000000000000000000000000000000067"
     @test lcunit(ZZmod{14,Int}(7)) == 1
     @test ZZmod{13,Int}(ZZ(8)) == ZZ13(8)
     @test ZZ13(1) + ZZ13(Int8(12)) == 0
-    @test_throws MethodError ZZmod{13,Int}(1) - ZZmod{14,Int}(1)
+    @test ZZmod{13,Int}(1) - ZZmod{14,Int}(1) == 0
     ZZp = ZZ(Int) / 13
     @test ZZmod{13,Int}(1) + ZZp(12) == 0
     @test typeof(ZZmod{13,Int}(1) + ZZp(1)) == ZZp
@@ -146,6 +146,12 @@ end
     @test CommutativeRings._unsigned(Int) == UInt
     @test CommutativeRings._unsigned(BigInt) == BigInt
     @test CommutativeRings._unsigned(big"-1") == big"-1"
+end
+
+@testset "promotion moduli" begin
+    a = (ZZ / 12)(5)
+    b = (ZZ / 21)(3)
+    @test a + b isa ZZ / 3
 end
 
 end #module
