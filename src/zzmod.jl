@@ -31,7 +31,7 @@ ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
 copy(p::ZZmod) = typeof(p)(p.val)
 
 #promotion and conversion
-function _promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
+function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S}
     if modulus(ZT) == modulus(ZS)
         R = promote_type(T, S)
         if m == n

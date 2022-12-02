@@ -20,7 +20,8 @@ import CommutativeRings.mult_by_monom
     @test F(pq) === pq
     @test Frac(p) == p
     P2 = UnivariatePolynomial{ZZ{Int8},:x}
-    pq2 = P2([1, -2]) // P2([1, -1])
+    z = monom(P2)
+    pq2 = (1 - 2z) // (1 - z)
     @test F(pq2) == pq
     @test F(13) == F(13, 1)
     @test F(ZZ(11)) == F(ZZ(22), ZZ(2))

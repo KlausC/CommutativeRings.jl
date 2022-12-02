@@ -206,9 +206,9 @@ end
 @testset "pseudo gcd" begin
     S = ZZ{BigInt}
     P = UnivariatePolynomial{S,:x}
-    p = P([1, 4, 5, 1, 6, 0, 3])
-    q = P([5, 1, 1, 3])
-    x = P([0, 1])
+    x = monom(P)
+    p = 1 + 4x + 5x^2 + x^3 + 6x^4 + 3x^6
+    q = 5 + x + x^2 + 3x^3
     @test content(2p) == S(2)
     @test primpart(12p) == p
     @test LC(p) == S(3)
@@ -237,7 +237,7 @@ end
 
     S = ZZmod{31,Int}
     P = UnivariatePolynomial{S,:x}
-    x = P([0, 1])
+    x = monom(P)
     p = x^3 + 3x^2 - 4
     q = 4 - (-x)
     g, u, v, f = pgcdx(p, q)
@@ -250,11 +250,11 @@ end
     g, u, v, f = pgcdx(p, q)
     @test iszero(p * u + q * v - g * f)
 
-    qq = [q, P([2, 1])]
+    qq = [q, 2 + x]
     a, r = divremv(p, qq)
     @test sum(a .* qq) + r == p
 
-    x = UnivariatePolynomial{ZZ{Int},:x}([0, 1])
+    x = monom(UnivariatePolynomial{ZZ{Int},:x})
     @test CommutativeRings.invert(x, x^2 + 1) == -x
     @test_throws DomainError CommutativeRings.invert(x + 1, x^2 + 1)
 

@@ -99,8 +99,8 @@ Frac(a::T, b::T) where T<:ZZ = QQ(a, b)
 //(a::T, b::T) where T<:FractionRing = (a.num * b.den) // (b.num * a.den)
 Frac{T}(a, b) where T = Frac(T(a), T(b))
 
-_promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S, T)}
-function _promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T}
+promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S, T)}
+function promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T}
     R = promote_type(S, T)
     R <: Union{Polynomial, ZZ} ? Frac{R} : R
 end

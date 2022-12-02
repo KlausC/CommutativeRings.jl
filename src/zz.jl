@@ -14,10 +14,11 @@ value(a::ZZ) = a.val
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ(a::T) where T<:Integer = ZZ{T}(a)
 ZZ{T}(a::ZZ) where T = ZZ{T}(T(a.val))
+ZZ(a::ZZ{T}) where T = copy(a)
 
 # promotion and conversion
-_promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S, T)}
-_promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}
+promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S, T)}
+promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}
 promote_rule(::Type{ZZ{T}}, ::Type{S}) where {S<:Integer,T} = ZZ{promote_type(S, T)}
 promote_rule(::Type{ZZ{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
     QQ{promote_type(S, T)}
