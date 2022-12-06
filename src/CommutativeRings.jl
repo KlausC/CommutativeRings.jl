@@ -21,6 +21,7 @@ export resultant, discriminant, signed_subresultant_polynomials, sylvester_matri
 export basetype, basetypes, depth, iszerodiv
 export monom, ismonom, ismonic, issimpler, iscoprime
 export evaluate, derive, pade, pade_normal!
+export mapping, domain, codomain
 export isirreducible, irreducible, irreducibles
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order

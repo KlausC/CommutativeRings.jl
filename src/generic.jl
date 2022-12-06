@@ -334,7 +334,13 @@ isprime(a::R) where R<:Ring = _isprime(a, category_trait(R))
 _isprime(a::Ring, ::Type{<:GCDDomainTrait}) = isirreducible(a)
 
 # apply homomorphism
-(h::Hom{F,R,S})(a::R) where {F,R,S} = h.f(a)::S
+(h::Hom{F,R,S})(a::RingInt) where {F,R,S} = h.f(convert(R, a))::S
+
+# homomorphism generics
+mapping(h::Hom) = h.f
+domain(::Hom{F,R,S}) where {F,R,S} = R
+codomain(::Hom{F,R,S}) where {F,R,S} = S
+evaluate(h::Hom{F,R,S}, a::RingInt) where {F,R,S} = h(a)
 
 divrem2(a::T, b::T) where T = divrem(a, b)
 rem2(a::T, b::T) where T = divrem2(a, b)[2]

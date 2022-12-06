@@ -209,13 +209,19 @@ struct Ideal{R<:Ring}
 end
 
 """
-    Hom{function,R,R'}
+    Hom{function,R,S}
 
-Represent a ring homomorphism `function:R -> R'`.
+Represent a ring homomorphism `function:R -> S`.
 """
 struct Hom{F,R<:RingInt,S<:RingInt}
     f::F
-    Hom{R,S}(f::F) where {F<:Union{Function,Type},R,S} = new{F,R,S}(f)
+    function Hom{R,S}(f::F) where {F<:Union{Function,Type},R,S}
+        f0 = f(zero(R))
+        f0 isa S && iszero(f0) || throw(ArgumentError("f(R(0)) !== S(0)"))
+        f1 = f(one(R))
+        f1 isa S && isone(f1) || throw(ArgumentError("f(R(1)) !== S(1)"))
+        new{F,R,S}(f)
+    end
 end
 
 """

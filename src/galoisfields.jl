@@ -567,15 +567,15 @@ function monom(::Type{Q}, k::Integer) where {P<:UnivariatePolynomial,Q<:Quotient
 end
 
 """
-    homomorphism(Q, R [,nr=0])
+    homomorphism(R, S [,nr=0])
 
-Return a function `iso: Q -> R`, which describes an homomorphism between two Galois fields
-`Q` and `R` of the same characteristic. If `Q == R` that are the Frobenius automorphisms,
-if `order(Q) == order(R)` isomorphisms, in the case of `order(R) == order(S)^s` with s > 1
+Return a function `iso: R -> S`, which describes an homomorphism between two Galois fields
+`R` and `S` of the same characteristic. If `R == S` that are the Frobenius automorphisms,
+if `order(R) == order(S)` isomorphisms, in the case of `dim(S) == dim(R) * s` with s > 1
 the (injective) monomorphisms.
 
-The optional `nr ∈ 0:r-1` produces all possible monomorphisms (automorphisms) between `Q` and `R`.
-In the automorphism case, `nr = 0` is the identity.co
+The optional `nr ∈ 0:r-1` produces all possible monomorphisms (automorphisms) between `R`
+and `S`. In the automorphism case, `nr = 0` is the identity.
 """
 function homomorphism end
 function homomorphism(f::Function, ::Type{G}, ::Type{H}) where {G,H}
@@ -639,7 +639,12 @@ function homomorphism(iso::Function, nr::Integer = 0)
     _homomorphism(Q, R, N, M1, nr)
 end
 
+@noinline function terror(s...)
+    throw(ArgumentError(string(s...)))
+end
+
 function homomorphism(::Type{Z}, ::Type{H}, nr::Integer = 0) where {Z<:ZZmod,H<:GaloisField}
+    characteristic(Z) == characteristic(H) || terror("different characteristics")
     Hom{Z,H}(x -> H(x))
 end
 
@@ -673,6 +678,10 @@ function _homomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
     quot(x::GaloisField) = Quotient(x)
     iso(a::Q) = R(A.T * quot(a))
     iso
+end
+
+function ==(a::H, b::H) where {F,R<:GaloisField,S<:GaloisField,H<:Hom{F,R,S}}
+    a.f.A == b.f.A && a.f.quot.contents == b.f.quot.contents
 end
 
 """

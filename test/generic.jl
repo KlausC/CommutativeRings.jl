@@ -37,7 +37,24 @@ end
     @test length(basetypes(G)) == depth(G) + 1
 end
 
-@testset "homomorphisms" begin
+@testset "homomorphism generic" begin
+    R = ZZ{BigInt}[:x]
+    x = monom(R)
+    S0 = ZZ{BigInt}[:α]
+    α = monom(S0)
+    S = S0 / (α^2 - 2)
+    f = p::R -> p(S(α))
+    h = Hom{R,S}(f)
+
+    @test mapping(h) == f
+    @test domain(h) == R
+    @test codomain(h) == S
+    @test h(x^2) == 2
+    @test h(x) == α
+    @test h(x^3 + x^2) == 2α + 2
+end
+
+@testset "homomorphisms GF" begin
     R = ZZ / 7
     S = GF(7, 2)
     h = Hom{R,S}(S)
