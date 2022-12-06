@@ -171,6 +171,12 @@ end
     x = monom(P)
     p = (x^50 - 1)^2
     @test prod(mfactor(p)) == p
+
+    # see also test for `cyclotomic`
+    m = 7
+    q = (x^m - 1) / (x - 1)
+    f = [x - 1; q; q(x^m); q(x^m^2)] .=> 1
+    @test mfactor(x^m^3 - 1) == f
 end
 
 end # module

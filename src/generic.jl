@@ -2,34 +2,6 @@
 category_trait(::Type{<:Ring}) = CommutativeRingTrait
 category_trait(::Type{<:Number}) = IntegralDomainTrait
 
-# promotions and conversions
-#=
-function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
-    dts = depth(T) - depth(S)
-    if dts < 0
-        Base.Bottom
-    elseif dts > 0
-        B = basetype(T)
-        if B == S
-            T
-        else
-            promote_rule(B, S) == B ? T : _promote_rule(T, S)
-        end
-    else
-        _promote_rule(T, S)
-    end
-end
-=#
-_promote_rule(::Type, ::Type) = Any
-promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
-promote_rule(::Type{S}, ::Type{R}) where {R<:Ring,S<:Rational} = _promote_rule(R, S)
-function _promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}
-    promote_rule(R, promote_type(basetype(R), S))
-end
-
-promote_rule(::Type{A}, ::Type{<:QQ{B}}) where {A<:AbstractFloat,B} = promote_rule(A, B)
-promote_rule(::Type{A}, ::Type{<:ZZ{B}}) where {A<:AbstractFloat,B} = promote_rule(A, B)
-
 for op in (
     :+,
     :-,
@@ -72,46 +44,12 @@ depth(::Type{R}) where R<:Ring = depth(basetype(R)) + 1
 
 adjoint(a::Ring) = a
 
-convert(::Type{T}, a) where T<:Ring = T(a)
-function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
-    if !(S <: basetype(T)) && depth(T) > depth(S)
-        b = convert(basetype(T), a)
-        convert(T, b)
-    else
-        T(a)
-    end
-end
-
-function convert(::Type{A}, a::Union{ZZ,QQ}) where {A<:AbstractFloat}
-    convert(A, value(a))
-end
-
-function (G::Type{<:Ring})(a::Any)
-    B = basetype(G)
-    # println("G = $G $(isconcretetype(G)) B = $B $(isconcretetype(B))")
-    isconcretetype(B) ? G(convert(B, a)) : throw(MethodError(G, Ref(a)))
-end
-
 @generated function basetypes(a)
     _basetypes(::Type{a}) where a = begin
         b = basetype(a)
         a == b ? [] : [a; _basetypes(b)]
     end
     bt = tuple(_basetypes(a.parameters[1])...)
-    :($bt)
-end
-
-
-_xpromote_rule(::Type{T},::Type{S}) where {T<:Ring,S<:RingInt} = begin
-    #println("promote($T, $S)")
-    depth(T) < depth(S) && return Base.Bottom
-    B = basetype(T)
-    (S <: T || S <: B) ? T : promote_rule(B, S) == B ? T : Base.Bottom
-end
-_xpromote_rule(a::Type, b::Type) = promote_rule(a, b)
-
-@generated function Base.promote_rule(a::Type{<:Ring}, b::Type{<:RingInt})
-    bt = _xpromote_rule(a.parameters[1], b.parameters[1])
     :($bt)
 end
 

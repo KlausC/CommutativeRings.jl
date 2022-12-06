@@ -21,7 +21,7 @@ fac(k::Integer) = factorial(big(k))
 """
     Li(z, n)
 
-Return value of "polylogarithmic" function`Li` of order `n`.
+Return value of "polylogarithmic" function `Li` of order `n`.
 """
 Li(z::PowerSeries, n::Integer) = sum(z^k / k^n for k ∈ 1:p1(z))
 
@@ -37,7 +37,7 @@ We have also
 Ein(z) = sum(-(-1)^k * z^k / (k * fac(k)) for k ∈ 1:p1(z))
 
 """
-    lin1p(z) = lin(1 + z) = Ein(-log(1 + z))
+    lin1p(z) = lin(1 + z) = -Ein(-log(1 + z))
 
 Return "logarithmic integral" normalizing function.
 
@@ -49,7 +49,7 @@ We have:
 lin1p(z) = -Ein(-log1p(z))
 
 """
-    lin1pe(u) = lin1p(expm112(u))
+    lin1pe(u) = lin1p(expm1(u))
 
 Return "logarithmic integral" variant.
 

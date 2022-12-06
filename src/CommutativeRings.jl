@@ -56,6 +56,7 @@ export det, isprime, factor
 
 include("ringtypes.jl")
 include("typevars.jl")
+include("promoteconvert.jl")
 include("generic.jl")
 include("zz.jl")
 include("qq.jl")

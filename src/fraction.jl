@@ -107,8 +107,6 @@ end
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S, T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
     Frac{promote_type(S, T)}
-promote_rule(::Type{Rational{S}}, ::Type{Frac{T}}) where {S<:Integer,T} =
-    Frac{promote_type(S, T)}
 
 lcunit(a::Frac) = inv(lcunit(a.den))
 
