@@ -86,18 +86,17 @@ end
 """
     necklace(q, n)
 
-Return the value of the `necklace polynomial`
+Return the value of the `necklace polynomial` of order `n` at `q`.
 
-Count of irreducible monic polynomials of degree n over Z/q.
+Return count of irreducible monic polynomials of degree `n` over `ZZ/x`.
 """
-necklace(q::Integer, n::Integer) = _necklace(q, n) ÷ n
-necklace(q::Ring, n::Integer) = _necklace(q, n) / n
-function _necklace(q, n::Integer)
+necklace(q::RingInt, n::Integer) = n == 0 ? one(q) : _necklace(q, Int(n))
+@inline function _necklace(q, n::Int)
     f = Primes.factor(n)
     p = collect(keys(f))
     m = length(p)
-    s = 0
-    for x = 0:(2^m-1)
+    s = q^n
+    for x = 1:(2^m-1)
         d = n
         μ = 1
         k = 1
@@ -111,5 +110,5 @@ function _necklace(q, n::Integer)
         end
         s += q^d * μ
     end
-    s
+    div(s, n)
 end

@@ -46,6 +46,8 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
     co = [1, 2, 3]
     @test copy(P(co)) == P(co)
     @test copy(P(co)).coeff !== P(co).coeff
+    @test P(co) == P(co, big(0))
+    @test P(co, 1) == P([0; co])
 
     @test isunit(P([-1]))
     @test isunit(P([1]))
@@ -90,6 +92,8 @@ end
     @test LC(p) == S(3)
     @test LM(p) == x^2
     @test LT(p) == 3 * x^2
+
+    @test P([1], -1) * x == 1
 end
 
 @testset "promotion of types" begin

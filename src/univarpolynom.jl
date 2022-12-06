@@ -106,6 +106,7 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rationa
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{T,X}(v::Vector{S}, g::Integer = 0) where {X,T<:Ring,S<:T}
+    g = Int(g)
     x = Symbol(X)
     ff = findlast(!iszero, v)
     if ff === nothing
