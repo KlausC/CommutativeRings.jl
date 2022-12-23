@@ -78,7 +78,6 @@ include("linearalgebra.jl")
 include("rationalcanonical.jl")
 include("powerseries.jl")
 include("specialseries.jl")
-include("fastpolymul.jl")
 
 using .SpecialPowerSeries
 end # module
