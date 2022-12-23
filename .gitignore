@@ -1,6 +1,6 @@
 *.jl.cov
 *.jl.*.cov
-*.jl.mem
+*.jl.*.mem
 *.so
 deps/deps.jl
 Manifest.toml

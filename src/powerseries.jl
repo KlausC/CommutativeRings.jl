@@ -5,7 +5,7 @@ function PowerSeries{Y}(p::P) where {R,X,P<:UnivariatePolynomial{R,X},Y}
     PowerSeries{Y,R,X}(p)
 end
 function (::Type{S})(p::P) where {Y,R,X,S<:PowerSeries{Y,R,X},P<:UnivariatePolynomial{R,X}}
-    p, rt = splitpoly!(copy(p), precision(S), InfPrecision)
+    p, rt = ps_from_poly!(copy(p), precision(S), InfPrecision)
     S(p, rt)
 end
 function PowerSeries{Y,R,X}(s::PowerSeries{Z,R,X}) where {R,X,Y,Z}
@@ -74,11 +74,11 @@ monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 CC(s::PowerSeries) = CC(s.poly)
 
 function evaluate(p::S, q::UnivariatePolynomial) where S<:PowerSeries
-    s, rt = splitpoly!(p.poly(q), precision(S), precision(p))
+    s, rt = ps_from_poly!(p.poly(q), precision(S), precision(p))
     S(s, rt)
 end
 function evaluate(p::UnivariatePolynomial, tq::S) where S<:PowerSeries
-    s, rt = splitpoly!(p(tq.poly), precision(S), precision(tq))
+    s, rt = ps_from_poly!(p(tq.poly), precision(S), precision(tq))
     S(s, rt)
 end
 function evaluate(p::PowerSeries, tq::S) where S
@@ -97,13 +97,13 @@ end
 function +(p::S, q::S) where {S<:PowerSeries}
     s = +(p.poly, q.poly)
     rt = pdiff(min(absprecision(p), absprecision(q)), ord(s))
-    s, rt = splitpoly!(s, precision(S), rt)
+    s, rt = ps_from_poly!(s, precision(S), rt)
     S(s, rt)
 end
 function -(p::S, q::S) where {S<:PowerSeries}
     s = -(p.poly, q.poly)
     rt = min(absprecision(p), absprecision(q)) - ord(s)
-    s, rt = splitpoly!(s, precision(S), rt)
+    s, rt = ps_from_poly!(s, precision(S), rt)
     S(s, rt)
 end
 function *(tp::S, tq::S) where {S<:PowerSeries}
@@ -126,7 +126,7 @@ function *(tp::S, tq::S) where {S<:PowerSeries}
     rt = min(length(p.coeff) + length(q.coeff) - 2, pr)
     rt = rt < ps ? InfPrecision : rt
     rt = min(pp, pq, rt)
-    s, rt = splitpoly!(s, ps, rt)
+    s, rt = ps_from_poly!(s, ps, rt)
     S(s, rt)
 end
 function /(tp::S, tq::S) where {S<:PowerSeries}
@@ -231,7 +231,7 @@ pade(p::PowerSeries, a...) = pade(p.poly, a...)
 
 # utility functions
 
-function splitpoly!(p::UnivariatePolynomial{R}, mprec::Integer, prec::Integer) where R
+function ps_from_poly!(p::UnivariatePolynomial{R}, mprec::Integer, prec::Integer) where R
     n = length(p.coeff)
     if mprec <= 0
         if n > 0

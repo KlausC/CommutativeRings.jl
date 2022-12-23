@@ -562,8 +562,8 @@ function *(
     mulsized(M, a.val)
 end
 
-function monom(::Type{Q}, k::Integer) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
-    Q(monom(P, k))
+function monom(::Type{Q}, k::Integer, lc = 1) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
+    Q(monom(P, k, lc))
 end
 
 """

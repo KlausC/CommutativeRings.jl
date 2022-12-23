@@ -214,4 +214,28 @@ end
           256 * c^3
 end
 
+
+import CommutativeRings: splitpoly, joinpoly
+
+@testset "split/join poly $var" for var in ([:x, :y, :z], [[:x], [:y], [:z]])
+    S = ZZ{BigInt}
+    P = S[var...]
+    x, y, z = generators(P)
+    p = x^2 + x*y + x + y + z + 1
+    q = splitpoly(p, [:x, :y] =>[:a, :b], [:z])
+    Q = S[:z][:a, :b]
+    @test typeof(q) == Q
+    q = splitpoly(p, [:x, :y] =>[:a, :b], [[:z]])
+    Q = S[[:z]][:a, :b]
+    @test typeof(q) == Q
+    q = splitpoly(p, [:x] => [:a], [:y, :z])
+    Q = S[:y, :z][:a]
+    @test typeof(q) == Q
+    q = splitpoly(p, [:x] => [:a], [:y], [:z] => [:c])
+    Q = S[:c][:y][:a]
+    @test typeof(q) == Q
+    pp = joinpoly(q, [:a, :y])
+    @test typeof(pp) == S[:c][:a, :y]
+end
+
 end # module

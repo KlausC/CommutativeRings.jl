@@ -39,16 +39,29 @@ copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
 # promotion and conversion
 # _promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} =
-    Base.Bottom
+Base.Bottom
 _promote_rule(
     ::Type{MultivariatePolynomial{R,N,X,T,B}},
     ::Type{MultivariatePolynomial{S,N,X,T,B}},
 ) where {X,N,R,S,T,B} = MultivariatePolynomial{promote_type(R, S),N,X,T,B}
+
 _promote_rule(
     ::Type{P},
     ::Type{S},
 ) where {R,N,X,B,T,S<:Ring,P<:MultivariatePolynomial{R,N,X,T,B}} =
     MultivariatePolynomial{promote_type(R, S),N,X,T,B}
+
+function promote_rule(
+    ::Type{P},
+    ::Type{Q},
+) where {R,N,X,T,B,Y,P<:MultivariatePolynomial{R,N,X,T,B},Q<:UnivariatePolynomial{R,Y}}
+
+    if Y ∈ varnames(P)
+        P
+    else
+        Base.Bottom
+    end
+end
 
 function (P::Type{MultivariatePolynomial{R,N,X,T,B}})(
     a::MultivariatePolynomial{S,N,X,T,B},
@@ -117,6 +130,15 @@ deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : Base.sum(multideg(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
+function Base.iterate(x::IterTerms{P}, st = 1) where {P<:MultivariatePolynomial}
+    p = x.p
+    d = length(p.coeff)
+    st > d && return nothing
+    q = monom(P, index2expo(p, st))
+    q.coeff[1] = p.coeff[st]
+    (q, st + 1)
+end
+
 """
     derive(p::MultivariatePolynomial, (d1,...dN))
 
@@ -151,16 +173,16 @@ function derive(p::P, d::NTuple{N,<:Integer}) where {S,N,P<:MultivariatePolynomi
 end
 
 """
-    monom(<:MultivariatePolynomial, expos::Vector{Int})
+    monom(::Type{<:Polynomial}, expos::Vector{Int})
 
-Return monic monomial with given exponents. (`[1,0,...]` corresponds to first variable).
+Return monic monomial with given exponent(s). (`monom(Z[:x.:y],[1,2]) == x * y^2`)
 """
-function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}) where {N,S}
+function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}, lc = 1) where {N,S}
     n = length(xv)
     n == 0 && return zero(P)
     length(xv) != N &&
         throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
-    P([expo2ordblock(P, xv)], [1])
+    P([expo2ordblock(P, xv)], [lc])
 end
 
 """
@@ -197,7 +219,7 @@ function LT(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
 end
 
 function CC(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
-    getindex(p, zeros(Int,N)...)
+    getindex(p, zeros(Int, N)...)
 end
 
 """
@@ -224,6 +246,140 @@ function zero(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
 end
 function one(::Type{<:T}) where {S,T<:MultivariatePolynomial{S}}
     T([zeroindex(T)], S[1])
+end
+
+function splitpoly(p::MultivariatePolynomial, var1, var2, var3...)
+    varn = varsrc.([var2, var3...])
+    q = splitpoly(p, var1, varn)
+    npol(q) = splitpoly(q, var2, var3...)
+    coeff = npol.(q.coeff)
+    newcoeff(q, vardst(var1), coeff)
+end
+
+function newcoeff(q::MultivariatePolynomial, var, c::Vector{S}) where {S}
+    R = S[var...]
+    R(q.ind, c)
+end
+function newcoeff(q::UnivariatePolynomial{T,X}, var, c::Vector{S}) where {S,T,X}
+    R = S[var...]
+    R(q.first, c, NOCHECK)
+end
+
+"""
+    splitpoly(p::MultivariatePolynomial, var1, var2)
+
+Construct a new polynomial with variables `var1` of polynomials with variables `var2`.
+
+The sets of variable names `var1` and `var2` must be disjoint subsets
+of the varnames of `p`.
+"""
+function splitpoly(p::MultivariatePolynomial{T}, var1, var2) where T<:Ring
+    vdq = vardst.(var1)
+    vde = vardst.(var2)
+    vsq = vecsym(varsrc.(var1))
+    vse = vecsym(varsrc.(var2))
+    vp = varnames(p)
+    allunique(Iterators.flatten((vsq, vse))) || throw(ArgumentError("duplicate var names"))
+    Set(vp) == Set(vse) ∪ Set(vsq) || throw(ArgumentError("inconsistent old var names"))
+    allunique(vde) && allunique(vdq) || throw(ArgumentError("new var names not unique"))
+    length(vecsym(vdq)) == length(vsq) || throw(ArgumentError("insufficient vars in var1"))
+    length(vecsym(vde)) == length(vse) || throw(ArgumentError("insufficient vars in var2"))
+
+    E = T[vde...]
+    Q = E[vdq...]
+    _splitpoly(p, E, Q, vse, vsq)
+end
+
+function _splitpoly(
+    p::MultivariatePolynomial{T},
+    ::Type{E},
+    ::Type{Q},
+    ve,
+    vq,
+) where {T<:Ring,E,Q<:MultivariatePolynomial}
+    vp = varnames(p)
+    xe = findin(vp, ve)
+    xq = findin(vp, vq)
+    pq = zero(Q)
+    qind = similar(pq.ind)
+    qcoeff = similar(pq.coeff)
+    pe = zero(E)
+    for i in axes(p.ind, 1)
+        c = p.coeff[i]
+        e = index2expo(p, i)
+        ee = e[xe]
+        eq = e[xq]
+        indq = expo2ordblock(Q, eq)
+        iq = findfirst(isequal(indq), qind)
+        if iq === nothing
+            push!(qind, indq)
+            push!(qcoeff, monom(E, ee) * E(c))
+        else
+            qcoeff[iq] += monom(E, ee) * E(c)
+        end
+    end
+    Q(qind, qcoeff)
+end
+
+function _splitpoly(
+    p::MultivariatePolynomial{T},
+    ::Type{E},
+    ::Type{Q},
+    ve,
+    vq,
+) where {T<:Ring,E,Q<:UnivariatePolynomial}
+    vp = varnames(p)
+    xe = findin(vp, ve)
+    xq = findin(vp, vq)[1]
+    q = zero(Q)
+    for i in axes(p.ind, 1)
+        c = p.coeff[i]
+        e = index2expo(p, i)
+        ee = e[xe]
+        eq = e[xq]
+        q += monom(Q, eq) * (monom(E, ee) * E(c))
+    end
+    q
+end
+
+function findin(all, some)
+    findfirst.(isequal.(some), Ref(all))
+end
+
+varsrc(a::Any) = a
+varsrc(a::Pair) = first(a)
+vardst(a::Any) = a
+vardst(a::Pair) = last(a)
+
+vecsym(a::AbstractVector{<:Symbol}) = a
+vecsym(a::AbstractVector{<:AbstractVector{<:Symbol}}) = vcat(vecsym.(a)...)
+
+"""
+    joinpoly(p::Polynomial{<:Polynomial}, var)
+
+Convert polynomial of polynomials to multivariate polynomial with variables `var`.
+"""
+function joinpoly(p::P, var) where {T,E<:Polynomial{T},P<:Polynomial{E}}
+    Q = T[var...]
+    vp = varnames(P)
+    ve = varnames(E)
+    vq = varnames(Q)
+    isempty(intersect(ve, vp)) || throw(ArgumentError("overlapping var names"))
+    Set(vq) == Set(union(ve, vp)) || throw(ArgumentError("varnames not complete"))
+    xe = findin(vq, [vp; ve])
+    itp = IterTerms(p)
+    r = zero(Q)
+    for tp in itp
+        q = LC(tp)
+        itq = IterTerms(q)
+        ep = multideg(tp)
+        for tq in itq
+            c = LC(tq)
+            eq = multideg(tq)
+            r += monom(Q, [ep; eq][xe], c)
+        end
+    end
+    r
 end
 
 -(p::T) where T<:MultivariatePolynomial = T(p.ind, -p.coeff)
@@ -632,6 +788,34 @@ end
 function isconstterm(p::P, n::Integer) where P<:MultivariatePolynomial
     n < 0 || p.ind[n+1] == zeroindex(P)
 end
+
+"""
+    prototype(::Type{<:Polynomial}, n1, n2)
+
+Return polynomial of given type as sum of monic monomials.
+
+The degree of each variable is limited by `n1`, the total degree by `n2`.
+"""
+function prototype(::Type{P}, n1::Integer = 2, n2::Integer = 0) where P<:Polynomial
+    N = length(varnames(P))
+    s = P(0)
+    n1 = n1 == 0 ? n2 : n1
+    n2 = n2 == 0 ? N * n1 : n2
+    for ex in _exponents(N, 0:n1)
+        if sum(ex) <= n2
+            s += monom(P, ex)
+        end
+    end
+    s
+end
+function _exponents(n::Integer, vals::AbstractVector{<:Integer})
+    if n <= 1
+        ([x] for x in vals)
+    else
+        ([x; y] for x in vals for y in _exponents(n - 1, vals))
+    end
+end
+
 
 divrem(f::P, id::Ideal{P}) where P<:Polynomial = divrem(f, id.base)
 

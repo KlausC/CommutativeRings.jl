@@ -248,3 +248,14 @@ struct FSeries{T,F}
     FSeries{T}(f::F) where {T,F<:Function} = new{T,F}(f)
     FSeries(f::F) where {F<:Function} = FSeries{typeof(f(0))}(f)
 end
+
+"""
+    IterTerms(p::Polynomial)
+
+Return iterator over all non-zero terms of polynomial `p`.
+"""
+struct IterTerms{P<:Polynomial}
+    p::P
+end
+
+Base.IteratorSize(::IterTerms) = Base.SizeUnknown()

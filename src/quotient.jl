@@ -29,7 +29,7 @@ function Quotient{R,I,X,Id}(a::R) where {I,X,R<:Ring,Id}
     Quotient{R,I,X,Id}(v, NOCHECK)
 end
 
-monom(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P))
+monom(::Type{Q}, args...) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P), args...)
 
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)

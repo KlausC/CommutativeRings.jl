@@ -147,13 +147,18 @@ function UnivariatePolynomial{S,X}(p::UnivariatePolynomial{T,Y}) where {X,Y,S,T}
     end
 end
 
-function monom(P::Type{<:UnivariatePolynomial}, xv::AbstractVector{<:Integer})
+function monom(P::Type{<:UnivariatePolynomial}, xv::AbstractVector{<:Integer}, lc = 1)
     length(xv) > 1 && throw(ArgumentError("univariate monom has only one variable"))
-    monom(P, xv...)
+    monom(P, xv..., lc)
 end
 
-function monom(P::Type{<:UnivariatePolynomial{S,X}}, k::Integer = 1) where {S,X}
-    v = [one(S)]
+"""
+    monom(::Type{<:UnivariatePolynomial}, n = 1)
+
+Return monic monomial of degree `n`.
+"""
+function monom(P::Type{<:UnivariatePolynomial{S,X}}, k::Integer = 1, lc = 1) where {S,X}
+    v = [S(lc)]
     P(v, k)
 end
 
@@ -238,6 +243,7 @@ end
 function *(p::T, q::T) where T<:UnivariatePolynomial
     multiply(p, q, deg(p) + deg(q) + 1)
 end
+# multiply up to given precision `m`
 function multiply(p::T, q::T, m::Integer) where T<:UnivariatePolynomial
     vp = p.coeff
     vq = q.coeff
@@ -781,6 +787,16 @@ import Base: adjoint
 adjoint(p::UnivariatePolynomial) = derive(p)
 
 isconstterm(p::UnivariatePolynomial, n::Integer) = n + ord(p) == 0
+
+function Base.iterate(x::IterTerms{P}, st = typemin(Int)) where P<:UnivariatePolynomial
+    p = x.p
+    st = max(st, ord(p))
+    d = deg(p)
+    while st <= d && iszero(p[st])
+        st += 1
+    end
+    st <= d ? (p[st] * monom(P, st), st + 1) : nothing
+end
 
 show(io::IO, p::Polynomial) = _show(io, p, Val(true))
 
