@@ -134,7 +134,7 @@ function /(tp::S, tq::S) where {S<:PowerSeries}
     R = basetype(P)
     p, q = tp.poly, tq.poly
     if iszero(p) && isunit(tq)
-        return S(p, precision(tp) + ord(tp) - ord(tq))
+        return S(p, pdiff(precision(tp), -ord(tp) + ord(tq)))
     end
     b = p.coeff
     a = q.coeff
