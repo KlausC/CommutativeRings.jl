@@ -290,6 +290,6 @@ function Base.show(io::IO, s::PowerSeries{Y,R,X}) where {Y,R,X}
     end
     if haso
         n = precision(s) + ord(s)
-        print(io, n == 1 ? "O(x)" : "O($X^$n)")
+        print(io, n == 1 ? "O($X)" : "O($X^$n)")
     end
 end
