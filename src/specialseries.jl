@@ -3,7 +3,7 @@ module SpecialPowerSeries
 using CommutativeRings
 export bernoulli_number, euler_number
 export Li, Ein, lin1p, lin1pe
-export exp, expm1, log1p, sqrt1p
+export exp, expm1, log1p, sqrt1p, power1p
 export sin, cos, tan, cot, csc, sec, asin, atan, ver
 export sinh, cosh, tanh, coth, csch, sech, asinh, atanh
 
@@ -73,6 +73,20 @@ log1p(z) = sum(-(-z)^k / k for k = 1:p1(z))
     sqrt1p(z) = sqrt(1 + z)
 """
 sqrt1p(z) = sum(-(-1)^k * binomial(2k, k) * (z / 4)^k / (2k - 1) for k = 0:p1(z))
+
+"""
+    power1p(z, p) = (1 + z)^p
+"""
+function power1p(z::PowerSeries, p::QQ)
+    s = one(z)
+    a = s[0]
+    for i = 1:p1(z)
+        a = a * (p - i + 1) / i
+        s += a * z^i
+    end
+    s
+end
+power1p(z::PowerSeries, p) = power1p(z, QQ(p))
 
 sin(z) = sum((-1)^k * z^(2k + 1) / fac(2k + 1) for k ∈ 0:p2(z))
 sinh(z) = sum(z^(2k + 1) / fac(2k + 1) for k ∈ 0:p2(z))
