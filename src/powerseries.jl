@@ -102,7 +102,7 @@ function +(p::S, q::S) where {S<:PowerSeries}
 end
 function -(p::S, q::S) where {S<:PowerSeries}
     s = -(p.poly, q.poly)
-    rt = min(absprecision(p), absprecision(q)) - ord(s)
+    rt = pdiff(min(absprecision(p), absprecision(q)), ord(s))
     s, rt = ps_from_poly!(s, precision(S), rt)
     S(s, rt)
 end
