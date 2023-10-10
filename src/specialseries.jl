@@ -124,26 +124,30 @@ atanh(z) = sum(z^(2k + 1) / (2k + 1) for k ∈ 0:p2(z))
 # global store for Bernoulli numbers
 const BL = Rational{BigInt}[]
 
-function bernoulli_numbers!(b::Vector{Rational{BigInt}}, n::Integer)
+function bernoulli_numbers!(b::Vector{T}, n::Integer) where T<:Rational{BigInt}
+    isodd(n) && return b
+    n0 = n ÷ 2
     m0 = length(b)
-    m0 > n && return b
-    n += 20
-    resize!(b, max(2, n + 1))
-    b[1] = 1
-    b[2] = -1 // 2
-    for m = max(2, m0):n
-        s = zero(b[1])
-        for k = 0:m-1
-            s -= binomial(big(m), big(k)) // (m - k + 1) * b[k+1]
+    m0 > n0 && return b
+    n0 += 50 ÷ (m0 + 10)
+    resize!(b, n0)
+    for m = m0+1:n0
+        s = -one(T) // (2m + 1) + 1 // 2
+        for k = 1:m-1
+            s -= binomial(big(2m), big(2k)) // (2m - 2k + 1) * b[k]
         end
-        b[m+1] = s
+        b[m] = s
     end
     return b
 end
 
 function bernoulli_number(k::Integer)
+    T = eltype(BL)
+    k == 0 && return one(T)
+    k == 1 && return -one(T) / 2
+    isodd(k) && return zero(T)
     b = bernoulli_numbers!(BL, k)
-    b[k+1]
+    b[k÷2]
 end
 
 # global store for Euler numbers
@@ -152,22 +156,15 @@ const EL = BigInt[]
 function euler_numbers!(b::Vector{T}, m::Integer) where T
     m0 = length(b)
     m0 > m && return b
-    m += 20
-    resize!(b, m + 1)
-    b[1] = 1
-    for n = max(m0, 1):m
-        n2 = 2n
+    m += 50 ÷ (m0 + 10)
+    resize!(b, m)
+    m0 == 0 && (b[1] = 1)
+    for n = max(m0, 1):m-1
         s = zero(T)
-        g = -1
-        for l = 1:n2
-            t = zero(T)
-            for q = 0:l
-                t += binomial(big(l), big(q)) * big(2q - l)^n2
-            end
-            s += t * binomial(big(n2), big(l)) // (big(2)^l * (l + 1)) * g
-            g = -g
+        for k = 1:n
+            s -= binomial(big(2n), big(2k-2)) * b[k]
         end
-        b[n+1] = s * (n2 + 1)
+        b[n+1] = s
     end
     b
 end
