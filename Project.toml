@@ -3,7 +3,7 @@ uuid = "a6d4fa9c-9e0b-4795-89f3-f481b7b5e384"
 license = "MIT"
 authors = ["Klaus Crusius <klaus.crusius@web.de>"]
 repo = "https://github.com/KlausC/CommutativeRings.jl"
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

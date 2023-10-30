@@ -1,7 +1,7 @@
 module SpecialPowerSeries
 
 using CommutativeRings
-export bernoulli_number, euler_number
+export B, E, podhammer, stirling1, stirling2
 export Li, Ein, lin1p, lin1pe
 export exp, expm1, log1p, sqrt1p, power1p
 export sin, cos, tan, cot, csc, sec, asin, atan, ver
@@ -162,7 +162,7 @@ function euler_numbers!(b::Vector{T}, m::Integer) where T
     for n = max(m0, 1):m-1
         s = zero(T)
         for k = 1:n
-            s -= binomial(big(2n), big(2k-2)) * b[k]
+            s -= binomial(big(2n), big(2k - 2)) * b[k]
         end
         b[n+1] = s
     end
@@ -174,5 +174,110 @@ function euler_number(k::Integer)
     b = euler_numbers!(EL, (k + 2) ÷ 2)
     b[(k+2)÷2]
 end
+
+"""
+    B(n), B(n, x)
+
+Bernoulli-number and Bernoulli-polynomial
+"""
+function B(m, x)
+    sum(bernoulli_euler_kernel(m, x, n) / (n + 1) for n = big(0):m)
+end
+
+"""
+    E(n), E(n, x)
+
+Euler-number and Euler-polynomial
+"""
+function E(m, x)
+    sum(bernoulli_euler_kernel(m, x, n) / 2^n for n = big(0):m)
+end
+
+function bernoulli_euler_kernel(m, x, n)
+    sum((-1)^k * binomial(n, k) * (x + k)^m for k = 0:n)
+end
+
+"""
+    Podhammer(x, n)
+
+Podhammer symbol. `podhammer(x, 3) = x * (x-1) * (x-2)
+"""
+function podhammer(x, n)
+    prod(x - k for k = 0:n-1; init = one(x))
+end
+
+"""
+    stirling1(n, k)
+
+Stirling numbers of the first kind
+"""
+function stirling1(n::T, k::T) where T<:Integer
+    us = ustirling1(n, k)
+    us < 0 && throw(OverflowError("ustirling($n, $k) overflows"))
+    iseven(n - k) ? us : -us
+end
+function ustirling1(n::T, k::T) where T<:Integer
+    if k == n && n >= 0
+        one(T)
+    elseif k <= 0 || k > n
+        zero(T)
+    elseif k == 1
+        factorial(n - 1)
+    elseif k == n - 1
+        binomial(n, 2)
+    elseif k == n - 2
+        binomial(n, 3) * (3n - 1) ÷ 4
+    elseif k == n - 3
+        binomial(n, 2) * binomial(n, 4)
+    else
+        if 2k <= n
+            b = ones(T, k)
+            for j = 1:n-k
+                b[1] *= j
+                for i = 2:k
+                    b[i] = b[i] * (j + i - 1) + b[i-1]
+                end
+            end
+            b[k]
+        else
+            nk = n - k
+            b = zeros(T, nk)
+            b[1] = 1
+            for i = 2:nk
+                b[i] = b[i-1] * i
+            end
+            for j = 1:k-1
+                b[1] += (j + 1)
+                for i = 2:nk
+                    b[i] += b[i-1] * (i + j)
+                end
+            end
+            b[nk]
+        end
+    end
+end
+stirling1(n, k) = stirling1(promote(n, k)...)
+
+"""
+    stirling2(n, k)
+
+Stirling numbers of the second kind
+"""
+function stirling2(n::T, k::T) where T<:Integer
+    if k == n && n >= 0
+        one(T)
+    elseif k <= 0 || k > n
+        zero(T)
+    elseif k == 1
+        one(T)
+    elseif k == n - 1
+        binomial(n, 2)
+    elseif k == 2
+        2^(n - 1) - 1
+    else
+        sum((-1)^i * i^n * binomial(k, i) for i = 1:k) * (-1)^k ÷ factorial(k)
+    end
+end
+stirling2(n, k) = stirling2(promote(n, k)...)
 
 end # module

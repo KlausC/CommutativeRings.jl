@@ -154,4 +154,7 @@ end
     @test a + b isa ZZ / 3
 end
 
+@testset "generator of ZZmod" begin
+    @test generator(ZZ/100000007) == 5
+end
 end #module
