@@ -1,7 +1,7 @@
 module SpecialPowerSeries
 
 using CommutativeRings
-export B, E, podhammer, stirling1, stirling2
+export B, E, podhammer, stirling1, stirling2, stirling1r, stirling2r
 export Li, Ein, lin1p, lin1pe
 export exp, expm1, log1p, sqrt1p, power1p
 export sin, cos, tan, cot, csc, sec, asin, atan, ver
@@ -198,25 +198,34 @@ function bernoulli_euler_kernel(m, x, n)
 end
 
 """
-    Podhammer(x, n)
+    Podhammer(x, n::Integer)
 
-Podhammer symbol. `podhammer(x, 3) = x * (x-1) * (x-2)
+Podhammer symbol.
+
+Decreasing product: `podhammer(x, 3)  = x * (x-1) * (x-2)`
+
+Increasing product: `podhammer(x, -3) = x * (x+1) * (x+2)`.
 """
 function podhammer(x, n)
+    n1 = n + 1
+    if n1 < 0
+        x = x - n1
+    end
+    n = abs(n)
     prod(x - k for k = 0:n-1; init = one(x))
 end
 
 """
     stirling1(n, k)
 
-Stirling numbers of the first kind
+Stirling numbers of the first kind. See also `stirling1r`.
 """
 function stirling1(n::T, k::T) where T<:Integer
-    us = ustirling1(n, k)
+    us = _stirling1(n, k)
     us < 0 && throw(OverflowError("ustirling($n, $k) overflows"))
     iseven(n - k) ? us : -us
 end
-function ustirling1(n::T, k::T) where T<:Integer
+function _stirling1(n::T, k::T) where T<:Integer
     if k == n && n >= 0
         one(T)
     elseif k <= 0 || k > n
@@ -257,13 +266,19 @@ function ustirling1(n::T, k::T) where T<:Integer
     end
 end
 stirling1(n, k) = stirling1(promote(n, k)...)
+"""
+    stirling1r(n, k)
+
+Unsigned Stirling numbers of first kind. `stirling1r(n, k) = (-1)^(n-k) * stirling1(n, k)`
+"""
+stirling1r(n, k) = _stirling1(promote(n, k)...)
 
 """
     stirling2(n, k)
 
-Stirling numbers of the second kind
+Stirling numbers of the second kind. See also `stirling2r`.
 """
-function stirling2(n::T, k::T) where T<:Integer
+function _stirling2(n::T, k::T) where T<:Integer
     if k == n && n >= 0
         one(T)
     elseif k <= 0 || k > n
@@ -278,6 +293,15 @@ function stirling2(n::T, k::T) where T<:Integer
         sum((-1)^i * i^n * binomial(k, i) for i = 1:k) * (-1)^k ÷ factorial(k)
     end
 end
-stirling2(n, k) = stirling2(promote(n, k)...)
+stirling2(n, k) = _stirling2(promote(n, k)...)
+"""
+    stirling2r(n, k)
+
+Signed Stirling numbers of second kind. `striling2r(n, k) = (-1)^(n-k) * stirling2(n, k)`.
+"""
+function stirling2r(n, k)
+    us = _stirling2(promote(n, k)...)
+    iseven(n - k) ? us : -us
+end
 
 end # module

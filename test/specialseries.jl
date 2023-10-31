@@ -67,6 +67,8 @@ end
 
     @test sum(stirling2(11, k) * podhammer(x, k) for k = 0:11) == x^11
     @test sum(stirling1(11, k) * x^k for k = 0:11) == podhammer(x, 11)
+    @test sum(stirling2r(11, k) * podhammer(x, -k) for k = 0:11) == x^11
+    @test sum(stirling1r(11, k) * x^k for k = 0:11) == podhammer(x, -11)
 
     @test_throws OverflowError stirling1(1000, 500)
     @test_throws OverflowError stirling2(1000, 500)
