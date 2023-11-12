@@ -172,6 +172,9 @@ function isprimitive(g::G) where G<:Ring
     fact = fact_mult_order(G)
     _isprimitive(g, n, fact)
 end
+
+# if `g` is a tuple `(a, m)` calculate modulo `m`
+# @assert fact == factor(n)
 function _isprimitive(g, n::Integer, fact)
     for p in keys(fact)
         isone(pwr(g, n ÷ p)) && return false
