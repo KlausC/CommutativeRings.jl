@@ -10,7 +10,8 @@ export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField, FSeries
 
-export PowerSeries, O, precision, absprecision
+export SpecialPowerSeries, PowerSeries, O, precision, absprecision
+export Conway
 
 export Hom, Ideal
 
@@ -78,6 +79,8 @@ include("linearalgebra.jl")
 include("rationalcanonical.jl")
 include("powerseries.jl")
 include("specialseries.jl")
+include("conway.jl")
 
 using .SpecialPowerSeries
+using .Conway
 end # module

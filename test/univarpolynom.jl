@@ -302,14 +302,16 @@ end
     G = GF(7, 3)
     GX = G[:x]
     x = monom(GX)
-    p = x^3 + ofindex((7*2+1)*7+5, G)x + 1
-    q = x^3 + 1 + ofindex(200,G) * x
+    p = x^3 + ofindex((7 * 2 + 1) * 7 + 4, G) * x + 1
+    r = x + ofindex(28, G)
+    q = (x^2 + ofindex(201, G) * x + 1) * r
     @test isirreducible(p)
     @test factor(q) |> length == 3
     @test deg(p^2) == 6
     @test p * q == q * p
     @test p + q - p == q
-    @test q / (x + ofindex(28, G)) |> deg == 2
+    @test q / r |> deg == 2
+    @test_throws DomainError q / (r + 1)
 end
 
 @testset "primpart and content" begin

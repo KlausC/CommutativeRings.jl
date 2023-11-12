@@ -25,11 +25,12 @@ function GF(n::Integer, k::Integer = 1; mod = nothing, nr = 0, maxord = 2^20)
     f = Primes.factor(n)
     length(f) == 1 || throw(ArgumentError("$n is not p^r with p prime and r >= 1"))
     p, r = f.pe[1]
-    _GF(p, r * k; mod, nr, maxord)
+    _GF(p, r * k, mod, nr, maxord)
 end
-function _GF(p::Integer, r::Integer; nr::Integer = 0, mod = nothing, maxord = 2^20)
-    r == 1 || mod === nothing || throw(ArgumentError("given modulus requires prime base"))
-    mm = intpower(p, mod === nothing ? r : deg(mod)) - 1
+function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
+    modpol = mod isa UnivariatePolynomial
+    r == 1 || !modpol || throw(ArgumentError("given modulus requires prime base"))
+    mm = intpower(p, !modpol ? r : deg(mod)) - 1
     fact = Primes.factor(mm)
     Q = GFImpl(p, r, fact; nr, mod)
     ord = order(Q)
@@ -250,7 +251,8 @@ end
 Return the generator element of this implementation of Galois field.
 """
 function generator(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
-    G(2, NOCHECK)
+    id = min(2, order(G) - 1)
+    G(id, NOCHECK)
 end
 function generator(::Type{G}) where {Id,G<:GaloisField{Id,<:Quotient}}
     G(monom(Quotient(G)))
@@ -362,12 +364,12 @@ function tovalue(::Type{<:GaloisField{Id,V}}, num::Integer) where {Id,V<:Quotien
 end
 
 function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
-    s = 0
     u = a.val
+    s = zero(intpower(p, deg(u)+1))
     for c in reverse(u.coeff)
         s = s * p + c.val
     end
-    s * p^ord(u)
+    s * intpower(p, ord(u))
 end
 
 function toquotient(g::G) where {Id,T<:Integer,Q,G<:GaloisField{Id,T,Q}}
@@ -382,7 +384,7 @@ end
 function toquotient(
     a::Integer,
     ::Type{Q},
-) where {Z,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     ord = order(Q)
@@ -429,34 +431,32 @@ function GFImpl(
 )
     isprime(p) || throw(ArgumentError("base $p must be prime"))
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
-    Z = ZZ / p
-    m == 1 && mod === nothing && return Z
-    P = Z[:α]
-    if mod === nothing
-        fact = factors === nothing ? Primes.factor(intpower(p, m) - 1) : factors
-        mm = prod(fact)
-        x = monom(P)
-        nx = max(nr, 0)
-        # find the next irreducible, for which x is primitive (drop first nr-1)
-        for gen in irreducibles(P, m)
-            if _isprimitive((x, gen), mm, fact)
-                nx == 0 && return P / gen
-                nx -= 1
-            end
+
+    m == 1 && mod === nothing && return ZZ / p
+    if mod === :conway
+        gen = Conway.conway(p, m, :γ)
+        if !ismissing(gen)
+            return typeof(gen) / gen
         end
-        throw(
-            ArgumentError(
-                "no irreducible polynomial of degree $m found with generator p(γ) = γ (nr = $nr)",
-            ),
-        )
-    else
+        mod = nothing
+    end
+
+    if isnothing(mod)
+        poly = Conway.quasi_conway(p, m, :α, nr, factors)
+        return typeof(poly) / poly
+
+    elseif mod isa UnivariatePolynomial
         m == 1 || throw(ArgumentError("given mod requires prime base"))
+        Z = ZZ / p
+        P = Z[:α]
         # do not check if x is primitive here
         gen = P(Z.(mod.coeff), ord(mod))
         if isirreducible(gen)
             return P / gen
         end
-        throw(ArgumentError("given polynomial $gen is not irreducible in $P"))
+        throw(ArgumentError("given polynomial $gen is not irreducible over $Z"))
+    else
+        throw(ArgumentError("modulus '$mod' not supported"))
     end
 end
 
@@ -465,9 +465,9 @@ function Base.show(io::IO, g::G) where G<:GaloisField
     m = dimension(G)
     p = characteristic(G)
     cc = toquotient(g).val
-    print(io, '{', cc[m-1])
+    print(io, '{', cc[m-1].val)
     for k = m-2:-1:0
-        print(io, ':', cc[k])
+        print(io, ':', cc[k].val)
     end
     print(io, '%', p, '}')
 end
@@ -563,7 +563,7 @@ function *(
 end
 
 function monom(::Type{Q}, k::Integer, lc = 1) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
-    Q(monom(P, k, lc))
+    k < dimension(Q) ? Q(monom(P, k, lc)) : lc == 1 ? Q(monom(P))^k : Q(monom(P))^k * lc
 end
 
 """

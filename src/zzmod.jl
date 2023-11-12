@@ -76,7 +76,7 @@ function value(a::ZZmod{X,T}) where {X,T}
     m = modulus(a)
     m1 = m >> 1
     m2 = m - m1
-    v <= m2 ? S(v) : S(v - m2) - S(m1)
+    v < m2 ? S(v) : S(v - m2) - S(m1)
 end
 
 # get type variable
@@ -166,7 +166,7 @@ _unsigned(x::Integer) = unsigned(x)
 function Base.show(io::IO, a::ZZmod)
     v = a.val
     m = modulus(a)
-    if m >= 100 && v > m ÷ 2
+    if m > 10 && v > m ÷ 2
         print(io, '-', signed(m - v), '°')
     else
         print(io, signed(v), '°')

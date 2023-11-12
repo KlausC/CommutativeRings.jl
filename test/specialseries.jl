@@ -3,6 +3,7 @@ module SpecialSeriesTest
 using CommutativeRings
 using CommutativeRings.SpecialPowerSeries
 using Test
+using LinearAlgebra
 
 const Names = names(CommutativeRings.SpecialPowerSeries) ∩ names(Base.Math)
 const Funcs = eval.(Names)

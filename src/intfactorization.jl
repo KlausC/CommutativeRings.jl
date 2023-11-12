@@ -370,7 +370,7 @@ calculate array of bounds `b` with `abs(v[i]) <= b[i+1] for i = 0:m`.
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 20.
 """
 function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Integer,X}
-    I = widen(T)
+    W = widen(T)
     n = deg(u)
     0 <= m <= n || throw(ArgumentError("required m ∈ [0,deg(u)] but $m ∉ [0,$n]"))
     accuracy = 100 # use fixed point decimal arithmetic with accuracy 0.01 for the norm
@@ -379,7 +379,7 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
     iszero(u0) && throw(ArgumentError("required u(0) != 0"))
     rua = norm(value.(u.coeff)) * accuracy
     ua = Integer(ceil(rua))
-    v = zeros(I, m + 1)
+    v = zeros(W, m + 1)
     if m > 0
         v[m+1], v[1] = un, u0
     else
@@ -387,7 +387,7 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
     end
     u0 *= accuracy
     un *= accuracy
-    bk = I(1)
+    bk = W(1)
     for j = m-1:-1:1
         bj = bk
         bk = bk * j ÷ (m - j)

@@ -28,7 +28,7 @@ randmatrix(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
-    @test sprint(show, GFImpl(5, 3)([1, 2, 3])) == "3°*α^2 + 2°*α + 1° mod(α^3 + 3°*α + 2°)"
+    @test sprint(show, GFImpl(5, 3)([1, 2, 3])) == "3°*α^2 + 2°*α + 1° mod(α^3 + 3°*α + 3°)"
 end
 
 @testset "Galois Fields" begin
@@ -104,7 +104,7 @@ end
 
     @test sprint(show, g1) !== nothing
     @test sprint(show, q1) !== nothing
-    @test endswith(sprint(show, generator(G)), r"{(0°:)*1°:0°%[1-9]}")
+    @test endswith(sprint(show, generator(G)), r"{(0:)*1:0%[1-9]}")
 
     @test G(one(ZZ / p)) == one(G)
     @test length(modulus(G).(G)) == length(G)
@@ -116,7 +116,7 @@ end
     @test_throws ArgumentError GF(p, r, nr = 10000000)
 
     @test log(generator(G)^20) == 20
-    @test det(normalmatrix(Q)) == 1
+    @test det(normalmatrix(Q)) != 0
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
@@ -209,6 +209,11 @@ end
     fa = findall(iszero, p.(G))
     vx = ofindex(first(fa)-1, G)
     @test sort(collect(allzeros(p, vx))) == ofindex.(fa .- 1, Ref(G))
+end
+
+@testset "Conway" begin
+    @test GF(67, 18, mod=:conway)(ones(Int, 18)) isa GaloisField
+    @test GF(109987, 2, mod=:conway) <: GaloisField
 end
 
 end #module
