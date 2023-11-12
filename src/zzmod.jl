@@ -76,7 +76,7 @@ function value(a::ZZmod{X,T}) where {X,T}
     m = modulus(a)
     m1 = m >> 1
     m2 = m - m1
-    v < m2 ? S(v) : S(v - m2) - S(m1)
+    v <= m2 ? S(v) : S(v - m2) - S(m1)
 end
 
 # get type variable
