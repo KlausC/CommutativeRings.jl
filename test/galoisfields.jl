@@ -1,11 +1,12 @@
 module GaloisFieldsTest
 
 using CommutativeRings
+using CommutativeRings.Conway
 using Test
 using Random
 using LinearAlgebra
 
-import CommutativeRings: GFImpl
+import CommutativeRings: GFImpl, log_zech, logmonom
 const Polynomial = CommutativeRings.Polynomial
 
 rng = MersenneTwister(1)
@@ -38,11 +39,14 @@ end
     @test GF(625) == GF(5, 4)
 end
 
-@testset "Galois Fields $p^$r (max=$m)" for (p, r) in ((2, 8), (7, 2)), m in (2^20, 20)
+@testset "Galois Fields $p^$r (max=$m, mod=$mod)" for (p, r) in ((2, 8), (7, 2)),
+    m in (2^20, 20),
+    mod in (nothing, :conway)
+
     @test GF(p) == GF(p, 1; maxord = m)
-    @test GF(p, r; maxord = m) <: GaloisField
-    G = GF(p, r; maxord = m)
-    @test Quotient(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p},:α}}
+    @test GF(p, r; maxord = m, mod = mod) <: GaloisField
+    G = GF(p, r; maxord = m, mod = mod)
+    @test Quotient(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p}}}
     Q = Quotient(G)
     P = Polynomial(G)
     @test Q == basetype(G)
@@ -53,7 +57,7 @@ end
     @test dimension(G) == dimension(Q) == r
     @test deg(modulus(G)) == r
 
-    @test ofindex(p^r-1, G) isa G
+    @test ofindex(p^r - 1, G) isa G
     @test G[p^r-1] isa Vector{G}
     @test G[0:p^r-1] isa Vector{G}
 
@@ -99,7 +103,7 @@ end
     @test G(0)^10 == 0
     @test G(0)^0 == 1
     @test G(0)^a == 0
-    @test G(0)^(a-a) == 1
+    @test G(0)^(a - a) == 1
     @test_throws ArgumentError G(0)^-2
 
     @test sprint(show, g1) !== nothing
@@ -115,8 +119,23 @@ end
     @test GF(p, r; nr = 1) !== nothing
     @test_throws ArgumentError GF(p, r, nr = 10000000)
 
+    @test log(G(0)) == -1
+    @test log(one(G)) == 0
+    @test log(generator(G)) == 1
     @test log(generator(G)^20) == 20
     @test det(normalmatrix(Q)) != 0
+
+    g = generator(G)
+    k = 2
+    @test g^log_zech(k, G) == g^k + 1
+
+    @test logmonom(G) == characteristic(G)
+
+    v = ones(Int, r)
+    @test Polynomial(G(v)).coeff == v
+    @test monom(G) == G([0,1])
+
+    @test_throws ArgumentError inv(G(0))
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
@@ -135,10 +154,10 @@ end
 end
 
 @testset "normalbase" begin
-    Z = ZZ/7
+    Z = ZZ / 7
     P = Z[:α]
     x = monom(P)
-    Q = P / ((x+1)*(x+2))
+    Q = P / ((x + 1) * (x + 2))
     @test_throws ArgumentError CommutativeRings.normalbase(Q)
     q = irreducible(P, 6)
     Q = P / q
@@ -207,13 +226,20 @@ end
     p = irreducible(P, 5)
     G = GF(7, 5)
     fa = findall(iszero, p.(G))
-    vx = ofindex(first(fa)-1, G)
+    vx = ofindex(first(fa) - 1, G)
     @test sort(collect(allzeros(p, vx))) == ofindex.(fa .- 1, Ref(G))
 end
 
 @testset "Conway" begin
-    @test GF(67, 18, mod=:conway)(ones(Int, 18)) isa GaloisField
-    @test GF(109987, 2, mod=:conway) <: GaloisField
+    @test GF(67, 18; mod = :conway)(ones(Int, 18)) isa GaloisField
+    @test GF(109987, 2; mod = :conway) <: GaloisField
+
+    @test ismissing(conway(17, 32))
+    poly = conway(17, 30)
+    @test Conway.has_conway_property(poly)
+
+    @test length(Conway.conway_multi(5, 3)) == 10
+    @test Conway.conway_multi(3, 6, nr=1)[1] == conway(3, 6)
 end
 
 end #module

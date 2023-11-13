@@ -61,7 +61,7 @@ The polynomials are scanned in the canonical order for Conway polynomials.
 Variable symbol is `X`. If given, `factors` must be the prime factorization of `m`.
 If `nr > 0` is given, the `nr+1`^st of found polynomials is returned.
 """
-function quasi_conway(p::Integer, m::Integer, X::Symbol = :x, nr = 0, factors = nothing)
+function quasi_conway(p::Integer, m::Integer, X::Symbol = :x; nr = 0, factors = nothing)
     Z = ZZ / p
     P = Z[X]
     fact = factors === nothing ? factor(intpower(p, m) - 1) : factors
@@ -80,6 +80,32 @@ function quasi_conway(p::Integer, m::Integer, X::Symbol = :x, nr = 0, factors = 
     end
     text = "no irreducible polynomial of degree $m found with generator '$X' (nr = $nr)"
     throw(ArgumentError(text))
+end
+
+function conway_multi(p::Integer, m::Integer, X::Symbol = :x; nr = 10^5, factors = nothing)
+    Z = ZZ / p
+    P = Z[X]
+    fact = factors === nothing ? factor(intpower(p, m) - 1) : factors
+    mm = prod(fact)
+    x = monom(P)
+    g = generator(Z)
+    s = (-1)^(m - 1)
+    nx = max(nr, 0)
+    res = []
+    # find the next irreducible, for which x is primitive (drop first nr-1)
+    for poly in Monic(P, m - 1)
+        gen = (poly(-x) * x - g) * s # assuming gen[0] == g * (-1)^m
+        if has_conway_property2(gen, fact) && has_conway_property3(gen)
+            push!(res, gen)
+            nx <= 1 && break
+            nx -= 1
+        end
+    end
+    res
+end
+
+function has_conway_property(p::Polynomial)
+    has_conway_property1(p) && has_conway_property2(p) && has_conway_property3(p)
 end
 
 """
@@ -109,9 +135,10 @@ function has_conway_property2(
     factors = nothing,
 ) where {P,S<:ZZmod{P},T<:UnivariatePolynomial{S}}
     p = P
+    m = deg(poly)
     fact = factors === nothing ? Primes.factor(intpower(p, m) - 1) : factors
     mm = prod(fact)
-    isirreducible(poly) || throw(ArgumentError("polynomial is not irreducible"))
+    isirreducible(poly) || return false
     x = monom(T)
     _isprimitive((x, poly), mm, fact)
 end
