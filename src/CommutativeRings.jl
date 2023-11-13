@@ -26,7 +26,7 @@ export mapping, domain, codomain
 export isirreducible, irreducible, irreducibles
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
-export ofindex, index
+export ofindex
 export generator
 export GF, homomorphism
 export num_primitives, isprimitive
@@ -44,7 +44,7 @@ export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
 export mfactor, killmemo!, memoize
 
 import Base: +, -, *, /, inv, ^, \, //, ==, hash, isapprox
-import Base: getindex, sign, log, isfinite, adjoint
+import Base: getindex, sign, log, sqrt, isfinite, adjoint, length
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
 import Primes: factor, isprime

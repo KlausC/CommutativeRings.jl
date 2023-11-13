@@ -81,6 +81,7 @@ function ofindex(num::Integer, G::Type{<:GaloisField})
     G(tovalue(G, num), NOCHECK)
 end
 
+Base.getindex(::Type{G}, ix::Integer) where G<:GaloisField = ofindex(ix, G)
 Base.firstindex(::Type{G}) where G<:GaloisField = 0
 Base.lastindex(::Type{G}) where G<:GaloisField = order(G) - 1
 Base.collect(::Type{G}) where G<:GaloisField = ofindex.(firstindex(G):lastindex(G), Ref(G))
@@ -98,7 +99,7 @@ function (::Type{G})(q::Q) where {Id,T,Q<:RingInt,G<:GaloisField{Id,T,Q}}
 end
 #(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = ofindex(q.val,G)
 
-Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = quotient(Q, g)
+Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = quotient(g)
 Polynomial(g::G) where G<:GaloisField = Quotient(g).val
 Quotient(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
@@ -107,28 +108,17 @@ monom(::Type{G}) where G<:GaloisField = G(monom(Quotient(G)))
 promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
 _promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q<:QuotientRing} = G
 _promote_rule(
-    G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}},
-    ::Type{Q},
-) where {Id,T,Q} = G
+    G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{B}}}},
+    ::Type{B},
+) where {Id,T,B} = G
 
-function quotient(
-    ::Type{Q},
-    g::G,
-) where {Id,T<:Integer,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
+function quotient(g::G) where {Id,T<:Integer,Q<:Quotient,G<:GaloisField{Id,T,Q}}
     et = gettypevar(G).exptable
     toquotient(et[g.val+1], Q)
 end
-function quotient(
-    ::Type{Q},
-    g::G,
-) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}}
-    g.val
-end
+quotient(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = g.val
 
-(::Type{Q})(
-    g::G,
-) where {Id,T,Z,Q<:Quotient{UnivariatePolynomial{Z,:α}},G<:GaloisField{Id,T,Q}} =
-    quotient(Q, g)
+(::Type{Q})(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = quotient(g)
 
 import Base.Broadcast: broadcastable
 broadcastable(x::Type{<:GaloisField}) = collect(x)
@@ -208,24 +198,43 @@ or `-1` if `g == 0`. For example `log(one(G)) == 0` and `log(generator(G)) == 1`
 function log(a::G) where {Id,G<:GaloisField{Id,<:Integer}}
     a.val - 1
 end
-function log(a::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function log(a::G) where {G<:Ring}
     if iszero(a)
         -1
-    elseif isone(a)
-        0
-    elseif a == generator(G)
-        1
     else
         # calculating the discrete log is an expensive operation in general
-        # which requires special algothimic effort (==> Adleman et. al.)
+        # which requires special algorithmic effort (==> Adleman et. al.)
         # here only a naive implementation
         g = generator(G)
-        b = g^2
-        for e = 2:order(G)-2
+        b = one(a)
+        for e = 0:order(G)-2
             b == a && return e
             b *= g
         end
-        -2
+        throw(DataError("log: $g is not a generator for $a"))
+    end
+end
+
+"""
+    sqrt(z::GaloisField)
+
+Calculate a `x` in the same field with `x ^ 2 == z`.
+
+Throw `DomainError` if no solution exists. With `x`alway `-x` is a solution.
+With characteristic 2, every `z`has a square root`.
+"""
+function Base.sqrt(x::G) where G<:Union{GaloisField,ZZmod}
+    iszero(x) && return x
+    if isodd(characteristic(G))
+        g = generator(G)
+        lo = log(x)
+        if isodd(lo)
+            throw(DomainError(x, "no square root exists in $G"))
+        else
+            g^(lo ÷ 2)
+        end
+    else
+        x^(order(G) ÷ 2)
     end
 end
 
@@ -235,7 +244,7 @@ end
 If `α` is the generator of `G`, for `k >= 0` return the `log(α^k + 1)`, for `k < 0` return `0`.
 In other words: `α ^ log_zech(k, G) == α ^ k + 1` for `k >= 0`.
 """
-function log_zech(k::Integer, G::Type{<:GaloisField})
+function log_zech(k::Integer, ::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
     ord = order(G)
     zt = gettypevar(G).zechtable
     log_zech(k, ord, zt)
@@ -243,6 +252,10 @@ end
 function log_zech(k::Integer, ord::Integer, zt::AbstractVector)
     k < 0 && return 0
     zt[mod(k, ord - 1)+2] - 1
+end
+function log_zech(k::Integer, ::Type{G}) where {Id,G<:GaloisField{Id,<:Quotient}}
+    g = generator(G)
+    log(g^k + 1)
 end
 
 """
@@ -264,6 +277,8 @@ end
 Return numeric representation of generator (in range `0:order(G)-1`). Ideally `== characteristic(G)`.
 """
 logmonom(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}} = Id[4]
+logmonom(::Type{G}) where {G<:GaloisField} =
+    tonumber(Quotient(generator(G)), characteristic(G))
 
 division_error() = throw(ArgumentError("cannot invert zero"))
 
@@ -365,7 +380,7 @@ end
 
 function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
     u = a.val
-    s = zero(intpower(p, deg(u)+1))
+    s = zero(intpower(p, deg(u) + 1))
     for c in reverse(u.coeff)
         s = s * p + c.val
     end
@@ -442,7 +457,7 @@ function GFImpl(
     end
 
     if isnothing(mod)
-        poly = Conway.quasi_conway(p, m, :α, nr, factors)
+        poly = Conway.quasi_conway(p, m, :α; nr, factors)
         return typeof(poly) / poly
 
     elseif mod isa UnivariatePolynomial
@@ -488,7 +503,7 @@ base of `Q` as a vector space over `ZZ/p` (a normal base).
 function normalmatrix(
     a::Q,
     m::Integer = 0,
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
     m = m <= 0 ? r : m
@@ -511,13 +526,11 @@ Return `normalmatrix(a, m)` for the first `a` in `Q` for which this has maximal 
 function normalmatrix(
     ::Type{Q},
     m::Integer = 0,
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     normalmatrix(normalbase(Q), m)
 end
 
-function normalbases(
-    ::Type{Q},
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function normalbases(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     r = dimension(Q)
     Base.Iterators.filter(x -> rank(normalmatrix(x, r)) == r, Q)
 end
@@ -526,7 +539,7 @@ end
 
 Find the first `a in Q` for which `normalmatrix(a)` is regular.
 """
-function normalbase(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+function normalbase(::Type{Q}) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     bases = normalbases(Q)
     isempty(bases) && nonormalbaseserror(Q)
     first(bases)
