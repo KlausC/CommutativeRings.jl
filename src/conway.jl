@@ -1,6 +1,6 @@
 module Conway
 
-export conway, quasi_conway
+export conway, is_conway, quasi_conway
 
 using Primes
 using ..CommutativeRings
@@ -52,6 +52,16 @@ function conway(p::Integer, n::Integer, X::Symbol = :x)
 end
 
 """
+    isconway(::Type{GaloisField})
+
+Return true, iff the modulus of the field is the standard conway polynomial.
+"""
+function is_conway(::Type{G}) where {G<:Union{GaloisField,Quotient{<:UnivariatePolynomial}}}
+    p = modulus(G)
+    p == conway(characteristic(G), dimension(G), varname(p))
+end
+
+"""
     quasi_conway(p, m, X::Symbol, nr::Integer=1, factors=nothing)
 
 Return the first irreducible polynomial over `ZZ/p` of degree `m`.
@@ -82,6 +92,11 @@ function quasi_conway(p::Integer, m::Integer, X::Symbol = :x; nr = 0, factors = 
     throw(ArgumentError(text))
 end
 
+"""
+    conway_multi(p, m, X=:x; nr=10^5)
+
+Return a list of conway polynomials for `GF(p^m)`, length clipped to `nr.
+"""
 function conway_multi(p::Integer, m::Integer, X::Symbol = :x; nr = 10^5, factors = nothing)
     Z = ZZ / p
     P = Z[X]

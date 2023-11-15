@@ -244,6 +244,11 @@ end
 
     @test length(Conway.conway_multi(5, 3)) == 10
     @test Conway.conway_multi(3, 6; nr = 1)[1] == conway(3, 6)
+
+    c = Conway.conway_multi(19, 4; nr = 2)
+    @test is_conway(GF(19, mod=c[1])) == true
+    @test is_conway(GF(19, mod=c[2])) == false
+    @test is_conway(GF(19, 4, mod=nothing)) == false
 end
 
 @testset "sqrt" begin
