@@ -26,7 +26,7 @@ end
     @test len(T) == r
 end
 
-@testset "ofindex $T degree $n" for (T, n) in ((GF(2)[:z], 3),)
+@testset "ofindex $T degree $n" for (T, n) in ((GF(2)[:z], 3), (GF(2, mod=nothing)[:z], 4))
     @test ofindex(0, T, n) == monom(T, n)
     @test ofindex(1, T, n) == monom(T, n) + 1
     @test ofindex(10, T, n) isa T

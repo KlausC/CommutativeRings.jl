@@ -135,7 +135,7 @@ function len(T::Type{<:FractionRing{S}}, d...) where S
     n = len(S, d...)
     n == 0 ? 0 : (n - 1)^2 + 1
 end
-len(T::Type{UnivariatePolynomial{S}}, d::Integer) where S = intpower(len(S), d)
+len(T::Type{<:UnivariatePolynomial{S}}, d::Integer) where S = intpower(len(S), d)
 len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T) - 1))
 len(T::Type{<:GaloisField}) = order(T)
 
@@ -154,7 +154,7 @@ function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     T(ofindex(t + 1, S), S(ofindex(s + 1, unsigned(S))))
 end
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
-    P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), S); 1])
+    P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), Ref(S)); 1])
 end
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S<:ZZ,P<:UnivariatePolynomial{S}}
     P(hypercube(a, d, EnumPolynomial()))
