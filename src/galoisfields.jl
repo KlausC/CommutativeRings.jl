@@ -2,26 +2,32 @@
 export GF, normalmatrix, allzeros
 
 category_trait(::Type{<:GaloisField}) = FieldTrait
-
 """
-    GF(p, r; mod=nothing, nr=0, maxord=2^20)
+    GaloisField
+
+@see [`GF`](@ref), [`ofindex`](@ref).
+"""
+function GaloisField end
+"""
+    GF(p, r; mod=:conway, nr=0, maxord=2^20)
 
 Create a class of element type `GaloisField` of order `p^r`.
 `p` must be a prime integer and `r` a positive integer.
 
-If `nr != 0` is given, it triggers the search for an alternate modulus
-for the `GFImpl` class.
+The modulus polynomial is looked up or calculated dependant on argument `mod`:
 
-If `mod` is given, that polynomial is used as the modulus.
+- If `mod == nothing`, an irreducible monic primitive polynomial of degree `r` over `ZZ/p`
+    is calculated, which has the constant coefficient `(-1)^r * generator(ZZ/p)`.
+- If `mod == :conway` (default), the compatible Conway polynomial is used if available,
+    otherwise a less restrictive polynomial is calculated as described above.
+- If `mod` is a polynomial, that irreducible monic polynomial is used as the modulus.
 
-`maxord` defines the maximal order, for which logarithm tables are stored.
-Otherwise a representation by quotient space of polynomials over ZZmod{p} is used.
+If `nr != 0` is given, in the case of modulus calculation, the first `nr` solutions are skipped.
 
-Optionally either the modulus polynomial `mod` or an integer search modifier `nr` may be given
-to control the selection of the modulus polynomial.
+`maxord` defines the maximal order, for which logarithm tables are stored to implement the class.
+Otherwise a representation by quotient space of the polynomial over `ZZ/p` is used.
 """
-
-function GF(n::Integer, k::Integer = 1; mod = nothing, nr = 0, maxord = 2^20)
+function GF(n::Integer, k::Integer = 1; mod = :conway, nr = 0, maxord = 2^20)
     f = Primes.factor(n)
     length(f) == 1 || throw(ArgumentError("$n is not p^r with p prime and r >= 1"))
     p, r = f.pe[1]
@@ -76,7 +82,6 @@ all elements of `GF(p, r)` in `0:p^r-1`.
 The numbers `ofindex.(0:p-1,G)` correspond to the base field, and `ofindex(p, G)`
 to the polynomial `x` in the representation of `Q`.
 """
-function GaloisField end
 function ofindex(num::Integer, G::Type{<:GaloisField})
     G(tovalue(G, num), NOCHECK)
 end
@@ -442,7 +447,7 @@ function GFImpl(
     m::Integer = 1,
     factors = nothing;
     nr::Integer = 0,
-    mod = nothing,
+    mod = :conway,
 )
     isprime(p) || throw(ArgumentError("base $p must be prime"))
     m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
@@ -463,7 +468,7 @@ function GFImpl(
     elseif mod isa UnivariatePolynomial
         m == 1 || throw(ArgumentError("given mod requires prime base"))
         Z = ZZ / p
-        P = Z[:α]
+        P = Z[:β]
         # do not check if x is primitive here
         gen = P(Z.(mod.coeff), ord(mod))
         if isirreducible(gen)
@@ -571,7 +576,7 @@ mulsized(M::AbstractMatrix{Z}, a::UnivariatePolynomial{Z}) where Z<:Ring =
 function *(
     M::AbstractMatrix{Z},
     a::Q,
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     mulsized(M, a.val)
 end
 
@@ -597,7 +602,7 @@ end
 function _homomorphism(
     ::Type{Q},
     ::Type{R},
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q<:Quotient{P},R<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P},R<:Quotient{P}}
 
     r = dimension(Q)
     s = dimension(R)
@@ -640,7 +645,7 @@ end
 function _homomorphism(
     ::Type{Z},
     ::Type{R},
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},R<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},R<:Quotient{P}}
     1, 1
 end
 
@@ -674,7 +679,7 @@ function homomorphism(
     ::Type{Q},
     ::Type{R},
     nr::Integer = 0,
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z,:α},Q,R<:Quotient{P}}
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q,R<:Quotient{P}}
     N, M1 = _homomorphism(Q, R)
     _homomorphism(Q, R, N, M1, nr)
 end

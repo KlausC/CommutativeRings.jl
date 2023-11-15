@@ -14,9 +14,10 @@ randmatrix(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
 
 @testset "Galois Fields Implementation" begin
 
-    @test GFImpl(7) <: ZZmod{7}
+    @test GFImpl(7, mod=nothing) <: ZZmod{7}
+    @test GFImpl(7, mod=:conway) <: Quotient{<:UnivariatePolynomial{<:ZZmod{7}}}
     @test GFImpl(3) == GFImpl(3, 1)
-    @test GFImpl(5, 3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5},:α}}
+    @test GFImpl(5, 3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5}}}
 
     G7 = GFImpl(7)
     @test G7(3)^2 == G7(2)
@@ -29,7 +30,10 @@ randmatrix(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
     A = ma53(4, 3, 0) + ma53(4, 3, 1) + ma53(4, 3, 2)
     @test inv(A) * A == I
 
-    @test sprint(show, GFImpl(5, 3)([1, 2, 3])) == "3°*α^2 + 2°*α + 1° mod(α^3 + 3°*α + 3°)"
+    G = GFImpl(5, 3)([1, 2, 3])
+    v = varname(modulus(G))
+    @test v in (:α, :β, :γ)
+    @test sprint(show, G) == "3°*$v^2 + 2°*$v + 1° mod($v^3 + 3°*$v + 3°)"
 end
 
 @testset "Galois Fields" begin
@@ -116,7 +120,7 @@ end
 
     @test num_irreducibles(Polynomial(G), dimension(G)) < order(G)
     @test GF(p, r; nr = 1) !== nothing
-    @test_throws ArgumentError GF(p, r, nr = 10000000)
+    @test_throws ArgumentError GF(p, r, mod=nothing, nr = 10000000)
 
     @test log(G(0)) == -1
     @test log(one(G)) == 0
@@ -246,7 +250,7 @@ end
     G = GF(2, 5)
     @test sqrt(G[0]) == 0
     @test sqrt(G[1]) == 1
-    @test all(sqrt.(G) .^2 .== G)
+    @test all(sqrt.(G) .^ 2 .== G)
 
     G = GF(3, 5)
     @test_throws DomainError sqrt(G[14])
