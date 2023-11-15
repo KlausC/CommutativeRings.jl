@@ -114,7 +114,7 @@ end
     @test endswith(sprint(show, generator(G)), r"{(0:)*1:0%[1-9]}")
 
     @test G(one(ZZ / p)) == one(G)
-    @test length(modulus(G).(G)) == length(G)
+    @test length(modulus(G).(collect(G))) == length(G)
 
     @test value(g1) == value(q1)
 
@@ -228,7 +228,7 @@ end
     P = Z[:x]
     p = irreducible(P, 5)
     G = GF(7, 5)
-    fa = findall(iszero, p.(G))
+    fa = findall(iszero, p.(collect(G)))
     vx = ofindex(first(fa) - 1, G)
     @test G[first(fa)-1] == vx
     @test sort(collect(allzeros(p, vx))) == ofindex.(fa .- 1, Ref(G))
@@ -253,15 +253,17 @@ end
 
 @testset "sqrt" begin
     G = GF(2, 5)
+    cG = collect(G)
     @test sqrt(G[0]) == 0
     @test sqrt(G[1]) == 1
-    @test all(sqrt.(G) .^ 2 .== G)
+    @test all(sqrt.(cG) .^ 2 .== cG)
 
     G = GF(3, 5)
+    cG = collect(G)
     @test_throws DomainError sqrt(G[14])
     @test sqrt(G[13]^2) == G[13]
     @test sqrt(G[14]^2) == -G[14]
-    @test all((sqrt.(G .^ 2) .== G) .| (sqrt.(G .^ 2) .== .-G))
+    @test all((sqrt.(cG .^ 2) .== cG) .| (sqrt.(cG .^ 2) .== .-cG))
 end
 
 end #module

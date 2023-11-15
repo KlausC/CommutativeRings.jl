@@ -125,9 +125,6 @@ quotient(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = g.val
 
 (::Type{Q})(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = quotient(g)
 
-import Base.Broadcast: broadcastable
-broadcastable(x::Type{<:GaloisField}) = collect(x)
-
 function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))
 end
