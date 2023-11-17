@@ -1,6 +1,6 @@
 
 export cyclotomic
-export jacobi, kronecker, moebius, necklace
+export jacobi, kronecker, moebius, necklace, carmichael
 
 using Primes
 
@@ -111,4 +111,23 @@ necklace(q::RingInt, n::Integer) = n == 0 ? one(q) : _necklace(q, Int(n))
         s += q^d * μ
     end
     div(s, n)
+end
+
+"""
+    carmichael(n::Integer)
+
+Return the Carmichael λ-function value at of `n`, also called the `reduced totient`.
+
+It is a divisor of the Euler ϕ-function.
+"""
+function carmichael(n::T) where T<:Integer
+    n <= 0 && throw(ArgumentError("Carmichael λ($n) is not defined"))
+    f = factor(n)
+    res = one(T)
+    for (p, r) in f
+        pp = convert(T, p)
+        t = p == 2 && r > 2 ? pp^(r - 2) : pp^(r - 1) * (pp - 1)
+        res = lcm(res, t)
+    end
+    res
 end

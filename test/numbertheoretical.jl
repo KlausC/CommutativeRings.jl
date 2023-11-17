@@ -58,4 +58,14 @@ end
     @test @inferred necklace(big(2), n) == r(2)
 end
 
+@testset "Carmichael" begin
+    @test_throws ArgumentError carmichael(0)
+    @test carmichael.(1:7) == totient.(1:7)
+    @test carmichael.((8, 15, 16, 17, 20, 21, 22)) == (2, 4, 4, 16, 4, 6, 10)
+    n = big"1231231231231231231231231"
+    @test carmichael(n) == totient(n) ÷ 64
+    n = big(typemax(Int128)) + 1
+    @test carmichael(n) * 2 == totient(n)
+end
+
 end # module
