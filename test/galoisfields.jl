@@ -191,7 +191,7 @@ end
     @test iso(p) == q
 
     G = GF(47)
-    h = homomorphism(x -> G(x), Int, G)
+    h = CommutativeRings.homomorphismf(x -> G(x), Int, G)
     @test h(18) == G(18)
 end
 

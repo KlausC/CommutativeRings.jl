@@ -3,6 +3,7 @@
 Quotient(x::Integer, ::Type{T}) where T<:Integer = ZZmod(T(x), T)
 Quotient(x::Any, ::Type{T}) where T<:Ring = T / x
 Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
+Polynomial(x::Quotient{<:Polynomial}) = value(x)
 
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor

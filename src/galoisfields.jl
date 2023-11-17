@@ -29,13 +29,13 @@ Otherwise a representation by quotient space of the polynomial over `ZZ/p` is us
 """
 function GF(n::Integer, k::Integer = 1; mod = :conway, nr = 0, maxord = 2^20)
     f = Primes.factor(n)
-    length(f) == 1 || throw(ArgumentError("$n is not p^r with p prime and r >= 1"))
+    length(f) == 1 || terror("$n is not p^r with p prime and r >= 1")
     p, r = f.pe[1]
     _GF(p, r * k, mod, nr, maxord)
 end
 function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
     modpol = mod isa UnivariatePolynomial
-    r == 1 || !modpol || throw(ArgumentError("given modulus requires prime base"))
+    r == 1 || !modpol || terror("given modulus requires prime base")
     mm = intpower(p, !modpol ? r : deg(mod)) - 1
     fact = Primes.factor(mm)
     Q = GFImpl(p, r, fact; nr, mod)
@@ -95,8 +95,7 @@ function (::Type{G})(a::G) where G<:GaloisField
     G(a.val, NOCHECK)
 end
 function (::Type{G})(a::H) where {Id,T,Q,G<:GaloisField{Id,T,Q},P,H<:ZZmod{P,T}}
-    characteristic(G) == characteristic(H) ||
-        throw(ArgumentError("characteristic mismatch"))
+    characteristic(G) == characteristic(H) || terror("characteristic mismatch")
     G(a.val)
 end
 function (::Type{G})(q::Q) where {Id,T,Q<:RingInt,G<:GaloisField{Id,T,Q}}
@@ -282,7 +281,7 @@ logmonom(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}} = Id[4]
 logmonom(::Type{G}) where {G<:GaloisField} =
     tonumber(Quotient(generator(G)), characteristic(G))
 
-division_error() = throw(ArgumentError("cannot invert zero"))
+division_error() = terror("cannot invert zero")
 
 *(a::G, b::Integer) where G<:GaloisField = G(b) * a
 *(b::Integer, a::G) where G<:GaloisField = a * b
@@ -409,7 +408,7 @@ function toquotient(
 end
 function tocoeffs(a::Integer, p::Integer, r::Integer, ord::Integer, Z::Type)
     c = zeros(Z, r)
-    0 <= a < ord || throw(ArgumentError("index must be in 0:$(ord-1)"))
+    0 <= a < ord || terror("index must be in 0:$(ord-1)")
     b = a
     for i = 1:r
         iszero(b) && break
@@ -446,8 +445,8 @@ function GFImpl(
     nr::Integer = 0,
     mod = :conway,
 )
-    isprime(p) || throw(ArgumentError("base $p must be prime"))
-    m > 0 || throw(ArgumentError("exponent m=$m must be positive"))
+    isprime(p) || terror("base $p must be prime")
+    m > 0 || terror("exponent m=$m must be positive")
 
     m == 1 && mod === nothing && return ZZ / p
     if mod === :conway
@@ -463,7 +462,7 @@ function GFImpl(
         return typeof(poly) / poly
 
     elseif mod isa UnivariatePolynomial
-        m == 1 || throw(ArgumentError("given mod requires prime base"))
+        m == 1 || terror("given mod requires prime base")
         Z = ZZ / p
         P = Z[:β]
         # do not check if x is primitive here
@@ -471,9 +470,9 @@ function GFImpl(
         if isirreducible(gen)
             return P / gen
         end
-        throw(ArgumentError("given polynomial $gen is not irreducible over $Z"))
+        terror("given polynomial $gen is not irreducible over $Z")
     else
-        throw(ArgumentError("modulus '$mod' not supported"))
+        terror("modulus '$mod' not supported")
     end
 end
 
@@ -551,7 +550,7 @@ function nonormalbaseserror(Q)
     text =
         "quotient type with modulus $(modulus(Q)) has no normal bases" *
         " - probably modulus is not an irreducible polynomial"
-    throw(ArgumentError(text))
+    terror(text)
 end
 
 import Base: *
@@ -593,39 +592,62 @@ The optional `nr ∈ 0:r-1` produces all possible monomorphisms (automorphisms) 
 and `S`. In the automorphism case, `nr = 0` is the identity.
 """
 function homomorphism end
-function homomorphism(f::Function, ::Type{G}, ::Type{H}) where {G,H}
+function homomorphismf(f::Function, ::Type{G}, ::Type{H}) where {G,H}
     Hom{G,H}(f)
 end
-function _homomorphism(
-    ::Type{Q},
-    ::Type{R},
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P},R<:Quotient{P}}
 
-    r = dimension(Q)
-    s = dimension(R)
-    p = characteristic(Q)
+function homomorphism(
+    ::Type{R},
+    ::Type{S},
+    nr::Integer = 0,
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},T<:Union{Quotient{P},GaloisField},R<:T,S<:T}
+
+    r = dimension(R)
+    s = dimension(S)
+    p = characteristic(R)
+    q = characteristic(S)
+    p == q || terror("fields with differing characteristics")
+    mod(s, r) == 0 || terror("dimension of R ($r) must divide that of S ($s)")
     pr = p^r
-    mod(s, r) == 0 || throw(ArgumentError("dimension of Q ($r) must divide that of R ($s)"))
-    f = normalbase(Q)
+    m = s ÷ r
+    w = (pr^m - 1) ÷ (pr - 1)
+    x = generator(S)
+    y = x^(w * p^nr)
+    @assert order(y) == pr - 1
+    f(a::R) = evaluate(Polynomial(a), y)
+    homomorphismf(f, R, S)
+end
+
+function _homomorphism(
+    ::Type{R},
+    ::Type{S},
+) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},R<:Quotient{P},S<:Quotient{P}}
+
+    r = dimension(R)
+    s = dimension(S)
+    p = characteristic(R)
+    pr = p^r
+    mod(s, r) == 0 || terror("dimension of Q ($r) must divide that of R ($s)")
+    f = normalbase(R)
     M = normalmatrix(f, r)
     M1 = inv(M)
     k = 3 - (p % 2)
     h = M1 * f^k
 
-    xr = monom(R, 1)
+    xr = monom(S, 1)
     L = ((xr^k)^pr for k = 0:s-1)
-    S = hcat(collect(sized(x.val, s) for x in L)...)
+    U = hcat(collect(sized(x.val, s) for x in L)...)
     for i = 1:s
-        S[i, i] -= one(Z)
+        U[i, i] -= one(Z)
     end
-    K = Matrix(nullspace(S))
+    K = Matrix(nullspace(U))
 
-    for g0 in Q
-        if R == Q
+    for g0 in R
+        if S == R
             g = f
             N = M
         else
-            g = R(K * g0)
+            g = S(K * g0)
             deg(g.val) <= 0 && continue
             N = normalmatrix(g, r)
         end
@@ -663,7 +685,7 @@ function homomorphism(::Type{Z}, ::Type{H}, nr::Integer = 0) where {Z<:ZZmod,H<:
     Hom{Z,H}(x -> H(x))
 end
 
-function homomorphism(
+function homomorphism2(
     ::Type{G},
     ::Type{H},
     nr::Integer = 0,
@@ -672,7 +694,7 @@ function homomorphism(
     Hom{G,H}(_homomorphism(G, H, N, M1, nr))
 end
 
-function homomorphism(
+function homomorphism2(
     ::Type{Q},
     ::Type{R},
     nr::Integer = 0,
