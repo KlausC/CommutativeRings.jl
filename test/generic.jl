@@ -103,6 +103,16 @@ end
 
 end
 
+@testset "promotion4" begin
+    Z = ZZ/7
+    A = rand(Z, 4, 4)
+    B = copy(A)
+    for x in diagind(B)
+        B[x] += 1
+    end
+    @test A + 1I == B
+end
+
 using CommutativeRings:
     FieldTrait,
     EuclidianDomainTrait,

@@ -22,8 +22,8 @@ for op in (
 )
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
-        ($op)(a::Ring, b::Union{Integer,Rational}) = ($op)(promote(a, b)...)
-        ($op)(a::Union{Integer,Rational}, b::Ring) = ($op)(promote(a, b)...)
+        ($op)(a::Ring, b::Union{Integer,Rational,UniformScaling}) = ($op)(promote(a, b)...)
+        ($op)(a::Union{Integer,Rational,UniformScaling}, b::Ring) = ($op)(promote(a, b)...)
     end
 end
 for op in (:+, :-, :*, :/, :\, :isapprox)

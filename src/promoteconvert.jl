@@ -16,6 +16,9 @@ end
 function promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}
     promote_rule(R, promote_type(basetype(R), S))
 end
+function promote_rule(::Type{R}, ::Type{UniformScaling{T}}) where {R<:Ring,T}
+    promote_rule(R, T)
+end
 
 # abstract float involved
 promote_rule(::Type{A}, ::Type{<:QQ{B}}) where {A<:AbstractFloat,B} = promote_rule(A, B)
@@ -34,6 +37,14 @@ end
 
 function convert(::Type{A}, a::Union{ZZ,QQ}) where {A<:AbstractFloat}
     convert(A, value(a))
+end
+
+function Base.promote_op(f, ::Type{R}, ::Type{UniformScaling{T}}) where {R<:Ring,T}
+    promote_type(R, T)
+end
+
+function convert(::Type{R}, J::UniformScaling) where R<:Ring
+    convert(R, J.λ)
 end
 
 function (G::Type{<:Ring})(a::Any)
