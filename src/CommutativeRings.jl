@@ -40,7 +40,8 @@ export characteristic_polynomial, adjugate, companion
 export compose_inv, Li, Ein, lin1p, lin1pe, ver
 
 export minimal_polynomial
-export rational_normal_form, rnf_matrix, rnf_transformation, rnf_polynomials
+export rational_normal_form, matrix, transformation, polynomials
+export weierstrass_normal_form
 export mfactor, killmemo!, memoize
 
 import Base: +, -, *, /, inv, ^, \, //, ==, hash, isapprox

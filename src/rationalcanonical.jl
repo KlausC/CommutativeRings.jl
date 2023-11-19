@@ -11,19 +11,16 @@ The algorithm is derived from the lecture notes
 https://www2.math.uni-wuppertal.de/~bongartz/Normalformen.pdf
 """
 function rational_normal_form(A::AbstractMatrix{<:Ring})
-    rational_normal_form(A, category_trait(eltype(A)))
-end
-function rational_normal_form(A::AbstractMatrix, ::Type{<:FieldTrait})
-    _rational_normal_form(A)
+    _rational_normal_form(A, category_trait(eltype(A)))
 end
 
 """
     minimal_polynomial(A::AbstractMatrix{F}, u::AbstractVector{F}) where F<:Ring (field)
 
-Calculate the local minimal polynomial ``m_A,u`` of a square matrix `A` over a ring
+Calculate the local minimal polynomial `m_A_u` of a square matrix `A` over a ring
 for vector `u`.
 
-``m_A,u`` is the minimum degree monic polynomial with ``m_A,u(A)*u == 0``
+`m_A_u` is the minimum degree monic polynomial with `m_A_u(A)*u == 0`
 """
 function minimal_polynomial(A::AbstractMatrix{R}, u::AbstractVector{R}) where R<:Ring
     n = checksquare(A)
@@ -74,9 +71,9 @@ end
 """
     minimal_polynomial(A::AbstractMatrix)
 
-Calculate the minimal polynomial ``m_A`` of a square matrix `A` over a ring.
+Calculate the minimal polynomial `m_A` of a square matrix `A` over a ring.
 
-``m_A`` is the minimum degree monic polynomial with ``m_A(A) == 0``
+`m_A` is the minimum degree monic polynomial with `m_A(A) == 0`.
 """
 function minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
     _minimal_polynomial(A)[1]
@@ -101,46 +98,35 @@ function _minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
     P, u
 end
 
-struct RNF{R<:Ring}
-    minpoly::Vector{<:UnivariatePolynomial{R}}
-    trans::Matrix{R}
-end
-function RNF(p::UnivariatePolynomial{R}, t::AbstractMatrix{R}) where R<:Ring
-    RNF{R}([p], t)
-end
-function RNF(p::Vector{<:UnivariatePolynomial{R}}, t::AbstractMatrix{R}) where R<:Ring
-    RNF{R}(p, t)
-end
-
 """
-    rnf_transformation(rnf::RNF)
+    transformation(rnf::RNF)
 
 Return a transformation matrix in the RNF factorization of a square matrix.
 The transformation matrices are not unique.
 """
-function rnf_transformation(rnf::RNF)
+function transformation(rnf::RNF)
     rnf.trans
 end
 
 """
-    rnf_polynomials(rnf::RNF)
+    polynomials(rnf::RNF)
 
 Return the sequence of minimal polynomials `P` with `P[1]` multiple of `P[2]` ...
 """
-function rnf_polynomials(rnf::RNF)
+function polynomials(rnf::RNF)
     rnf.minpoly
 end
 
 """
-    rnf_matrix(rnf::RNF)
+    matrix(rnf::RNF)
 
 Return matrix in 'rational normal form' from rnf-factorization of a square matrix.
 The form is also known as 'Frobenius normal form' or 'rational canonical form'.
 The matrix is a unique block diagonal matrix containing the companion matrices of
-the minimal polynomials. See also `rnf_polynomials`.
+the minimal polynomials. See also `polynomials`.
 """
-function rnf_matrix(rnf::RNF{R}) where R
-    n = size(rnf.trans, 1)
+function matrix(rnf::RNF{R}) where R
+    n = size(transformation(rnf), 1)
     M = zeros(R, n, n)
     p = 1
     for pi in rnf.minpoly
@@ -151,16 +137,16 @@ function rnf_matrix(rnf::RNF{R}) where R
     M
 end
 
-function characteristic_polynomial(rnf::RNF)
-    prod(rnf_polynomials(rnf))
+function characteristic_polynomial(rnf::Union{RNF,WNF})
+    prod(polynomials(rnf))
 end
 
 function minimal_polynomial(rnf::RNF)
-    first(rnf_polynomials(rnf))
+    first(polynomials(rnf))
 end
 
 # Implementation
-function _rational_normal_form(A::AbstractMatrix{R}) where R
+function _rational_normal_form(A::AbstractMatrix{R}, ::Type{<:FieldTrait}) where R
     m = checksquare(A)
     P, u = _minimal_polynomial(A)
     r = deg(P)
@@ -169,7 +155,7 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
     B = lut.L * lut.U
     B = B[invperm(piv), :]
     if r == m
-        return RNF(P, B)
+        return RNF([P], B)
     end
     p1 = view(piv, 1:r)
     p2 = view(piv, r+1:m)
@@ -180,7 +166,7 @@ function _rational_normal_form(A::AbstractMatrix{R}) where R
 
     rnf = rational_normal_form(D)
 
-    B[:, r+1:m] .= B[:, r+1:m] * rnf.trans
+    B[:, r+1:m] .= B[:, r+1:m] * transformation(rnf)
     p = r + 1
     for pi in rnf.minpoly
         g = prod_pmv(pi, A, B[:, p])
@@ -211,4 +197,107 @@ function prod_pmv(p::UnivariatePolynomial, A::AbstractMatrix, v::AbstractArray)
         s .+= p[i] .* v
     end
     s
+end
+
+"""
+    weierstrass_normal_form([rnf,] matrix)
+
+Calculate Weierstrass normal form of a matrix over a field.
+
+If `rnf`is given, it is assumed, that it is the rational normal form of the same matrix.
+"""
+function weierstrass_normal_form(A::AbstractMatrix{<:Ring})
+    _weierstrass_normal_form(A, category_trait(eltype(A)))
+end
+function weierstrass_normal_form(rnf::RNF, A::AbstractMatrix)
+    mini = minimal_polynomial(rnf)
+    W = transformation(rnf)
+    C = W \ (A * W)
+    n1 = 1
+    pairs = Pair{typeof(mini),Int}[]
+    for p in rnf.minpoly
+        n2 = n1 + deg(p) - 1
+        D = C[n1:n2, n1:n2]
+        plist, V = factor_of_companion(D, p)
+        if V != I
+            W[:,n1:n2] .= W[:,n1:n2] * V
+        end
+        append!(pairs, plist)
+        n1 = n2 + 1
+    end
+    return WNF(mini, pairs, W)
+end
+
+# assuming A == companion(p)
+function factor_of_companion(A::AbstractMatrix, p)
+    f = factor(p) # that is the critical operation
+    if length(f) <= 1
+        return [f[1]], 1I
+    end
+    W = similar(A, size(A, 1), 0)
+    plist = typeof(f[1])[]
+    for (q, r) in f
+        N = Matrix(nullspace(q(A)^r))
+        W = hcat(W, N)
+        push!(plist, q => r)
+    end
+    C = W \ (A * W) # C is block diagonal now
+    m1 = 1
+    for (q, r) in f
+        m2 = m1 + deg(q) * r - 1
+        B = C[m1:m2,m1:m2]
+        rnf = rational_normal_form(B)
+        V = transformation(rnf)
+        W[:,m1:m2] .= W[:,m1:m2] * V
+        m1 = m2 + 1
+    end
+    return plist, W
+end
+
+function _weierstrass_normal_form(A::AbstractMatrix, ::Type{<:FieldTrait})
+    rnf = rational_normal_form(A)
+    weierstrass_normal_form(rnf, A)
+end
+
+"""
+    transformation(rnf::RNF)
+
+Return a transformation matrix in the RNF factorization of a square matrix.
+The transformation matrices are not unique.
+"""
+function transformation(wnf::WNF)
+    wnf.trans
+end
+
+"""
+    polynomials(rnf::RNF)
+
+Return the sequence of pairs of irreducible polynomials and powers.
+"""
+function polynomials(wnf::WNF)
+    wnf.polyfact
+end
+
+"""
+    matrix(rnf::WNF)
+
+Return matrix in 'Weierstrass normal form' from wnf-factorization of a square matrix.
+The matrix is a block diagonal matrix containing the companion matrices of
+powers of irreducible polynomials. See also `wnf_polynomials`. They are factors of the
+minimal polynomials for the `rational normal form`.
+"""
+function matrix(rnf::WNF{R}) where R
+    n = size(transformation(rnf), 1)
+    M = zeros(R, n, n)
+    p = 1
+    for (pi, r) in rnf.polyfact
+        d = deg(pi) * r
+        M[p:p+d-1, p:p+d-1] .= companion(pi^r)
+        p += d
+    end
+    M
+end
+
+function minimal_polynomial(wnf::WNF)
+    wnf.minpoly
 end

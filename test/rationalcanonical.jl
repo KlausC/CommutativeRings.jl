@@ -42,12 +42,23 @@ end
 
 @testset "rational normal form test $i" for (i, A) in enumerate(tm)
     rnf = rational_normal_form(A)
-    B = rnf_transformation(rnf)
-    M = rnf_matrix(rnf)
+    B = transformation(rnf)
+    M = matrix(rnf)
 
     @test det(B) |> isunit
     @test minimal_polynomial(rnf) == minimal_polynomial(A)
     @test characteristic_polynomial(rnf) == characteristic_polynomial(A)
+    @test A * B == B * M
+end
+
+@testset "Weierstrass normal form test $i" for (i, A) in enumerate(tm)
+    nf = weierstrass_normal_form(A)
+    B = transformation(nf)
+    M = matrix(nf)
+
+    @test det(B) |> isunit
+    @test minimal_polynomial(nf) == minimal_polynomial(A)
+    @test characteristic_polynomial(nf) == characteristic_polynomial(A)
     @test A * B == B * M
 end
 

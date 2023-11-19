@@ -259,3 +259,31 @@ struct IterTerms{P<:Polynomial}
 end
 
 Base.IteratorSize(::IterTerms) = Base.SizeUnknown()
+
+"""
+    RNF(polynomials, transformation)
+
+Store the polynomials list and the transformation for rational normal form,
+aka Frobenius normal form.
+"""
+struct RNF{R<:Ring,P<:UnivariatePolynomial{R},V<:AbstractVector{P},M<:AbstractMatrix{R}}
+    minpoly::V
+    trans::M
+end
+
+"""
+    WNF(polynomials, transformation)
+
+Store the polynomials list and the transformation for Weierstrass normal form.
+The vector of polynomials corresponds to the transformation matrix.
+"""
+struct WNF{
+    R<:Ring,
+    P<:UnivariatePolynomial{R},
+    V<:AbstractVector{Pair{P,Int}},
+    M<:AbstractMatrix{R},
+}
+    minpoly::P
+    polyfact::V
+    trans::M
+end

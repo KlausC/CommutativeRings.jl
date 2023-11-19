@@ -97,7 +97,7 @@ end
 ## Help functions
 
 # return the ideal associated uniquely with this quotient ring
-modulus(t::Type{<:Quotient{R}}) where R = gettypevar(t).modulus
+@inline modulus(t::Type{<:Quotient{R}}) where R = gettypevar(t).modulus
 
 # standard functions
 ==(a::Quotient{S,I,X}, b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
