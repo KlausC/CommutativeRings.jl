@@ -2,6 +2,8 @@ module GenericTest
 
 using Test
 using CommutativeRings
+using LinearAlgebra
+
 import CommutativeRings: tosuper, tosub
 
 @testset "scriptdigits" begin
