@@ -287,3 +287,19 @@ struct WNF{
     polyfact::V
     trans::M
 end
+
+"""
+    SNF(D, S, T)
+
+Store the elements of a Smith normal form of a matrix `A`.
+
+`D` is a vector with nonzero elements of a principal ideal domain (PID). Each vector element
+except the last one divides its successor.
+
+`S` and `T` are invertible matrixes over the PID, with `S * A * T == Diag(D)`.
+"""
+struct SNF{R<:Ring,V<:AbstractVector{R},S<:AbstractMatrix{R}}
+    diag::V
+    trans1::S
+    trans2::S
+end

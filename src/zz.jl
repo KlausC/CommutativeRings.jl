@@ -6,7 +6,7 @@ ZZ(::Type{T}) where T<:Integer = ZZ{T}
 category_trait(::Type{<:ZZ}) = EuclidianDomainTrait
 basetype(::Type{<:ZZ{T}}) where T = T
 
-_lcunit(a::ZZ) = sign(a.val)
+lcunit(a::Z) where Z<:ZZ = Z(sign(a.val))
 issimpler(a::T, b::T) where T<:ZZ = abs(a.val) < abs(b.val)
 iscoprime(a::T, b::T) where T<:ZZ = gcd(a.val, b.val) == 1
 value(a::ZZ) = a.val

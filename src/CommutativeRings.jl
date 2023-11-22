@@ -41,7 +41,7 @@ export compose_inv, Li, Ein, lin1p, lin1pe, ver
 
 export minimal_polynomial
 export rational_normal_form, matrix, transformation, polynomials
-export weierstrass_normal_form
+export weierstrass_normal_form, smith_normal_form
 export mfactor, killmemo!, memoize
 
 import Base: +, -, *, /, inv, ^, \, //, ==, hash, isapprox

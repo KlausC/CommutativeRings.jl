@@ -220,7 +220,7 @@ function weierstrass_normal_form(rnf::RNF, A::AbstractMatrix)
         D = C[n1:n2, n1:n2]
         plist, V = factor_of_companion(D, p)
         if V != I
-            W[:,n1:n2] .= W[:,n1:n2] * V
+            W[:, n1:n2] .= W[:, n1:n2] * V
         end
         append!(pairs, plist)
         n1 = n2 + 1
@@ -245,10 +245,10 @@ function factor_of_companion(A::AbstractMatrix, p)
     m1 = 1
     for (q, r) in f
         m2 = m1 + deg(q) * r - 1
-        B = C[m1:m2,m1:m2]
+        B = C[m1:m2, m1:m2]
         rnf = rational_normal_form(B)
         V = transformation(rnf)
-        W[:,m1:m2] .= W[:,m1:m2] * V
+        W[:, m1:m2] .= W[:, m1:m2] * V
         m1 = m2 + 1
     end
     return plist, W
@@ -260,9 +260,9 @@ function _weierstrass_normal_form(A::AbstractMatrix, ::Type{<:FieldTrait})
 end
 
 """
-    transformation(rnf::RNF)
+    transformation(rnf::WNF)
 
-Return a transformation matrix in the RNF factorization of a square matrix.
+Return a transformation matrix in the RNF or WNF factorization of a square matrix.
 The transformation matrices are not unique.
 """
 function transformation(wnf::WNF)
@@ -270,7 +270,7 @@ function transformation(wnf::WNF)
 end
 
 """
-    polynomials(rnf::RNF)
+    polynomials(rnf::WNF)
 
 Return the sequence of pairs of irreducible polynomials and powers.
 """
@@ -300,4 +300,297 @@ end
 
 function minimal_polynomial(wnf::WNF)
     wnf.minpoly
+end
+
+"""
+    smith_normal_form(matrix)
+
+Calculate Smith normal form including transformation matrices of a matrix over a PID.
+
+Decomposes `S * A * T == D` where `D` is a diagonal matrix.
+See also: [`SNF`](@ref)
+"""
+function smith_normal_form(A::AbstractMatrix{<:Ring})
+    _smith_normal_form(A, category_trait(eltype(A)))
+end
+function _smith_normal_form(
+    A::AbstractMatrix{R},
+    ::Type{<:PrincipalIdealDomainTrait},
+) where R
+
+    m, n = size(A)
+    S = zeros(R, m, m) + I
+    T = zeros(R, n, n) + I
+    B = copy(A)
+    k = 1
+    while k <= min(m, n) + 1
+        n = shift_zero_columns!(B, k, n, T)
+        m = shift_zero_rows!(B, k, m, S)
+        k > min(m, n) && break
+        scol = srow = false
+        while !(srow && scol)
+            srow = smith_isolate_row!(B, S, k, m, n)
+            srow && scol && break
+            scol = smith_isolate_col!(B, T, k, m, n)
+        end
+        k += 1
+    end
+    @assert m == n
+    sort_diagonal!(B, m, S, T)
+    SNF([B[i, i] for i = 1:m], S, T)
+end
+
+function smith_isolate_row!(A, S, k, m, n)
+    stable = true
+    colk = view(A, k:m, k) # pivot in this partial column
+    x = findfirst(isunit, colk)
+    if x === nothing
+        x = findfirst(!iszero, colk)
+        jk = x + k - 1
+        if jk > k
+            swap_rows!(A, k, jk, k:n)
+            swap_rows!(S, k, jk, axes(S, 2))
+            stable = false
+        end
+        g = A[k, k]
+        for j = k+1:m
+            h = A[j, k]
+            if !iszero(h)
+                stable = false
+                merge_rows!(A, k, j, k:n, g, h, S)
+                g = A[k, k]
+                isunit(g) && break
+            end
+        end
+    else # found a unit in A[k,k]
+        jk = x + k - 1
+        if jk > k
+            swap_rows!(A, k, jk, k:n)
+            swap_rows!(S, k, jk, axes(S, 2))
+            stable = false
+        end
+        g = A[k, k]
+    end
+    lc = lcunit(g)
+    if !isone(lc)
+        A[k, k:n] ./= lc
+        S[k, :] ./= lc
+        g /= lc
+    end
+    for j = k+1:m
+        h = A[j, k]
+        if !iszero(h)
+            f = h / g
+            add_to_row!(A, f, j, k, k:n)
+            add_to_row!(S, f, j, k, axes(S, 2))
+        end
+    end
+    return stable
+end
+
+function smith_isolate_col!(A, T, k, m, n)
+    stable = true
+    x = findfirst(isunit, view(A, k, k:n))
+    if x === nothing
+        g = A[k, k]
+        for j = k+1:n
+            h = A[k, j]
+            if !iszero(h)
+                stable = false
+                merge_cols!(A, k, j, k:m, g, h, T)
+                g = A[k, k]
+                isunit(g) && break
+            end
+        end
+    else # found a unit in A[k,k]
+        jk = x + k - 1
+        if jk > k
+            swap_cols!(A, k, jk, k:m)
+            swap_cols!(T, k, jk, axes(T, 1))
+            stable = false
+        end
+        g = A[k, k]
+    end
+    lc = lcunit(g)
+    if !isone(lc)
+        A[k:m, k] ./= lc
+        T[:, k] ./= lc
+        g /= lc
+    end
+    for j = k+1:n
+        h = A[k, j]
+        if !iszero(h)
+            f = h / g
+            add_to_col!(A, f, j, k, k:m)
+            add_to_col!(T, f, j, k, axes(T, 1))
+        end
+    end
+    return stable
+end
+
+function swap_rows!(A, k, j, r)
+    for i in r
+        A[k, i], A[j, i] = A[j, i], A[k, i]
+    end
+end
+function swap_cols!(A, k, j, r)
+    for i in r
+        A[i, k], A[i, j] = A[i, j], A[i, k]
+    end
+end
+
+function merge_rows!(A, k, j, r, g, h, S)
+    c, x, y = gcdx(g, h)
+    g /= c
+    h /= c
+    for i in r
+        a = A[k, i]
+        b = A[j, i]
+        A[k, i] = x * a + y * b
+        A[j, i] = -h * a + g * b
+    end
+    for i in axes(S, 2)
+        a = S[k, i]
+        b = S[j, i]
+        S[k, i] = x * a + y * b
+        S[j, i] = -h * a + g * b
+    end
+end
+
+function merge_cols!(A, k, j, r, g, h, T)
+    c, x, y = gcdx(g, h)
+    g /= c
+    h /= c
+    for i in r
+        a = A[i, k]
+        b = A[i, j]
+        A[i, k] = x * a + y * b
+        A[i, j] = -h * a + g * b
+    end
+    for i in axes(T, 1)
+        a = T[i, k]
+        b = T[i, j]
+        T[i, k] = x * a + y * b
+        T[i, j] = -h * a + g * b
+    end
+end
+
+function sort_diagonal!(A, m, S, T)
+    while (k = findfirst(i -> !iszero(mod(A[i+1, i+1], A[i, i])), 1:m-1)) !== nothing
+        j = k + 1
+        g = A[k, k]
+        h = A[j, j]
+        merge_diagonal!(A, k, j, g, h, S, T)
+    end
+end
+
+# assume k < j and g == A[k,k] and h == A[j,j]
+function merge_diagonal!(A, k, j, g, h, S, T)
+    axs = axes(S, 2)
+    axt = axes(T, 1)
+    if iszero(mod(g, h)) # g divides h: only swap diagonal
+        swap_rows!(S, k, j, axs)
+        swap_cols!(T, k, j, axt)
+        A[j, j] = g
+        A[k, k] = h
+    else
+        c, x, y = gcdx(g, h)
+        hh = h / c
+        #add_to_col!(A, -one(g), k, j, k:j)
+        add_to_col!(T, -one(g), k, j, axt)
+        merge_rows!(A, k, j, 1:0, g, h, S)
+        #merge_rows!(A, k, j, k:j, g, h, S)
+        #add_to_col!(A, y * hh, j, k, k:j)
+        add_to_col!(T, y * hh, j, k, axt)
+        A[k, k] = c
+        A[j, j] = g * hh
+    end
+end
+
+function add_to_row!(A, f, j, k, r)
+    A[j, r] .-= A[k, r] .* f
+end
+
+function add_to_col!(A, f, j, k, r)
+    A[r, j] .-= A[r, k] .* f
+end
+
+function shift_zero_columns!(B, k, n, T)
+    a = k
+    e = size(T, 2)
+    c = n + 1
+    while (x = findnext(!iszero, B, CartesianIndex(1, a))) !== nothing
+        c = min(x[2], n + 1)
+        c > n && break
+        r = n - c + 1
+        if c > a
+            B[:, a:a+r-1] .= B[:, c:n]
+            B[:, a+r:n] .= 0
+            C = T[:, a:c-1]
+            T[:, a:a+e-c] .= T[:, c:e]
+            T[:, e-c+a+1:e] .= C
+            n -= c - a
+        end
+        a += 1
+        c = n + 1
+    end
+    return n - c + a
+end
+function shift_zero_rows!(B, k, m, S)
+    a = k
+    e = size(S, 1)
+    c = m + 1
+    while (x = findrow(B, a, k)) !== nothing
+        c = min(x, m + 1)
+        c > m && break
+        r = m - c + 1
+        if c > a
+            B[a:a+r-1, :] .= B[c:m, :]
+            B[a+r:m, :] .= 0
+            C = S[a:c-1, :]
+            S[a:a+e-c, :] .= S[c:e, :]
+            S[e-c+a+1:e, :] .= C
+            m -= c - a
+        end
+        a += 1
+        c = m + 1
+    end
+    return m - c + a
+end
+
+function findrow(B, a, k)
+    m, n = size(B)
+    while a <= m && iszero(view(B, a, k:n))
+        a += 1
+    end
+    a > m ? nothing : a
+end
+
+
+"""
+    transformation(rnf::SNF)
+
+Return a transformation matrices in the Smith normal form a matrix.
+The transformation matrices are not unique.
+"""
+function transformation(snf::SNF)
+    (snf.trans1, snf.trans2)
+end
+
+"""
+    matrix(rnf::SNF)
+
+Return matrix in 'Smith normal form' from snf-factorization of a matrix `A`.
+The matrix has the same shape as the original matrix, and only the leading diagonal
+elements are different from zero.
+Each diagonal element divides its successor, if applicable.
+"""
+function matrix(snf::SNF{R}) where R
+    m = size(snf.trans1, 2)
+    n = size(snf.trans2, 1)
+    M = zeros(R, m, n)
+    for i = 1:min(m, n, length(snf.diag))
+        M[i, i] = snf.diag[i]
+    end
+    M
 end

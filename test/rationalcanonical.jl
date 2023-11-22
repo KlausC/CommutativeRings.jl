@@ -2,6 +2,7 @@ module RationalNormalFormTest
 
 using Test
 using CommutativeRings
+using LinearAlgebra
 
 Q = QQ{BigInt}
 #! format: off
@@ -60,6 +61,55 @@ end
     @test minimal_polynomial(nf) == minimal_polynomial(A)
     @test characteristic_polynomial(nf) == characteristic_polynomial(A)
     @test A * B == B * M
+end
+
+Z = ZZ{BigInt}
+x = monom(QQ{BigInt}[:x])
+
+#! format: off
+    sm = Any[
+        Z[1;;],
+        Z[12 0; 0 6],
+        Z[12 0; 0 15],
+        Z[0 0 0; 1 0 0; 1 1 0],
+        Z[2 4 4;-6 6 12; 10 4 16],
+        Z[
+        0  0  0  8  0  0  0  0  0  0  4  0  0  0  0  0  0  8  0  1
+        0  0  0  0  0  0  9  0  0  0  0  0  0  0  0  0  0  0  0  0
+        6  0  3  0  2  0  0  0  1  0  0  0  0  0  0  0  0  0  0  0
+        0  7  7  0  0  0  0  0  0  0  0  0  0  0  0  6  0  1  0  0
+        0  5  0  0  4  0  0  0  0  1  0  0  0  0  0  0  0  0  0  0
+        0  0  0  0  0  0  0  0  0  9  0  0  0  0  0  0  5  6  0  1
+        0  0  0  0  0  0  0  0  0  0  0  0  0  0  3  0  0  0  0  0
+        0  0  9  0  0  7  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+        0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+        0  0  0  0  1  7  0  0  0  8  0  0  0  0  0  0  0  0  0  0
+        4  0  0  7  0  0  0  0  0  0  0  0  0  0  7  0  0  0  0  0
+        0  0  0  0  0  0  9  7  0  0  0  9  0  0  0  3  0  9  0  0
+        0  0  5  0  4  0  0  0  0  0  0  0  0  0  0  0  0  0  0  7
+        0  0  0  6  0  0  2  4  0  0  0  0  3  0  0  0  0  0  0  0
+        0  0  0  0  0  4  0  0  4  0  0  0  6  0  0  0  0  0  0  0
+        0  0  0  0  0  3  0  6  0  0  6  0  0  2  0  0  0  0  0  4
+        0  0  0  0  0  0  0  0  0  5  0  3  0  0  0  0  0  1  0  0
+        6  7  0  0  0  0  0  0  0  0  0  0  0  0  6  0  0  0  0  0
+        0  0  0  4  4  0  0  0  0  0  0  0  0  1  0  0  0  0  0  9
+        0  0  0  0  0  0  0  0  0  0  0  4  0  0  6  0  0  0  9  0],
+        x - Q[3 -4; 1 1],
+        x - Q[31 2; 0 1],
+        QQ{BigInt}[:x][1;;],
+    ]
+#! format: on
+
+@testset "Smith normal form test $i" for (i, A) in enumerate(sm)
+    snf = smith_normal_form(A)
+    S, T = transformation(snf)
+    M = matrix(snf)
+    @test isdiag(M)
+    @test isunit(det(S))
+    @test isunit(det(T))
+    @test S * A * T == M
+    d = snf.diag
+    @test all(mod(d[i+1], d[i]) == 0 for i = 1:length(d)-1)
 end
 
 end # module
