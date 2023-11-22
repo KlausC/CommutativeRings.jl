@@ -8,6 +8,7 @@ category_trait(::Type{<:QQ}) = FieldTrait
 # construction
 basetype(::Type{<:QQ{T}}) where T = ZZ{T}
 #depth(::Type{<:QQ}) = 1
+lcunit(a::QQ) = a < 0 ? -one(a) : one(a)
 issimpler(a::T, b::T) where T<:QQ = QQ(abs(a.num), a.den) < QQ(abs(b.num), b.den)
 copy(a::QQ) = typeof(a)(a.num, a.den)
 value(a::QQ) = Rational(a.num, a.den)

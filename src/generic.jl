@@ -313,9 +313,10 @@ LC(x::Ring) = x
 """
     lcunit(r::Ring)
 
-Return `one(r)` if it's a unit, otherwise return a unit element `s` of the same ring or of
+Return a unit element `s` of the same ring or of
 an object, which may be promoted to this ring, so `r / s` has a simplified form.
 Example, for a polynomial over a field, the leading coefficient.
+For numbers, return `1` or `-1` depending on the sign.
 """
 lcunit(x::Ring) = one(x)
 

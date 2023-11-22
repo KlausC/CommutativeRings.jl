@@ -20,11 +20,11 @@ basetype(::Type{<:Polynomial{T}}) where T = T
 """
     lcunit(p::Polynomial)
 
-Returns iff the leading coefficient is a unit.
+Returns leading coefficient `lco` if that is a unit, otherwise `lcunit(lco)`.
 """
 function lcunit(a::Polynomial)
     lco = LC(a)
-    isunit(lco) ? lco : one(lco)
+    isunit(lco) ? lco : lcunit(lco)
 end
 
 ### access to polynomial coefficients

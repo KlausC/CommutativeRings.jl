@@ -10,7 +10,7 @@ using CommutativeRings
     @test QQ(1, 3) == 1 // 3
     @test abs(QQ(-1, 3)) == 1 // 3
     @test basetype(QQ{Int}) == ZZ{Int}
-    @test lcunit(QQ(-1, 3)) == 1
+    @test lcunit(QQ(-1, 3)) == -1
     @test lcunit(QQ(0)) == 1
     @test copy(QQ(12 // 15)) == QQ(4, 5)
     @test QQ{Int32}(QQ(3, 4)) isa QQ{Int32}
