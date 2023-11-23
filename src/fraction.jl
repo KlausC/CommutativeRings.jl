@@ -132,7 +132,7 @@ end
 
 function *(x::T, y::T) where T<:Frac
     a, b, c, d = x.num, x.den, y.num, y.den
-    g = pgcd(a, d)
+    g = pgcd(a, d) # TODO call pgcd for GCD domains which are not Eucidean domains
     a /= g
     d /= g
     g = pgcd(b, c)

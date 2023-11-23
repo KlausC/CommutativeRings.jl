@@ -16,6 +16,13 @@ ZZ(a::T) where T<:Integer = ZZ{T}(a)
 ZZ{T}(a::ZZ) where T = ZZ{T}(T(a.val))
 ZZ(a::ZZ{T}) where T = copy(a)
 
+function ZZ{T}(a::Union{QQ{T},Frac{ZZ{T}}}) where T
+    a.den != 1 && throw(InexactError(:ZZ, ZZ{T}, a))
+    ZZ(a.num)
+end
+ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
+ZZ{S}(a::Union{QQ{T},Frac{ZZ{T}}}) where {S,T} = ZZ(promote_type(S,T)(a))
+
 # promotion and conversion
 promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S, T)}
 promote_rule(::Type{ZZ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}

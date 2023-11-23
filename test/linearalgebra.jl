@@ -79,14 +79,13 @@ end
     @test length(propertynames(lut)) == 10
 end
 
-@testset "determinant" begin
-    G = ZZ/89
+@testset "determinant and adjugate type $G" for G in (ZZ/89, ZZ{BigInt}, QQ{BigInt})
     A = G.([1 2 3; 4 5 6; 7 8 9])
     B = G.([1 2 3; 4 5 6; 7 8 8])
     @test iszero(det(A))
     @test iszero(adjugate(A) * A)
     @test !iszero(det(B))
-    @test adjugate(B) ./ det(B) == inv(B)
+    @test adjugate(B) * B == det(B) * I(size(B, 1))
 
     p = characteristic_polynomial(B)
     @test iszero(p(B))

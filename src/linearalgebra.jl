@@ -402,16 +402,33 @@ end
 """
     adjugate(A::AbstractMatrix{<:Ring})
 
-The adjugate of matrix `A`. Invariant is `det(A) * I == adjugate(A) * A == det(A) * I(n)`.
+The adjugate of matrix `A`. Invariant is `adjugate(A) * A == det(A) * I`.
 """
-function adjugate(A::AbstractMatrix{P}) where P
+function adjugate(A::AbstractMatrix{P}) where P<:Ring
+    da = det(A)
+    if isunit(da)
+        _adjugate(A, da)
+    else
+        _adjugate_fallback(A)
+    end
+end
+function _adjugate(A::AbstractMatrix{P}, da) where P<:Union{Polynomial,ZZ}
+    Q = Frac(P)
+    B = Q.(A)
+    C = inv(B) .* Q(da)
+    numerator.(C)
+end
+function _adjugate(A::AbstractMatrix{P}, da) where P
+    inv(A) * da
+end
+function _adjugate_fallback(A::AbstractMatrix{P}) where P
     PP = P[:λ]
     Q = Frac(PP)
-    B = Q(monom(PP)) + A
+    B = Q(monom(PP)) + Q.(A)
     d = det(B)
     C = inv(B) .* d
     D = numerator.(C)
-    evaluate.(D, 0)
+    convert.(P, evaluate.(D, 0))
 end
 
 """

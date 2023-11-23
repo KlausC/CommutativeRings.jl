@@ -17,7 +17,7 @@ using CommutativeRings
     @test ZZ(1) + QQ(1, 2) == QQ(3, 2)
     @test ZZ(Int8(1)) + QQ(1, 2) == QQ(3, 2)
     @test typeof(ZZ(1) + QQ(1, 2)) == QQ{Int}
-    @test typeof(ZZ(1) + 1//2) == QQ{Int}
+    @test typeof(ZZ(1) + 1 // 2) == QQ{Int}
     @test hash(ZZ(big"123")) == hash(123)
 end
 
@@ -78,6 +78,14 @@ end
 
     @test factor(z3) == [Z(2) => 1, n1 => 1]
     @test eltype(factor(z3)) == Pair{Z,Int}
+end
+
+@testset "conversion from fractions type $T" for T in
+                                                 (QQ{Int}, Frac{ZZ{Int}}, Rational{Int})
+    a = T(1 // 1)
+    @test_throws InexactError Int(a)
+    b = T(12)
+    @test Int(b) == 12
 end
 
 end # module
