@@ -101,10 +101,9 @@ end
 function (::Type{G})(q::Q) where {Id,T,Q<:RingInt,G<:GaloisField{Id,T,Q}}
     ofindex(tonumber(q, characteristic(Q)), G)
 end
-#(::Type{G})(q::Q) where {Id,T,Q,G<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{Q}}}} = ofindex(q.val,G)
 
-Quotient(g::G) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = quotient(g)
-Polynomial(g::G) where G<:GaloisField = Quotient(g).val
+(::Type{<:Quotient})(g::G) where G<:GaloisField = quotient(g)
+Polynomial(g::G) where G<:GaloisField = value(Quotient(g))
 Quotient(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
 Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
 monom(::Type{G}) where G<:GaloisField = G(monom(Quotient(G)))
@@ -122,7 +121,6 @@ function quotient(g::G) where {Id,T<:Integer,Q<:Quotient,G<:GaloisField{Id,T,Q}}
 end
 quotient(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = g.val
 
-(::Type{Q})(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = quotient(g)
 
 function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))

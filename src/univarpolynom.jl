@@ -174,7 +174,7 @@ function UnivariatePolynomial{S,X}(v::AbstractVector, g::Integer = 0) where {X,S
     UnivariatePolynomial{S,X}([S(x) for x in v], g)
 end
 
-# canonical embedding homomorphism from base ring
+# canonical embedding homomorphism from base ring - use default varname `:x`
 UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 
 # make new copy

@@ -285,18 +285,14 @@ function enparen(s::String)
 end
 
 # conversions from fractions
-function (::Type{S})(a::T) where {S<:Union{Integer,ZZ},T<:Union{QQ,Frac}}
-    if isone(denominator(a))
-        S(numerator(a))
-    else
-        throw(InexactError(:T, T, a))
-    end
-end
+(::Type{S})(a::T) where {S<:Union{Integer,ZZ},T<:Union{QQ,Frac}} = fractless(S, a)
+(::Type{S})(a::Frac{T}) where {S<:UnivariatePolynomial,T<:Polynomial} = fractless(S, a)
+UnivariatePolynomial(a::Frac{T}) where {T<:Polynomial} = fractless(UnivariatePolynomial, a)
 
-function (::Type{S})(a::Frac{T}) where {S<:UnivariatePolynomial,T<:Polynomial}
+function fractless(::Type{S}, a::T) where {S,T}
     if isone(denominator(a))
         S(numerator(a))
     else
-        throw(InexactError(:T, T, a))
+        throw(InexactError(:S, T, a))
     end
 end
