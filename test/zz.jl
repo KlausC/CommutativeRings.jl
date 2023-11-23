@@ -80,12 +80,19 @@ end
     @test eltype(factor(z3)) == Pair{Z,Int}
 end
 
-@testset "conversion from fractions type $T" for T in
-                                                 (QQ{Int}, Frac{ZZ{Int}}, Rational{Int})
-    a = T(1 // 1)
+@testset "conversion from rational type $T" for T in (QQ{Int}, Frac{ZZ{Int}}, Rational{Int})
+    a = T(1 // 2)
     @test_throws InexactError Int(a)
     b = T(12)
     @test Int(b) == 12
+end
+@testset "conversion from fraction type Frac{ZZ[:x]}" begin
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    @test_throws InexactError P((x^2 + 1) // (2x))
+    a = 2x^3 - x + 1
+    b = a // 1
+    @test P(b) == a
 end
 
 end # module

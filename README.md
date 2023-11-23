@@ -9,23 +9,23 @@ W.I.P
 This software is the start of a computer algebra system specialized to
 discrete calculations in the area of integer numbers `ℤ`, modular arithmetic `ℤ/m`
 fractional `ℚ`, polynomials `ℤ[x]`. Also multivariate polynomials `ℤ[x,y,...]` and Galois fields `GF(p^r)` are supported.
-The polynomials may be extended to quotient rings like `ℤ[:x] / (x^2 + 1)`.
+The polynomials may be extended to factor rings like `ℤ[:x] / (x^2 + 1)`.
 
 This package is not seen as a replacement of `Nemo.jl` or `AbstractAlgebra.jl`, which should be used for serious work.
 It is understood more like a sandbox to try out a simpler API.
 
-It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the quotient ring for a prime number `p`),
+It is important, that rings may be freely combined, for example `(ℤ/p)[x]` (polynomials over the factor ring for a prime number `p`),
 `Frac(ℤ[x])`, the rational functions with integer coefficients, or `GF(64)[:x]`, polynomials over the Galois field.
-The quotient rings include `Ideal`s, which are of major importance with multivariate polynomials.
+The factor rings include `Ideal`s, which are of major importance with multivariate polynomials.
 
 The mentioned examples are elementary examples for ring structures. The can be
-liberately combined to fractional fields, quotient rings, and polynomials of previously defined structures.
+liberately combined to fractional fields, factor rings, and polynomials of previously defined structures.
 
 So it is possible to work with rational functions, which are fractions of polynomials, where the polynomial coefficients are in `ℤ/p`,
 for example.
 In the current standard library we have modules `Rational` and `Polynomial` besides the numeric subtypes of `Number` and some support for modular calculations with integers.
 
-The original motivation for writing this piece of sofware, when I tried to handle polynomials over a quotient ring. There was no obvious way of embedding my ring elements
+The original motivation for writing this piece of sofware, when I tried to handle polynomials over a factor ring. There was no obvious way of embedding my ring elements
 into the `Julia` language and for example exploit polynomial calculations from the `Polynomial` package for that. There seems to be a correspondence between `Julia` types and structures and the algebraic stuctures I want to work with. So the idea was born to define
 abstract and concrete types in `Julia`, the objects of those types representing the ring
 elements to operate on. As types are first class objects in `Julia` it was also possible to
@@ -38,11 +38,11 @@ example typically the integer types used for the representation of the objects.
 
 Correspondence between algebraic and Julia categories:
 
-| algebraic                            | Julia          | example
+| algebraic                           | Julia          | example
 |-------------------------------------|----------------|------------------------------|
-| category **Ring**                   |abstract type   | `abstract type Ring ...`
-| algebraic structure **ℤ/m**         |concrete type   | `struct ZZmod{m,Int} == ZZ/m`  
-| specialisation **ℤ** is a **Ring**  | type inclusion | `ZZ{Int] <: Ring`
+| category **Ring**                   | abstract type  | `abstract type Ring ...`
+| algebraic structure **ℤ/m**         | concrete type  | `struct ZZmod{m,Int} == ZZ/m`  
+| specialisation **ℤ** is a **Ring**  | type inclusion | `ZZ{Int} <: Ring`
 | ring element **a** of **R**         | object         | `a` isa `R`
 | basic binary operations **a + b**   | binary operator| `a + b`
 | homomorphism **h** : **R** -> **S** | method         | `h(::R)::S = ...`
@@ -123,7 +123,7 @@ Stacktrace:
 
 ```
 
-## Installation of this WIP version
+## Installation
 
 ``` julia
 
@@ -139,39 +139,63 @@ julia> using CommutativeRings
 [ Info: Precompiling CommutativeRings [a6d4fa9c-9e0b-4795-89f3-f481b7b5e384]
 
 (CommutativeRings) pkg> test
-    Testing CommutativeRings
-
-Test Summary: | Pass  Total
-generic       |   23     23
-Test Summary: | Pass  Total
-typevars      |    8      8
-Test Summary: | Pass  Total
-ZZ            |  113    113
-Test Summary: | Pass  Total
-QQ            |   42     42
-Test Summary: | Pass  Total
-ZZmod         |  271    271
-Test Summary: | Pass  Total
-univarpolynom |  256    256
-Test Summary:   | Pass  Total
-multivarpolynom |  151    151
-Test Summary: | Pass  Total
-ideal         |   21     21
-Test Summary: | Pass  Total
-fraction      |   32     32
-Test Summary: | Pass  Total
-quotient      |   24     24
-Test Summary: | Pass  Total
-factorization |   20     20
-Test Summary: | Pass  Total
-galoisfields  |   99     99
-Test Summary: | Pass  Total
-numbertheory  |   24     24
-Test Summary: | Pass  Total
-enumerations  |   31     31
-Test Summary: | Pass  Total
-linearalgebra |   23     23
-    Testing CommutativeRings tests passed  
+Precompiling project...
+  1 dependency successfully precompiled in 3 seconds. 15 already precompiled.
+     Testing Running tests...
+Test Summary: | Pass  Total  Time
+typevars      |    8      8  6.9s
+Test Summary: | Pass  Total   Time
+generic       |   80     80  26.1s
+Test Summary: | Pass  Total  Time
+ZZ            |  129    129  4.1s
+Test Summary: | Pass  Total  Time
+QQ            |   49     49  0.7s
+Test Summary: | Pass  Total  Time
+ZZmod         |  280    280  5.3s
+Test Summary: | Pass  Total     Time
+galoisfields  |  600    600  1m34.9s
+Test Summary: | Pass  Total   Time
+fraction      |   50     50  12.5s
+Test Summary: | Pass  Total  Time
+quotient      |   32     32  1.3s
+Test Summary: | Pass  Total  Time
+univarpoly    |  302    302  9.9s
+Test Summary: | Pass  Total  Time
+determinant   |   12     12  2.4s
+Test Summary: | Pass  Total  Time
+resultant     |   52     52  0.9s
+Test Summary: | Pass  Total   Time
+multivarpoly  |  174    174  35.7s
+Test Summary: | Pass  Total  Time
+ideal         |   42     42  9.2s
+Test Summary: | Pass  Total  Time
+factors       |   33     33  3.7s
+Test Summary: | Pass  Total  Time
+numbertheory  |   45     45  2.4s
+Test Summary: | Pass  Total  Time
+enumerations  |  115    115  8.4s
+Test Summary: | Pass  Total   Time
+linearalgebra |   51     51  36.2s
+Test Summary:  | Pass  Total   Time
+rationalnormal |   81     81  25.0s
+┌ Warning: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 cannot be proved - p = 5 B = 16323696413041099
+└ @ CommutativeRings ~/dev/CommutativeRings/src/intfactorization.jl:243
+┌ Warning: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 cannot be proved - p = 25 B = 16323696413041099
+└ @ CommutativeRings ~/dev/CommutativeRings/src/intfactorization.jl:243
+┌ Warning: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 cannot be proved - p = 625 B = 16323696413041099
+└ @ CommutativeRings ~/dev/CommutativeRings/src/intfactorization.jl:243
+┌ Warning: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 cannot be proved - p = 390625 B = 16323696413041099
+└ @ CommutativeRings ~/dev/CommutativeRings/src/intfactorization.jl:243
+┌ Warning: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 cannot be proved - p = 152587890625 B = 16323696413041099
+└ @ CommutativeRings ~/dev/CommutativeRings/src/intfactorization.jl:243
+[ Info: irreducibility of 2*x^111 + 7*x^74 + x^37 + 1 proved - p = 23283064365386962890625 B = 16323696413041099
+Test Summary: | Pass  Total     Time
+intfactors    |   67     67  1m43.2s
+Test Summary: | Pass  Total  Time
+powerseries   |   82     82  2.3s
+Test Summary: | Pass  Total   Time
+specialseries |   44     44  15.3s
+     Testing CommutativeRings tests passed  
 
 ```
 
@@ -203,7 +227,7 @@ Each complete `Julia` type (with all type parameters specified) defines a single
     Zp = ZZmod{p,Int128}
 ```
 
-For general quotient classes and for polynomials there are convenient constructors, which
+For general factor rings and for polynomials there are convenient constructors, which
 look like the typical mathematical notation `R[:x,:y,...]` and `R / I`.
 Here the symbols `:x, :y` define the name of the variables of a uni-
 or multivariate polynomial ring over `R`. `I` is an ideal of R or an element of
@@ -296,7 +320,7 @@ cases `monom(P, i, j, ...)`.
 | isirreducible || polynomial cannot be split into non-trivial factors
 | irreducibles  || generate all irreducible polynomials of given degree
 | factor    || factorize univariate polynomials over finite fields or integers
-| modulus   || for quotient rings and Galois fields the defining polynomial
+| modulus   || for factor rings and Galois fields the defining polynomial
 | characteristic || of ring: smallest positive integer `c` with `c * one(G) == 0`, otherwise `0`
 | dimension || of Galois fields or vector spaces
 | order  || of ring: number of all elements of ring; `0` if infinite
@@ -339,15 +363,18 @@ Polynomials of this class are obtained by the constructor
 or more conveniently by
 
 ``` julia
+P = R[:x]
 x = monom(P)
-g = 3x^2 + 2x + 1  
+g = 3x^2 + 2x + 1
+
+g == P([1, 2, 3])
 ```
 
 If `R` is a finite Field (that means `ZZ/p` or GaloisField - see below) the following options are available:
 
 Univariate polynomials may be checked by `isirreducible(p)` for their irreducibility
 and `factor(g)` delivers the list of irreducible factors of `g`.
-The factorization is also implemented for univariate polynomials over the integers (for example of type `ZZ{BigInt}[:x]`)
+The factorization is also implemented for univariate polynomials over the integers (for example of type `ZZ{BigInt}[:x]`).
 
 For finite fields, the function `irreducible(P, r)` delivers the first irreducible polynomial with degree `r`.
 All irreducible polynomials of `P` with degree `r` are obtained by `irreducibles(P, r)`
@@ -359,7 +386,7 @@ irreducibles has order `num_irreducibles(P, r)`.
 ## Galois Fields
 
 All finite fields have order `p^r` where `p` is a prime number and `r >= 1` an integer.
-It can be represented as a quotient ring of univariate polynomials over `ZZ/p` by an irreducible monic polynomial `g` of degree `r`.
+It can be represented as a factor ring of univariate polynomials over `ZZ/p` by an irreducible monic polynomial `g` of degree `r`.
 In short, if `g` is known, we have `(ZZ/p)[:x] / g` as a working implementation of a Galois field.
 For `r == 1` this can be identified with `ZZ/p` (using `g(x) = x`). The `modulus` method return the polynomial which is actually used by the implementation.
 
@@ -368,7 +395,7 @@ performed using an efficient method to detect irreducibility. For `r > 1` the mo
 applying addition and multiplication operations. Calculated in `GF`, we have always `g(x) = 0`.
 We restrict the selection of `g` in order to `x` let generate the multiplicative subgroup of `GF` by multiplication. That is possible for all `p, r`.
 
-Time efficiency of algebraic operations is improved by avoiding the expensive multiplicative calculations in the quotient ring and the use of
+Time efficiency of algebraic operations is improved by avoiding the expensive multiplicative calculations in the factor ring and the use of
 logarithmic tables in the size of `p^r`. Each element is represented by an integer in `0:p^r-1`, which corresponds to a polynomial of degree `< r`
 in a canonical manner (for example the number `2p^3 + p + 1` maps uniquley to `2x^3 + x + 1`).
 
@@ -443,9 +470,15 @@ For a square matrix, also the following methods exist:
 | det       | determinant - using generic LU factorization
 | adjugate  | for regular `A`: `inv(A) * det(A)`
 | characteristic_polynomial | `p(A) == 0`
-| companion | collides with `Polynomials.companion`
+| companion | companion matrix of a univariate polynomial (collides with `Polynomials.companion`)
+| minimal_polynomial |
+| characteristic_polynomial |
+| rational_normal_form | aka Frobenus normal form for fields
+| weierstrass_normal_form | close to diagonal within the base field
+| smith_normal_form | over principal ideal domains
 
-For `inv`, `det`, and `adjugate` if the element type is `P<:Polynomial`, it should be widened to `Frac(P)`.
+For `inv` if the element type is `P<:Polynomial`, it should be widened to `Frac(P)`.
+`det` and `adjugate` work also for matrices over principal ideal domains.
 
 ## Multivariate Polynomials
 
@@ -556,7 +589,7 @@ julia> compose_inv(lg) == exm1
 true
 ```
 
-## Comparison with [AbstractAlgebra]()
+## Comparison with [AbstractAlgebra](https://nemocas.github.io/AbstractAlgebra.jl)
 
 ``` julia
 
@@ -572,7 +605,7 @@ UnivariatePolynomial{ZZmod{7, Int8}, :y}
 
 julia> y = monom(S);
 
-julia> T = S / ( y^3 + 3y + 1); # ResidueRing(S, y^3 + 3y + 1)
+julia> T = S / ( y^3 + 3y + 1); # Factor Ring(S, y^3 + 3y + 1)
 
 julia> U = T[:z]; #U, z = PolynomialRing(T, "z")
 
@@ -603,7 +636,7 @@ in Mathematics" of Basu, et. al.
 
 The power series algorithms are partially from this wikipedia article [Formal Power Series](https://en.wikipedia.org/wiki/Formal_power_series)
 
-### Copyright © 2019-2022 by Klaus Crusius. This work is released under The MIT License
+### Copyright © 2019-2023 by Klaus Crusius. This work is released under The MIT License
 
 [gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
 [gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI

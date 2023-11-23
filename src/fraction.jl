@@ -283,3 +283,20 @@ function enparen(s::String)
         s
     end
 end
+
+# conversions from fractions
+function (::Type{S})(a::T) where {S<:Union{Integer,ZZ},T<:Union{QQ,Frac}}
+    if isone(denominator(a))
+        S(numerator(a))
+    else
+        throw(InexactError(:T, T, a))
+    end
+end
+
+function (::Type{S})(a::Frac{T}) where {S<:UnivariatePolynomial,T<:Polynomial}
+    if isone(denominator(a))
+        S(numerator(a))
+    else
+        throw(InexactError(:T, T, a))
+    end
+end

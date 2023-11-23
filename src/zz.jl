@@ -71,3 +71,7 @@ factor(a::Z) where Z<:ZZ = [Z(first(x)) => last(x) for x in Primes.factor(value(
 isirreducible(a::ZZ) = isirreducible(a.val)
 
 Base.show(io::IO, z::ZZ) = print(io, z.val)
+
+function (::Type{T})(a::ZZ) where T<:Integer
+    T(value(a))
+end
