@@ -1,8 +1,8 @@
 
-import Base: length, iterate, eltype
+import Base: length, iterate, eltype, IteratorSize, HasLength, IsInfinite
 export Monic
 
-struct Monic{T<:QuotientRing,X}
+struct Monic{T<:Ring,X}
     n::Int
     Monic(::Type{P}, n) where {X,T,P<:UnivariatePolynomial{T,X}} = new{T,X}(n)
 end
@@ -61,13 +61,16 @@ function next(g::G) where G<:GaloisField
     s >= order(G) ? nothing : ofindex(s, G)
 end
 
+Base.IteratorSize(::Type{<:Monic{Z}}) where Z = IteratorSize(Z)
 Base.length(mo::Monic{Z,X}) where {X,Z<:Ring} = length(Z)^mo.n
 Base.eltype(::Monic{Z,X}) where {X,Z<:Ring} = Z[X]
-function Base.iterate(mo::Monic{Z,X}) where {X,Z<:Ring}
+Base.iterate(mo::Monic{Z,X}) where {X,Z<:Ring} = _iterate(mo, IteratorSize(Z))
+function _iterate(mo::Monic{Z,X}, ::HasLength) where {X,Z<:Ring}
     p0 = monom(Z[X], mo.n)
     p0, p0
 end
-function Base.iterate(mo::Monic{Z,X}, s) where {X,Z<:Ring}
+Base.iterate(mo::Monic{Z}, s) where Z = _iterate(mo, s, IteratorSize(Z))
+function _iterate(::Monic{Z,X}, s, ::HasLength) where {X,Z}
     c = coeffs(s)
     n = deg(s)
     for i = 1:n
@@ -83,6 +86,11 @@ function Base.iterate(mo::Monic{Z,X}, s) where {X,Z<:Ring}
     nothing
 end
 
+_iterate(mo::Monic{Z,X}, is::IsInfinite) where {X,Z} = _iterate(mo, 0, is)
+function _iterate(mo::Monic{Z,X}, s, ::IsInfinite) where {X,Z}
+    P = Z[X]
+    ofindex(s, P, mo.n + 1), s + 1
+end
 
 isqrt2(i::T) where T<:Integer = T(floor(sqrt(8 * i + 1) - 1)) ÷ 2
 function ipair(i::Integer)
@@ -145,7 +153,7 @@ ofindex(a::Integer, T::Type{ZZ{S}}) where S = T(ofindex(a, S))
 ofindex(a::Integer, T::Type{<:ZZmod{m,S}}) where {m,S} = T(ofindex(a, unsigned(S)))
 function ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where {S<:UnivariatePolynomial}
     d = deg(modulus(T))
-    T(ofindex(a, S, d) - monom(S, d))
+    T(ofindex(a, S, d))
 end
 
 function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
@@ -153,12 +161,17 @@ function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     s, t = index(a - 1, len(T), len(T))
     T(ofindex(t + 1, S), S(ofindex(s + 1, unsigned(S))))
 end
+
 function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
-    P([ofindex.(indexv(a, fill(oftype(a, len(S)), d)), Ref(S)); 1])
+    _ofindex(a, P, d, IteratorSize(S))
 end
-function ofindex(a::Integer, ::Type{P}, d::Integer) where {S<:ZZ,P<:UnivariatePolynomial{S}}
+function _ofindex(a::Integer, ::Type{P}, d::Integer, ::HasLength) where {S,P<:UnivariatePolynomial{S}}
+    P(ofindex.(indexv(a, fill(oftype(a, len(S)), d)), Ref(S)))
+end
+function _ofindex(a::Integer, ::Type{P}, d::Integer, ::IsInfinite) where {P<:UnivariatePolynomial}
     P(hypercube(a, d, EnumPolynomial()))
 end
+
 struct Factors{T<:Integer,P}
     f::P
     Factors(x::V) where {T,V<:AbstractVector{<:Pair{T}}} = new{T,V}(x)

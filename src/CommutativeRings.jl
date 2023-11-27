@@ -81,6 +81,7 @@ include("rationalcanonical.jl")
 include("powerseries.jl")
 include("specialseries.jl")
 include("conway.jl")
+include("lll.jl")
 
 using .SpecialPowerSeries
 using .Conway

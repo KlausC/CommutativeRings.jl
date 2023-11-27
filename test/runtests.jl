@@ -26,3 +26,4 @@ end
 @testset "intfactors" begin include("intfactorization.jl") end
 @testset "powerseries" begin include("powerseries.jl") end
 @testset "specialseries" begin include("specialseries.jl") end
+@testset "LLL" begin include("lll.jl") end

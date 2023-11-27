@@ -303,3 +303,7 @@ struct SNF{R<:Ring,V<:AbstractVector{R},S<:AbstractMatrix{R}}
     trans1::S
     trans2::S
 end
+
+# types to control dispatch for a few functions
+const OtherNumber = Union{AbstractFloat, Complex}
+const OtherFloat = Union{AbstractFloat, Complex{<:AbstractFloat}}

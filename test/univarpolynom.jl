@@ -337,4 +337,13 @@ end
     @test reverse(p) == p(1 // x) * x^k
 end
 
+@testset "evaluate polynomial of $Z with $T" for Z in (Int, BigInt), T in (Float32, BigFloat, ComplexF64)
+    P = ZZ{Z}[:x]
+    x = monom(P)
+    p = x^5 + 2x + 1
+    a = T(pi)
+    @test p(a) isa promote_type(Z, T)
+    @test p(a) ≈ (a^4 + 2) * a + 1
+end
+
 end # module

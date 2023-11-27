@@ -159,8 +159,12 @@ zero(::Type{Frac{T}}) where T = Frac(zero(T), one(T))
 one(::Type{Frac{T}}) where T = Frac(one(T), one(T))
 hash(a::Frac, h::UInt) = hash(a.den, hash(a.num, h))
 
-evaluate(p::Frac, a) = evaluate(p.num, a) // evaluate(p.den, a)
+evaluate(p::Frac, a) = fracdiv(evaluate(p.num, a), evaluate(p.den, a))
 (p::Frac)(a, b...) = evaluate(p, a, b...)
+
+fracdiv(a, b) = fracdiv(promote(a, b)...)
+fracdiv(a::T, b::T) where T = a // b
+fracdiv(a::T, b::T) where T<:OtherFloat = a / b
 
 derive(p::Frac) = (derive(p.num) * p.den - p.num * derive(p.den)) // p.den // p.den
 function derive(p::Ring, n::Integer)
@@ -255,13 +259,6 @@ function pade_normal!(p::Frac{<:UnivariatePolynomial})
         den.coeff ./= u
     end
     p
-end
-
-function evaluate(
-    p::Union{Frac{<:UnivariatePolynomial},UnivariatePolynomial},
-    x::AbstractFloat,
-)
-    float(Rational(evaluate(p, rationalize(x))))
 end
 
 adjoint(f::Frac) = derive(f)

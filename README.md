@@ -638,8 +638,8 @@ The power series algorithms are partially from this wikipedia article [Formal Po
 
 ### Copyright © 2019-2023 by Klaus Crusius. This work is released under The MIT License
 
-[gha-img]: https://github.com/KlausC/CommutativeRings.jl/workflows/CI/badge.svg
-[gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions?query=workflow%3ACI
+[gha-img]: https://github.com/KlausC/CommutativeRings.jl/actions/workflows/ci.yml/badge.svg
+[gha-url]: https://github.com/KlausC/CommutativeRings.jl/actions/workflows/ci.yml
 
 [codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl

@@ -60,7 +60,7 @@ end
 
 Returns iterator of all irreducible monic polynomials in `P` with degree `n`.
 """
-function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
+function irreducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:Ring}
     Base.Iterators.Filter(isirreducible, Monic(P, n))
 end
 """
@@ -68,7 +68,7 @@ reducibles(P, n)
 
 Returns iterator of all reducible monic polynomials in `P` with degree `n`.
 """
-function reducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:QuotientRing}
+function reducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:Ring}
     Base.Iterators.Filter(!isirreducible, Monic(P, n))
 end
 
