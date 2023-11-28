@@ -131,7 +131,7 @@ function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where B
         if BO && length(res) >= 1 && deg(res[1]) < deg(u)
             break
         end
-        for i = eachindex(fac)
+        for i = 1:length(fac)
             fac, q = lift!(fac, i)
             #push!(D, "lifted $i")
             #push!(D, deepcopy(fac))
@@ -200,17 +200,17 @@ end
 
 factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
 """
-function factor(u::P, a::Integer) where P<:UnivariatePolynomial
+function factor(u::P, a::Integer; p0 = MINPRIME) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
     res = Pair{P,Int}[]
     x = monom(P)
     for ab in sort(collect(factors(a)))
-        r = factor(u(x^ab))
+        r = factor(u(x^ab); p0)
         ab == a && return r
         if length(r) > 1
             for (v, e) ∈ r
                 b = a ÷ ab
-                s = factor(v, b)
+                s = factor(v, b; p0)
                 for (p, x) in s
                     push!(res, p => x * e)
                 end
@@ -238,7 +238,7 @@ Return `true` iff `fac` becomes empty.
 """
 function all_factors_irreducible!(res, fac, p)
     del = Int[]
-    for i = eachindex(fac)
+    for i = 1:length(fac)
         u, vv = fac[i]
         n2 = deg(u) ÷ 2
         domessage = n2 >= 50
@@ -426,14 +426,19 @@ function hensel_lift(
     u::UnivariatePolynomial{Z},
     v::AbstractVector{Pq},
     a::AbstractVector{Pp},
-) where {X,Z<:ZZ,Zq<:ZZmod,Zp<:ZZmod,Pq<:UnivariatePolynomial{Zq,X},Pp<:UnivariatePolynomial{Zp}}
-    #X = varname(Pq)
-    #Zp = basetype(Pp)
-    #Zq = basetype(Pq)
+) where {
+    Z<:ZZ,
+    Zq<:ZZmod,
+    Zp<:ZZmod,
+    Pq<:UnivariatePolynomial{Zq},
+    Pp<:UnivariatePolynomial{Zp},
+}
+
+    X = varname(Pq)
     p = modulus(Zp)
     q = modulus(Zq)
-    Zqp = ZZ / (widemul(q, p))
-    qp = modulus(Zqp)
+    qp = (widemul(q, p))
+    Zqp = ZZ / qp
     Pqp = Zqp[X]
     lc = LC(u)
     lci = inv(Zq(lc))
@@ -542,7 +547,7 @@ function preduce(op, start, vv::AbstractVector, n::Integer)
 end
 function preduce(op, start, vv::AbstractVector, n::BitVector)
     p = start
-    for j = eachindex(vv)
+    for j = 1:length(vv)
         if n[j]
             p = op(p, vv[j])
         end
@@ -551,7 +556,7 @@ function preduce(op, start, vv::AbstractVector, n::BitVector)
 end
 
 function subset(vv::AbstractVector, d)
-    vv[preduce(push!, Int[], eachindex(vv), d)]
+    vv[preduce(push!, Int[], 1:length(vv), d)]
 end
 
 """
@@ -560,7 +565,7 @@ end
 Delete vector element `v[i]` for all `i` with `bitmask[i] == 1`.
 """
 function remove_subset!(vv::AbstractVector, d)
-    deleteat!(vv, preduce(push!, Int[], eachindex(vv), d))
+    deleteat!(vv, preduce(push!, Int[], 1:length(vv), d))
 end
 
 """

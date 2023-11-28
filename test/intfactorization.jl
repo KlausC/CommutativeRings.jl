@@ -143,6 +143,9 @@ end
     facq = factor(q)
     @test prod(facq) == q
     @test length(facp) == length(facq)
+
+    p = x^3 + 1
+    @test prod(factor(p, 4; p0 = 20)) == p(x^4)
 end
 
 @testset "factor in QQ[x]" begin
