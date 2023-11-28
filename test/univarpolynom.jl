@@ -12,7 +12,7 @@ end
 
 import Base: ==
 function ==(a::UnivariatePolynomial, b::Poly)
-    va = getproperty.(shiftleft(a.coeff, ord(a)), :val)
+    va = value.(a[:])
     vb = coeffs(b)
     n = length(vb)
     while n > 0 && vb[n] == 0
@@ -78,6 +78,14 @@ CP = (Int[], [1], [0, 0, 4], [2, 1], [1, 0, 30])
     @test P(co, 0) != P(co, 1)
     @test S[:y](co) != P(co)
     @test one(S[:y]) == one(P)
+end
+
+@testset "coefficient accessors" begin
+    p = x^3 + 2x - 2
+    @test (p[0], p[1], p[2], p[3]) == (-2, 2, 0, 1)
+    @test (x * p)[:] == [0, -2, 2, 0, 1]
+    @test p[0] isa basetype(x) <: Ring
+    @test value.(p[0]) isa Integer
 end
 
 @testset "varnames and generators" for P in (S[:x],)
@@ -337,7 +345,9 @@ end
     @test reverse(p) == p(1 // x) * x^k
 end
 
-@testset "evaluate polynomial of $Z with $T" for Z in (Int, BigInt), T in (Float32, BigFloat, ComplexF64)
+@testset "evaluate polynomial of $Z with $T" for Z in (Int, BigInt),
+    T in (Float32, BigFloat, ComplexF64)
+
     P = ZZ{Z}[:x]
     x = monom(P)
     p = x^5 + 2x + 1

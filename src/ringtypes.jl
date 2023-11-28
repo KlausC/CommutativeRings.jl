@@ -233,7 +233,7 @@ struct VectorSpace{R,V}
     base::V
     pivr::Vector{Int} # row permutation vector
     function VectorSpace{R}(b::B, pivr) where {R,B<:AbstractMatrix}
-        pivr = *(size(b)...) == 0 ? collect(1:length(pivr)) : pivr
+        pivr = *(size(b)...) == 0 ? collect(eachindex(pivr)) : pivr
         new{R,B}(b, pivr)
     end
 end

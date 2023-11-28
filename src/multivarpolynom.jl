@@ -150,7 +150,7 @@ function derive(p::P, d::NTuple{N,<:Integer}) where {S,N,P<:MultivariatePolynomi
     ind = similar(p.ind)
     coeff = similar(p.coeff)
     j = 0
-    for i = 1:length(p.ind)
+    for i = eachindex(p.ind)
         a = index2expo(p, i)
         b = a .- d
         if all(b .>= 0)
@@ -983,7 +983,7 @@ function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k
     fx = multideg(f)
     gx = multideg(g)
     Base.sum(fx .* gx) == 0 && return true # product criterion - no powers in common
-    for j = 1:length(G)
+    for j = eachindex(G)
         (j == i || j == k) && continue
         hx = multideg(G[j])
         if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k, j), C)
@@ -1108,7 +1108,7 @@ The indices with `pos[i] == 0` are silently ignored.
 """
 function reindex2(xa::AbstractVector, pos::AbstractVector{<:Integer}, n::Integer)
     res = zeros(Int, n)
-    for i = 1:length(pos)
+    for i = eachindex(pos)
         posi = pos[i]
         if posi != 0
             res[posi] = xa[i]
@@ -1119,7 +1119,7 @@ end
 
 function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, vp)
     findfirst(iszero, pos) === nothing && return pos
-    i = findfirst(i -> iszero(pos[i]) && !iszero(xa[i]), 1:length(pos))
+    i = findfirst(i -> iszero(pos[i]) && !iszero(xa[i]), eachindex(pos))
     if i !== nothing
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
     end

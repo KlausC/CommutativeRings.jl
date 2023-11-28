@@ -1,5 +1,9 @@
+"""
+    MINPRIME constant for first prime to try irreducibility
+"""
+const MINPRIME = 9999
 
-function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
+function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
     iszero(p[0]) && return false
@@ -10,13 +14,13 @@ function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
     zassenhaus_irr(q; p0)
 end
 
-function isirreducible(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
+function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     (iszero(p) || isunit(p)) && return false
     c, pp = content_primpart(p)
-    isirreducible(pp; p0 = 3)
+    isirreducible(pp; p0)
 end
 
-function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     #println("factor($p)")
     X = varname(P)
     c = content(p)
@@ -127,7 +131,7 @@ function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where B
         if BO && length(res) >= 1 && deg(res[1]) < deg(u)
             break
         end
-        for i = 1:length(fac)
+        for i = eachindex(fac)
             fac, q = lift!(fac, i)
             #push!(D, "lifted $i")
             #push!(D, deepcopy(fac))
@@ -234,7 +238,7 @@ Return `true` iff `fac` becomes empty.
 """
 function all_factors_irreducible!(res, fac, p)
     del = Int[]
-    for i = 1:length(fac)
+    for i = eachindex(fac)
         u, vv = fac[i]
         n2 = deg(u) ÷ 2
         domessage = n2 >= 50
@@ -274,7 +278,8 @@ end
 
 Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).
 Return vector of tuples containing integer polynomial factors `U`, `V` vector with corresponding factorization, and
-`A` corresponding factors.
+`A` corresponding Bezout factors.
+
 If degrees of `V` sums up to the degree of `U`, that indicates the factorization was successful.
 It is also possible, that only one factor is found.
 The factors are not proved to be irreducible.
@@ -397,27 +402,34 @@ function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Int
 end
 
 """
-    hensel_lift(u, v::Vector, a::Vector) -> V
+    hensel_lift(u, v::Vector, a::Vector) -> V, A
 
-Algorithm see "D. Knuth - TAoCP 2.Ed 4.6.2 Exercise 22" and "E. Kaltofen - Factorization of Polynomials"
+Given integer polynomial `u` to be factorized, a vector `v` of polynomials over `Z/q`
+and a corresponding vector of Bezout factors `a` over `Z/p`. `q` is an integer power of `p`.
+
+Create output vector `V` of polynomials over `Z/(p*q)`
+
+
+Algorithm see "D. Knuth - TAoCP 2.Ed 4.6.2 Exercise 22" and
+"E. Kaltofen - Factorization of Polynomials"
 
 Assumptions fo the input
 * `u = LC(u) * prod(v) mod q`
-* `sum( a .* prod(v) ./ v) = 1 mod p`
+* `sum( a .* prod(v) ./ v) = 1 mod p` - `(bezout_sum(a, v) == 1)`.
 
-In the case u is not monic, the factor lc(u) has to be multiplied into `v[1]`.
-lc(v[1]) = lc(u) mod p and lc(v[i]) = 1 for i > 1.
+In the case u is not monic, the factor lc(u) has been multiplied into `v[1]`:
+`lc(v[1]) == lc(u) mod p` and `lc(v[i]) = 1 for i > 1`.
 
 The output vector V contains polynomials of same degree as corresponding v.
 """
 function hensel_lift(
-    u::P,
+    u::UnivariatePolynomial{Z},
     v::AbstractVector{Pq},
     a::AbstractVector{Pp},
-) where {P<:Polynomial,Pq<:Polynomial,Pp<:Polynomial}
-    X = varname(Pq)
-    Zp = basetype(Pp)
-    Zq = basetype(Pq)
+) where {X,Z<:ZZ,Zq<:ZZmod,Zp<:ZZmod,Pq<:UnivariatePolynomial{Zq,X},Pp<:UnivariatePolynomial{Zp}}
+    #X = varname(Pq)
+    #Zp = basetype(Pp)
+    #Zq = basetype(Pq)
     p = modulus(Zp)
     q = modulus(Zq)
     Zqp = ZZ / (widemul(q, p))
@@ -530,7 +542,7 @@ function preduce(op, start, vv::AbstractVector, n::Integer)
 end
 function preduce(op, start, vv::AbstractVector, n::BitVector)
     p = start
-    for j = 1:length(vv)
+    for j = eachindex(vv)
         if n[j]
             p = op(p, vv[j])
         end
@@ -539,7 +551,7 @@ function preduce(op, start, vv::AbstractVector, n::BitVector)
 end
 
 function subset(vv::AbstractVector, d)
-    vv[preduce(push!, Int[], 1:length(vv), d)]
+    vv[preduce(push!, Int[], eachindex(vv), d)]
 end
 
 """
@@ -548,7 +560,7 @@ end
 Delete vector element `v[i]` for all `i` with `bitmask[i] == 1`.
 """
 function remove_subset!(vv::AbstractVector, d)
-    deleteat!(vv, preduce(push!, Int[], 1:length(vv), d))
+    deleteat!(vv, preduce(push!, Int[], eachindex(vv), d))
 end
 
 """
@@ -728,7 +740,7 @@ function ffactor(p::P) where P<:UnivariatePolynomial{<:ZZ}
     nord != 0 && push!(ff, monom(P) => nord)
     if nex == 2 && iszero(CC(q) + LC(q))
         cyc = cyclotomic(P, deg(q))
-        pushmemo!(mfactor, cyc, [cyc =>1])
+        pushmemo!(mfactor, cyc, [cyc => 1])
         append!(ff, mfactor(q / cyc))
         push!(ff, cyc => 1)
         return ff

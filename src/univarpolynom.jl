@@ -33,6 +33,7 @@ function getindex(u::UnivariatePolynomial{T}, i::Integer) where T
     f <= i <= deg(u) ? u.coeff[i+1-f] : zero(T)
 end
 getindex(u::UnivariatePolynomial, v::AbstractVector{<:Integer}) = [u[i] for i in v]
+getindex(u::UnivariatePolynomial, ::Colon) = getindex(u, 0:deg(u))
 
 """
     deg(p::Polynomial)
