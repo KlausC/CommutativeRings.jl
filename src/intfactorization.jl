@@ -20,23 +20,32 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     isirreducible(pp; p0)
 end
 
-function factor(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P, a::Integer=1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     #println("factor($p)")
     X = varname(P)
     c = content(p)
     Z = ZZ{BigInt}[X]
     q = Z(isone(c) ? copy(p) : p / c)
     x = monom(Z)
-    q, e = stripzeros(q)
+    q, e, k = stripzeroscompress(q)
     res = Pair{Z,Int}[]
     isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
+    if a > 1 || k > 1
+        append!(res, factor_exp(q, k * a, p0))
+    else
+        factor!(res, q, p0)
+    end
+    res
+end
+
+function factor!(res, q, p0)
     if deg(q) > 0
         r = yun(q)
-        for (e, u) in enumerate(r)
+        for (k, u) in enumerate(r)
             if !isone(u)
                 s = zassenhaus(u; p0)
-                append!(res, s .=> e)
+                append!(res, s .=> k)
             end
         end
     end
@@ -196,21 +205,30 @@ function factormod(u, p::Integer)
 end
 
 """
-    factor(u::UnivariatePolynomial, a::Integer)
+    exponents(u::UnivariatePolynomial)
 
-factorize `u(x^a)`. `u` squarefree and `content(u) == 1`
+Return the list of exponents with non-zero coefficient.
 """
-function factor(u::P, a::Integer; p0 = MINPRIME) where P<:UnivariatePolynomial
+function exponents(u::UnivariatePolynomial)
+    filter(k -> !iszero(u[k]), ord(u):deg(u))
+end
+
+"""
+    factor(u::UnivariatePolynomial, a::Integer; p0 = MINPRIME)
+
+factorize polynomial `u(x^a)` over `ZZ`.
+"""
+function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
     res = Pair{P,Int}[]
     x = monom(P)
     for ab in sort(collect(factors(a)))
-        r = factor(u(x^ab); p0)
+        r = factor!([], u(x^ab), p0)
         ab == a && return r
         if length(r) > 1
             for (v, e) ∈ r
                 b = a ÷ ab
-                s = factor(v, b; p0)
+                s = factor_exp(v, b, p0)
                 for (p, x) in s
                     push!(res, p => x * e)
                 end
@@ -488,8 +506,15 @@ end
 
 count and remove trailing zero coefficients.
 """
-function stripzeros(p::P) where P<:UnivariatePolynomial
-    P(p.coeff, 0), ord(p)
+function stripzeroscompress(p::P) where P<:UnivariatePolynomial
+    m = ord(p)
+    q = P(p.coeff)
+    g = gcd(exponents(q))
+    if g > 1
+        n = deg(q) ÷ g
+        q = P([q[k*g] for k = 0:n])
+    end
+    q, m, g
 end
 
 """
