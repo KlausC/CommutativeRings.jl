@@ -34,43 +34,56 @@ function cyclotomic(::Type{P}, n::Integer) where P<:UnivariatePolynomial
     n == v1 ? q : spread(q, n ÷ v1)
 end
 
-# Jacobi symbol
-function jacobi(n::Integer, k::Integer)
-    k > 0 && k & 1 == 1 || throw(DomainError(k, "k must be positive odd number"))
-    n = mod(n, k)
+"""
+    jacobi(k, n)
+
+Calculate Jacobi symbol of `k` over `n`. `0 < n && isodd(n)`, `jacobi(k, n) ∈ {-1, 0, 1}`.
+"""
+function jacobi(k::Integer, n::Integer)
+    n > 0 && n & 1 == 1 || throw(DomainError(n, "k must be positive odd number"))
+    k = mod(k, n)
     t = 1
-    while n != 0
-        while n & 1 == 0
-            n >>= 1
-            r = k & 7
+    while k != 0
+        while k & 1 == 0
+            k >>= 1
+            r = n & 7
             if r == 3 || r == 5
                 t = -t
             end
         end
-        n, k = k, n
-        if n & 3 == k & 3 == 3
+        k, n = n, k
+        if k & 3 == n & 3 == 3
             t = -t
         end
-        n = mod(n, k)
+        k = mod(k, n)
     end
-    k == 1 ? t : 0
+    n == 1 ? t : 0
 end
 
-# Kronecker symbol
-function kronecker(n::Integer, k::Integer)
-    n & 1 == 0 && k & 1 == 0 && return 0
-    k == 0 && return n == 1 || n == -1 ? 1 : 0
-    ks = k < 0 && n < 0 ? -1 : 1
-    if k < 0
-        k = -k
+"""
+    kronecker(k, n)
+
+Calculate Kronecker symbol of `k` over `n`. Generalization of `jacobi` without
+restrictions to `n` or `k`. kronecker(k, n) ∈ {-1, 0, 1}`
+"""
+function kronecker(k::Integer, n::Integer)
+    k & 1 == 0 && n & 1 == 0 && return 0
+    n == 0 && return k == 1 || k == -1 ? 1 : 0
+    ks = n < 0 && k < 0 ? -1 : 1
+    if n < 0
+        n = -n
     end
-    t = trailing_zeros(k)
-    k >>= t
-    ks = (n & 7 == 3 || n & 7 == 5) && t & 1 == 1 ? -ks : ks
-    jacobi(n, k) * ks
+    t = trailing_zeros(n)
+    n >>= t
+    ks = (k & 7 == 3 || k & 7 == 5) && t & 1 == 1 ? -ks : ks
+    jacobi(k, n) * ks
 end
 
-# moebius function
+"""
+    moebius(n)
+
+Calculate Moebius function of `n`.
+"""
 function moebius(n::Integer)
     n > 0 || throw(ArgumentError("moebius defined for positive integers only"))
     n == 1 && return 1
@@ -82,13 +95,16 @@ function moebius(n::Integer)
     end
 end
 
-# necklace polynomial - Moreau's necklace-counting function
 """
     necklace(q, n)
 
 Return the value of the `necklace polynomial` of order `n` at `q`.
 
 Return count of irreducible monic polynomials of degree `n` over `ZZ/x`.
+
+Sometimes also called "Moreau's necklace-counting function".
+The necklace polynomial of degree in polynomial ring `R` is obtained by calling
+`necklace(monomial(R), n)`.
 """
 necklace(q::RingInt, n::Integer) = n == 0 ? one(q) : _necklace(q, Int(n))
 @inline function _necklace(q, n::Int)
@@ -110,15 +126,17 @@ necklace(q::RingInt, n::Integer) = n == 0 ? one(q) : _necklace(q, Int(n))
         end
         s += q^d * μ
     end
-    div(s, n)
+    _div(s, n)
 end
+_div(s, n) = div(s, n)
+_div(s::UnivariatePolynomial{Z,X}, n) where {X,Z<:ZZ} = QQ[X](s) / n
 
 """
     carmichael(n::Integer)
 
 Return the Carmichael λ-function value at of `n`, also called the `reduced totient`.
 
-It is a divisor of the Euler ϕ-function.
+It is a divisor of the Euler ϕ-function (aka `totient`).
 """
 function carmichael(n::T) where T<:Integer
     n <= 0 && throw(ArgumentError("Carmichael λ($n) is not defined"))

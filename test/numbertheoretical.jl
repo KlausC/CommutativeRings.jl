@@ -50,12 +50,14 @@ end
     (1, x),
     (2, (x^2 - x) / 2),
     (6, (x^6 - x^3 - x^2 + x) / 6),
+    (12, (x^12 - x^6 - x^4 + x^2) / 12)
 )
     @test necklace(x, n) == r
     @test necklace(17, n) == r(17)
     @test @inferred necklace(x, big(n)) == r
     @test @inferred necklace(17, big(n)) == r(17)
     @test @inferred necklace(big(2), n) == r(2)
+    @test @inferred necklace(z, n) == r(z)
 end
 
 @testset "Carmichael" begin

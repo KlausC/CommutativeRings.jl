@@ -11,7 +11,7 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     Z = ZZ{BigInt}[X]
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
-    zassenhaus_irr(q; p0)
+    zassenhaus_irr(q, p0)
 end
 
 function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
@@ -81,9 +81,9 @@ end
 Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
 such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
 """
-function yun(u::UnivariatePolynomial{<:ZZ})
+function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
     t, v, w = GCD(u, derive(u))
-    res = typeof(u)[]
+    res = P[]
     if isone(t)
         push!(res, u)
     else
@@ -110,18 +110,18 @@ function GCD(u, v)
 end
 
 function zassenhaus(u; p0)
-    zassenhaus2(u, Val(false); p0)
+    zassenhaus2(u, Val(false), p0)
 end
 
-function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}; p0) where BO
+function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}, p0) where BO
     Z = ZZ{BigInt}[varname(u)]
     u = convert(Z, u)
-    zassenhaus2(u, val; p0)
+    zassenhaus2(u, val, p0)
 end
 
 # D = []
 
-function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where BO
+function zassenhaus2(u::P, ::Val{BO}, p0) where {BO,P<:UnivariatePolynomial{ZZ{BigInt}}}
     v, p = best_prime(u, p0)
     a = allgcdx(v)
     #println(" initial v/$p = "); display([v a])
@@ -132,7 +132,7 @@ function zassenhaus2(u::UnivariatePolynomial{ZZ{BigInt}}, ::Val{BO}; p0) where B
     fac = combinefactors(u, v, a)
     #push!(D, "combinefactors called")
     #push!(D, deepcopy(fac))
-    res = typeof(u)[]
+    res = P[]
     q = p
     while !all_factors_irreducible!(res, fac, q)
         #push!(D, "all_factors_irreducible! called")
@@ -154,8 +154,8 @@ end
 
 Returns true iff the squarefree polynomial `u` is irreducible.
 """
-function zassenhaus_irr(u; p0 = 3)
-    res = zassenhaus2(u, Val(true); p0)
+function zassenhaus_irr(u, p0)
+    res = zassenhaus2(u, Val(true), p0)
     isempty(res) || deg(res[1]) >= deg(u)
 end
 
@@ -220,10 +220,11 @@ factorize polynomial `u(x^a)` over `ZZ`.
 """
 function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
-    res = Pair{P,Int}[]
+    PP = Pair{P,Int}
+    res = PP[]
     x = monom(P)
-    for ab in sort(collect(factors(a)))
-        r = factor!([], u(x^ab), p0)
+    for ab in sort(collect(factors(a))) # TODO open question, if fewer factors sufficient
+        r = factor!(PP[], u(x^ab), p0)
         ab == a && return r
         if length(r) > 1
             for (v, e) ∈ r
@@ -294,9 +295,12 @@ end
 """
     combinefactors(u, v::Vector{<:UnivariatePolynomial{ZZ/p}}, a::Vector{<:UnivariatePolynomial{ZZ/q}})
 
-Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p` (vector of polynomials over ZZ/p).
+Given integer polynomial `u` and `v` a monic squarefree factorization of `u modulo p`
+(vector of polynomials over ZZ/p), and `a` a vector of corresponding Bezout factors.
 Return vector of tuples containing integer polynomial factors `U`, `V` vector with corresponding factorization, and
-`A` corresponding Bezout factors.
+`A` corresponding Bezout factors modulo `q`.
+The vector is build by a brute-force search of all products of subsets of `v`, until a
+product divides `u`.
 
 If degrees of `V` sums up to the degree of `U`, that indicates the factorization was successful.
 It is also possible, that only one factor is found.
@@ -439,6 +443,7 @@ In the case u is not monic, the factor lc(u) has been multiplied into `v[1]`:
 `lc(v[1]) == lc(u) mod p` and `lc(v[i]) = 1 for i > 1`.
 
 The output vector V contains polynomials of same degree as corresponding v.
+The input relations are propagated to the output `V` and `A` modulo `p * q`.
 """
 function hensel_lift(
     u::UnivariatePolynomial{Z},

@@ -542,7 +542,7 @@ end
 The primitive part of the polynomial `p`, equals [`p / content(p)`](@ref).
 If the basetype is `QQ`, returned polynomial has basetype `ZZ`.
 """
-primpart(p::Polynomial) = p / content(p)
+gnomeprimpart(p::Polynomial) = p / content(p)
 function primpart(p::UnivariatePolynomial{Q,X}) where {Q<:Union{QQ,Frac},X}
     Z = basetype(Q)
     (Z[X])(Z.(numerator.((p / content(p)).coeff)), ord(p))
