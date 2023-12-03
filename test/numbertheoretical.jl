@@ -70,4 +70,12 @@ end
     @test carmichael(n) * 2 == totient(n)
 end
 
+@testset "Fibonacci" begin
+    f1 = fibonacci(1)
+    @test f1 isa BigInt
+    @test f1 == 1
+    f10 = fibonacci(10^6)
+    @test length(digits(f10)) == 208988
+end
+
 end # module
