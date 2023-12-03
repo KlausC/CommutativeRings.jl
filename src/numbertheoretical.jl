@@ -1,6 +1,6 @@
 
 export cyclotomic
-export jacobi, kronecker, moebius, necklace, carmichael
+export jacobi, kronecker, moebius, necklace, carmichael, fibonacci
 
 using Primes
 
@@ -148,4 +148,46 @@ function carmichael(n::T) where T<:Integer
         res = lcm(res, t)
     end
     res
+end
+
+"""
+    fibonacci(n)
+
+Calculate the n^th Fibonacci number `F_n`. (`F_0 = 0, F_1 = 1, F_n+1 = F_n + F_n-1`)
+
+Algorithm by D. Takahashi / Information Processing Letters 75 (2000) 243–246
+"""
+function fibonacci(n)
+    if n == 0
+        return big(0)
+    elseif n <= 2
+        return big(1)
+    else
+        f = big(1)
+        l = big(1)
+        sign = -1
+        log2n = ilog2(n)
+        mask = oftype(n, 2)^(log2n - 1)
+        for _ = 1:log2n-1
+            temp = f * f
+            f = (f + l) ÷ 2
+            f = 2 * (f * f ) - 3 * temp - 2 * sign
+            l = 5 * temp + 2 * sign
+            sign = 1
+            if (n & mask) != 0
+                temp = f
+                f = (f + l) ÷ 2
+                l = f + 2 * temp
+                sign = -1
+            end
+            mask = mask ÷ 2
+        end
+        if (n & mask) == 0
+            f = f * l
+        else
+            f = (f + l) ÷ 2
+            f = f * l - sign
+        end
+        return f
+    end
 end
