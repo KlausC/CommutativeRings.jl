@@ -448,7 +448,7 @@ function GFImpl(
 
     m == 1 && mod === nothing && return ZZ / p
     if mod === :conway
-        gen = Conway.conway(p, m, :γ)
+        gen = conway(p, m, :γ)
         if !ismissing(gen)
             return typeof(gen) / gen
         end
@@ -456,7 +456,7 @@ function GFImpl(
     end
 
     if isnothing(mod)
-        poly = Conway.quasi_conway(p, m, :α; nr, factors)
+        poly = quasi_conway(p, m, :α; nr, factors)
         return typeof(poly) / poly
 
     elseif mod isa UnivariatePolynomial
