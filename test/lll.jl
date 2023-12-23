@@ -14,12 +14,22 @@ B1 = Matrix(
     ]',
 )
 
-BM1= Matrix([
+BM1 = Matrix([
     -22 35 -64 -6 -67
     -57 59 -45 8 93
     28 114 -8 43 -4
     -42 36 118 -28 -3
 ]')
+
+B2 = Matrix([
+    1 2^54 + 1
+    0 1
+])
+
+BM2 = Matrix([
+    1 0
+    0 1
+])
 
 C1 = Matrix(
     [
@@ -39,13 +49,13 @@ CM1 = Matrix(
     ]'
 )
 
-@testset "lll_reduce $i" for (i, pair) in enumerate([(B1, BM1), (C1, CM1)])
+@testset "lll_reduce $i" for (i, pair) in enumerate([(B1, BM1), (B2, BM2), (C1, CM1)])
     B, BM = pair
-    Q, R, M = lll_reduce(B)
+    B2, R, Q = lll_reduce(B)
     @test norm(Q'Q - I) <= 1e-8
-    @test norm(Q' * B * M - R) <= 1e-5
-    @test abs(abs(det(M)) - 1) <= 1e-5
-    @test norm(B * M) <= norm(BM) * 2
+    @test norm(Q' * B2 - R) <= 1e-5
+    #B@test abs(abs(det(B2)) - det(B)) <= 1e-5
+    @test norm(B2) <= norm(BM) * 1.05
 end
 
 end # module

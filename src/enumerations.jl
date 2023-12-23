@@ -61,9 +61,10 @@ function next(g::G) where G<:GaloisField
     s >= order(G) ? nothing : ofindex(s, G)
 end
 
-Base.IteratorSize(::Type{<:Monic{Z}}) where Z = IteratorSize(Z)
-Base.length(mo::Monic{Z,X}) where {X,Z<:Ring} = length(Z)^mo.n
 Base.eltype(::Monic{Z,X}) where {X,Z<:Ring} = Z[X]
+IteratorSize(::Type{<:Monic{Z}}) where Z = IteratorSize(Z)
+length(m::Monic{Z}) where Z = intpower(length(Z), m.n)
+
 Base.iterate(mo::Monic{Z,X}) where {X,Z<:Ring} = _iterate(mo, IteratorSize(Z))
 function _iterate(mo::Monic{Z,X}, ::HasLength) where {X,Z<:Ring}
     p0 = monom(Z[X], mo.n)
@@ -89,7 +90,7 @@ end
 _iterate(mo::Monic{Z,X}, is::IsInfinite) where {X,Z} = _iterate(mo, 0, is)
 function _iterate(mo::Monic{Z,X}, s, ::IsInfinite) where {X,Z}
     P = Z[X]
-    ofindex(s, P, mo.n + 1), s + 1
+    ofindex(s, P, mo.n) + monom(P, mo.n), s + 1
 end
 
 isqrt2(i::T) where T<:Integer = T(floor(sqrt(8 * i + 1) - 1)) ÷ 2
@@ -162,14 +163,48 @@ function ofindex(a::Integer, T::Type{<:FractionRing{S}}) where S
     T(ofindex(t + 1, S), S(ofindex(s + 1, unsigned(S))))
 end
 
-function ofindex(a::Integer, ::Type{P}, d::Integer) where {S,P<:UnivariatePolynomial{S}}
+function ofindex(
+    a::Integer,
+    ::Type{P},
+    d::Integer = -1,
+) where {S,P<:UnivariatePolynomial{S}}
     _ofindex(a, P, d, IteratorSize(S))
 end
-function _ofindex(a::Integer, ::Type{P}, d::Integer, ::HasLength) where {S,P<:UnivariatePolynomial{S}}
-    P(ofindex.(indexv(a, fill(oftype(a, len(S)), d)), Ref(S)))
+function _ofindex(
+    a::Integer,
+    ::Type{P},
+    dim::Integer,
+    ::HasLength,
+) where {S,P<:UnivariatePolynomial{S}}
+    if dim >= 0
+        a = mod(a, intpower(length(S), dim))
+        P(ofindex.(indexv(a, fill(oftype(a, len(S)), dim)), Ref(S)))
+    else
+        n = length(S)
+        coeff = S[]
+        while a != 0
+            a, r = divrem(a, n)
+            push!(coeff, ofindex(r, S))
+        end
+        P(coeff)
+    end
 end
-function _ofindex(a::Integer, ::Type{P}, d::Integer, ::IsInfinite) where {P<:UnivariatePolynomial}
-    P(hypercube(a, d, EnumPolynomial()))
+function _ofindex(
+    a::Integer,
+    ::Type{P},
+    dim::Integer,
+    ::IsInfinite,
+) where {S,P<:UnivariatePolynomial{S}}
+    if dim < 0
+        dim = Int(ceil(log2(a+1) / log2(10))) + 2
+    end
+    P(hypercube(a, dim, EnumPolynomial()))
+end
+
+function ofindex(a::Integer, m::Monic{R,X}) where {R,X}
+    dim = m.n
+    P = R[X]
+    ofindex(a, P, dim-1) + monom(P, dim)
 end
 
 struct Factors{T<:Integer,P}
@@ -292,8 +327,8 @@ numsides(::EnumFull) = 2
     hypercube(x, n, EnumCube(), [EnumFull(), EnumHalf()])
 
 Return the `x`-th `n`-tuple of integers. Start with zero-tuple for `x` == 0.
-The tuples `0:(2k+1)^n-1` are contained in n-dimensional hypercube `[-k:k]^n`.
-Tuple number `(2k+1)^n-1` is always `-k*ones(n)`.
+The tuples `0:(2k+1)^n - 1` are contained in n-dimensional hypercube `[-k:k]^n`.
+Tuple number `(2k+1)^n - 1` is always `-k*ones(n)`.
 The implied order is no way canonical.
 """
 function hypercube(

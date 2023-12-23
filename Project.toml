@@ -6,10 +6,13 @@ repo = "https://github.com/KlausC/CommutativeRings.jl"
 version = "0.6.0"
 
 [deps]
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+LLLplus = "142c1900-a1c3-58ae-a66d-b187f9ca6423"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 
 [compat]
 Polynomials = "1,2,3,4"

@@ -321,8 +321,8 @@ function det_MV(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
     B2[1, 1] - B1[1, 1]
 end
 
-#=
-TODO fix algorithm. normal forms to dedicated file
+
+#TODO fix algorithm. normal forms to dedicated file
 """
     hermite_normal_form(A::AbstractMatrix{R}) where R<:Ring -> H, U
 
@@ -330,7 +330,7 @@ Calculate matrixes `H` in column Hermite normal form and unimodular `U` with `A 
 Unimodular means `det(U)` is unit element of the ring `R`.
 
 See [Wiki](https://en.wikipedia.org/wiki/Hermite_normal_form)
-[Algorithm](https://www.math.tamu.edu/~rojas/kannanbachemhermitesmith79.pdf)
+[Algorithm](https://www.math.tamu.edu/~rojas/kanna?nbachemhermitesmith79.pdf)
 """
 function hermite_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
     m, n = size(a)
@@ -338,7 +338,7 @@ function hermite_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
     hermite_normal_form!(copy(a), u)
 end
 
-function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
+function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R
     m, n = size(a)
 
     for i = 1:min(m, n)-1
@@ -346,6 +346,7 @@ function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R<:Ring
             ajj = a[j, j]
             aji = a[j, i+1]
             r, p, q = gcdx(ajj, aji)
+            #@assert max(abs(p), abs(q)) <= max(abs(ajj), abs(aji))
             pp = -div(aji, r)
             qq = div(ajj, r)
             for k = 1:m
@@ -379,9 +380,13 @@ function reduce_off_diagonal!(a, u, k)
         u[:, k] .= -u[:, k]
     end
     for z = 1:k-1
-        d = div(-a[k, z], akk)
-        a[:, z] .+= a[:, k] .* d
-        u[:, z] .+= u[:, k] .* d
+        d = cld(a[k, z], akk)
+        a[:, z] .-= a[:, k] .* d
+        u[:, z] .-= u[:, k] .* d
     end
 end
-=#
+
+Base.cld(a::T, b::T) where T<:ZZ = T(cld(value(a), value(b)))
+Base.fld(a::T, b::T) where T<:ZZ = T(fld(value(a), value(b)))
+Base.cld(a::T, b::T) where T<:Ring = div(a, b)
+Base.fld(a::T, b::T) where T<:Ring = div(a, b)

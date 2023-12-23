@@ -82,6 +82,7 @@ include("powerseries.jl")
 include("specialseries.jl")
 include("conway.jl")
 include("lll.jl")
+include("ll.jl")
 
 using .SpecialPowerSeries
 using .Conway
