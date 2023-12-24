@@ -64,5 +64,5 @@ sintern(m::IdentSymbols) = m
 sintern(m::BigInt) = Symbol(m)
 sintern(a::IdentSymbols...) = Symbol(tuple(a...))
 sintern(a::AbstractVector{<:IdentSymbols}) = Symbol(a)
-sintern(a::Tuple{Vararg{T}}) where T<:IdentSymbols = Symbol(a)
+sintern(a::Tuple{T,Vararg{T}}) where T<:IdentSymbols = Symbol(a)
 sintern(a::Any) = Symbol(Base.hash(a))

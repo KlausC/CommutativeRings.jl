@@ -387,7 +387,7 @@ function _gcd(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Rin
 end
 
 # extension to array
-function gcd(aa::Union{AbstractVector{T},Tuple{Vararg{T}}}) where {T<:Ring}
+function gcd(aa::Union{AbstractVector{T},Tuple{T,Vararg{T}}}) where {T<:Ring}
     g = zero(T)
     for x in aa
         isone(g) && break

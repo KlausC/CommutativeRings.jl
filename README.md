@@ -1,6 +1,6 @@
 # CommutativeRings.jl
 
-[![Build Status][gha-img]][gha-url]     [![Coverage Status][codecov-img]][codecov-url]
+[![Build Status][gha-img]][gha-url] [![Coverage Status][codecov-img]][codecov-url] [![Aqua QA][aqua-img]][aqua-url]
 
 W.I.P
 
@@ -643,3 +643,6 @@ The power series algorithms are partially from this wikipedia article [Formal Po
 
 [codecov-img]: https://codecov.io/gh/KlausC/CommutativeRings.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/KlausC/CommutativeRings.jl
+
+[aqua-img]: https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg
+[aqua-url]: https://github.com/JuliaTesting/Aqua.jl

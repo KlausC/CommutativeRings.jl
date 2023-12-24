@@ -423,7 +423,8 @@ function hypercube(
     throw(ErrorException("should not be reachable"))
 end
 
-function linear2tuple(x::Integer, b::NTuple{N,T}) where {N,T<:Integer}
+function linear2tuple(x::Integer, b::Tuple{T,Vararg{T}}) where {T<:Integer}
+    N = length(b)
     r = Vector{T}(undef, N)
     for i = 1:N-1
         x, r[i] = fldmod(x, b[i])
@@ -614,6 +615,9 @@ end
 function ilog2(a::Base.BitInteger)
     bpl = sizeof(a) * 8
     bpl - 1 - leading_zeros(abs(a))
+end
+function ilog2(a::AbstractFloat)
+    Integer(floor(log2(a)))
 end
 
 """

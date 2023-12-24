@@ -215,9 +215,11 @@ function __init__()
     # file imported from
     # `https://www.math.rwth-aachen.de/~Frank.Luebeck/data/ConwayPol/CPimport.txt.gz`
     # at 2023-11-11
-    file = joinpath(@__DIR__, "..", "data", "CPimport.txt")
-    empty!(CONWAY_POLYNOMIALS)
-    readparse(file, r -> store_conway!(r))
+    if ccall(:jl_generating_output, Cint, ()) == 0   # if we're not precompiling...
+        file = joinpath(@__DIR__, "..", "data", "CPimport.txt")
+        empty!(CONWAY_POLYNOMIALS)
+        readparse(file, r -> store_conway!(r))
+    end
 end
 
 end # module

@@ -1,9 +1,7 @@
 using Test
 using CommutativeRings
 
-@testset "ambiguities" begin
-    @test length(Test.detect_ambiguities(CommutativeRings)) == 0
-end
+@testset "Aqua" begin include("Aqua.jl") end
 
 @testset "typevars" begin include("typevars.jl") end
 @testset "generic" begin include("generic.jl") end

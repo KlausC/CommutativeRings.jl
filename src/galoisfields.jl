@@ -598,7 +598,7 @@ function homomorphism(
     ::Type{R},
     ::Type{S},
     nr::Integer = 0,
-) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},T<:Union{Quotient{P},GaloisField},R<:T,S<:T}
+) where {T<:Union{Quotient{<:UnivariatePolynomial{<:ZZmod}},GaloisField},R<:T,S<:T}
 
     r = dimension(R)
     s = dimension(S)

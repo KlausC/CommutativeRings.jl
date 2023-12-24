@@ -25,8 +25,6 @@ function ratqr!(A::AbstractMatrix{T}, r::AbstractVector{T}) where T
 
 end
 
-ilog2(a::AbstractFloat) = Integer(floor(log2(a)))
-
 """
     r1sqrt(a, n)
 For given real `a` and `n > 0`, find a integers `b` (odd) and `k` so `a * b^2 * 2^-2k ≈ 1`,

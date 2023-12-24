@@ -150,7 +150,7 @@ function derive(p::P, d::NTuple{N,<:Integer}) where {S,N,P<:MultivariatePolynomi
     ind = similar(p.ind)
     coeff = similar(p.coeff)
     j = 0
-    for i = eachindex(p.ind)
+    for i in eachindex(p.ind)
         a = index2expo(p, i)
         b = a .- d
         if all(b .>= 0)
@@ -177,7 +177,11 @@ end
 
 Return monic monomial with given exponent(s). (`monom(Z[:x.:y],[1,2]) == x * y^2`)
 """
-function monom(P::Type{<:MultivariatePolynomial{S,N}}, xv::Vector{<:Integer}, lc = 1) where {N,S}
+function monom(
+    P::Type{<:MultivariatePolynomial{S,N}},
+    xv::Vector{<:Integer},
+    lc = 1,
+) where {N,S}
     n = length(xv)
     n == 0 && return zero(P)
     length(xv) != N &&
@@ -416,12 +420,13 @@ function isless(a::T, b::T) where T<:MultivariatePolynomial
     end
 end
 
-function +(a::T...) where T<:MultivariatePolynomial
+function +(a1::T, a2::T...) where T<:MultivariatePolynomial
+    a = (a1, a2...)
     n = length(a)
     n > 0 || throw(ArgumentError("+ requires at least one argument"))
-    n == 1 && return a[1]
-    c = similar(a[1].coeff)
-    d = similar(a[1].ind)
+    n == 1 && return a1
+    c = similar(a1.coeff)
+    d = similar(a1.ind)
     j = 0
     p = ones(Int, n)
     pm = [mindex(x, 1) for x in a]
@@ -552,9 +557,10 @@ end
 function expo2ordblock(
     ::Type{P},
     a::AbstractVector{<:Integer},
-) where {R,N,X,T,M,B,P<:MultivariatePolynomial{R,N,X,NTuple{M,T},B}}
+) where {R,N,X,T,Y<:Tuple{T,Vararg{T}},B,P<:MultivariatePolynomial{R,N,X,Y,B}}
 
     t = tupcon(B)
+    M = length(Y.parameters)
     res = Vector{T}(undef, M)
     j = 0
     for i = 1:M
@@ -688,10 +694,10 @@ function fillindex(
 end
 function fillindex(
     f,
-    ::Type{<:MultivariatePolynomial{R,N,X,Tuple{Vararg{T,M}}}},
+    ::Type{<:MultivariatePolynomial{R,N,X,Tuple{T,Vararg{T,M}}}},
 ) where {R,N,X,M,T}
     ft = f(T)
-    ntuple(x -> ft, M)
+    ntuple(x -> ft, M + 1)
 end
 
 """
@@ -983,7 +989,7 @@ function criterion(G::AbstractVector{<:Polynomial}, C::AbstractVector, i::Int, k
     fx = multideg(f)
     gx = multideg(g)
     Base.sum(fx .* gx) == 0 && return true # product criterion - no powers in common
-    for j = eachindex(G)
+    for j in eachindex(G)
         (j == i || j == k) && continue
         hx = multideg(G[j])
         if all(hx .<= max.(fx, gx)) && !in(minmax(i, j), C) && !in(minmax(k, j), C)
@@ -1108,7 +1114,7 @@ The indices with `pos[i] == 0` are silently ignored.
 """
 function reindex2(xa::AbstractVector, pos::AbstractVector{<:Integer}, n::Integer)
     res = zeros(Int, n)
-    for i = eachindex(pos)
+    for i in eachindex(pos)
         posi = pos[i]
         if posi != 0
             res[posi] = xa[i]
