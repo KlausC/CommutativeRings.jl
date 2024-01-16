@@ -34,6 +34,16 @@ for op in (:+, :-, :*, :/, :\, :isapprox)
 end
 
 # generic operations
+
+Base.IteratorSize(::Ring) = Base.HasShape{0}()
+Base.size(::Ring) = ()
+Base.length(::Ring) = 1
+Base.iterate(r::Ring) = (r, nothing)
+Base.iterate(::Ring, ::Any) = nothing
+Base.isempty(::Ring) = false
+Base.in(a::Ring, b::Ring) = a == b
+Base.map(f, a::Ring, bs::Ring...) = f(a, bs...)
+
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = Union{}
 basetype(::Type{Union{}}) = Union{}
