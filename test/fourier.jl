@@ -2,6 +2,7 @@
 module TestFourier
 using CommutativeRings
 using Test
+using CommutativeRings: schoenhage_strassen
 
 function dft(n, f, w)
     r = similar(f)
@@ -32,15 +33,28 @@ N = 3 * 2^12 # 12288
     @test fft(n, ff, inv(w)) == f * n
 end
 
-@testset "fft! $(2^k)" for k = 1:8
+@testset "fft! $(2*2^k)" for k = 1:8
     n = 2^k
-    dd = 2^(k ÷ 2)
-    z = Int(2 * dd / n)
-    F = rand(1:100, n * dd)
+    d = 2^(k ÷ 2)
+    δ = n ÷ d
+    z = d == δ ? 4 : 2
+    F = rand(1:100, 2n)
     W = similar(F)
-    FQ = fft!(n, copy(F), dd, z, W)
-    FF = fft!(n, copy(FQ), dd, -z, W)
-    @test all(FF .== F * n)
+    FQ = fft!(δ, copy(F), 2d, z, W)
+    FF = fft!(δ, copy(FQ), 2d, -z, W)
+    @test all(FF .== F * δ)
+end
+
+@testset "schoenhage_strassen " for N in (8, 16, 32, 64)
+    F = rand(-100:100, N)
+    P = ZZ{Int}[:x]
+    Q = P / (monom(P, N) + 1)
+    p = P(F)^2
+    F2 = schoenhage_strassen(F, F, 2N)
+    @test p[0:2N-1] == F2
+    q = Q(p)
+    FN = schoenhage_strassen(F, F, N)
+    @test value(q)[0:N-1] == FN
 end
 
 end # module

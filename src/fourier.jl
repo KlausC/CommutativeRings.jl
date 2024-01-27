@@ -161,6 +161,7 @@ function schoenhage_strassen(F::P, G::P, n::Int) where {R,P<:AbstractVector{R}}
     characteristic(R) != 2 || throw(ArgumentError("R has characteristic 2"))
     dF = deg(F)
     dG = deg(G)
+    (dF < 0 || dG < 0) && n <= 0 && (n = 1)
     n = n <= 0 ? 2^(ilog2(dF + dG) + 1) : n
     max(dF, dG) < n || throw(ArgumentError("degrees for F and G must both be < $n"))
 
