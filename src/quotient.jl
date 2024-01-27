@@ -1,14 +1,17 @@
 
 # class constructors
 Quotient(x::Integer, ::Type{T}) where T<:Integer = ZZmod(T(x), T)
-Quotient(x::Any, ::Type{T}) where T<:Ring = T / x
 Polynomial(::Type{Q}) where {P,Q<:Quotient{P}} = P
 Polynomial(x::Quotient{<:Polynomial}) = value(x)
-
+# by default assume modulus is irreducible
+function Quotient(::Type{R}, m, isirr::Bool = true) where R<:Ring
+    ideal = pseudo_ideal(R, m)
+    p, r = characteristic(R), deg(ideal)
+    new_class(Quotient{R,typeof(ideal),sintern(m),(p, r, isirr)}, ideal)
+end
 # convenience type constructor
 # enable `Z / m` for anonymous quotient class constructor
 function /(::Type{R}, m) where R<:Ring
-
     ideal = pseudo_ideal(R, m)
     p, r = characteristic(R), deg(ideal)
     i = isirreducible(ideal)
@@ -75,7 +78,7 @@ one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 value(a::QuotientRing) = a.val
 characteristic(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[1]
 dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
-isprimemod(Z::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id}= Id[3]
+isprimemod(Z::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
 
 function order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id}
     r = Id[2]

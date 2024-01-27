@@ -83,6 +83,7 @@ include("specialseries.jl")
 include("conway.jl")
 include("lll.jl")
 include("ll.jl")
+include("fourier.jl")
 
 using .SpecialPowerSeries
 using .Conway

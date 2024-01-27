@@ -65,7 +65,7 @@ end
 
 function /(a::T, b::T) where T<:Ring
     d, r = divrem(a, b)
-    iszero(r) || throw(DomainError((a, b), "not dividable a/b."))
+    iszero(r) || throw(DomainError((a, b), "not dividable a/b.")) # TODO throw DivideError()
     T(d)
 end
 function /(a::T, b::T) where T<:Union{FractionRing,QuotientRing}
@@ -143,7 +143,8 @@ dimension(R::Type) = 1
 Returns characteristic `c` of ring `R`.
 `c` is the smallest positive integer with `c * one(R) == 0`, or `0` if `c * one(R) != 0` for all positive integers `c`.
 """
-characteristic(::Type) = 0
+characteristic(::Type{<:Ring}) = 0
+characteristic(::Type{<:Number}) = 0
 
 """
     intpower(a, b)

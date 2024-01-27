@@ -1,7 +1,7 @@
 
 # promotions
 
-_xpromote_rule(::Type{T},::Type{S}) where {T<:Ring,S<:RingInt} = begin
+_xpromote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt} = begin
     depth(T) < depth(S) && return Base.Bottom
     B = basetype(T)
     (S <: T || S <: B) ? T : promote_type(B, S) == B ? T : Base.Bottom
@@ -50,5 +50,5 @@ end
 function (G::Type{<:Ring})(a::Any)
     B = basetype(G)
     # println("G = $G $(isconcretetype(G)) B = $B $(isconcretetype(B))")
-    isconcretetype(B) ? G(convert(B, a)) : throw(MethodError(G, Ref(a)))
+    isconcretetype(B) && !(a isa B) ? G(convert(B, a)) : throw(MethodError(G, Ref(a)))
 end
