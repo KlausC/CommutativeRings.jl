@@ -2,8 +2,6 @@
 
 export fft!, fft
 
-length(f) = Base.length(f)
-
 convolute(a::R, b::R) where R<:Ring = a * b
 
 """
