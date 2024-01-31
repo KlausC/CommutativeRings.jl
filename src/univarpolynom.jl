@@ -704,8 +704,8 @@ function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     d = n + ord(p) - 1
     R = promote_type(S, eltype(T))
     d < 0 && return one(x) * zero(R)
-    d == 0 && return one(x) * R(c[1])
-    iszero(x) && return one(x) * R(p[0])
+    d == 0 && return one(x) * convert(R, c[1])
+    iszero(x) && return one(x) * convert(R, p[0])
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x

@@ -196,7 +196,7 @@ function _ofindex(
     ::IsInfinite,
 ) where {S,P<:UnivariatePolynomial{S}}
     if dim < 0
-        dim = Int(ceil(log2(a+1) / log2(10))) + 2
+        dim = Int(ceil(log10(a + 1))) + 2
     end
     P(hypercube(a, dim, EnumPolynomial()))
 end
@@ -204,7 +204,7 @@ end
 function ofindex(a::Integer, m::Monic{R,X}) where {R,X}
     dim = m.n
     P = R[X]
-    ofindex(a, P, dim-1) + monom(P, dim)
+    ofindex(a, P, dim - 1) + monom(P, dim)
 end
 
 struct Factors{T<:Integer,P}
@@ -618,6 +618,33 @@ function ilog2(a::Base.BitInteger)
 end
 function ilog2(a::AbstractFloat)
     Integer(floor(log2(a)))
+end
+
+"""
+    ilog3(a::Integer)::Int
+
+For nonzero integers `a > 0` return Int(floor(log(abs(a)) / log(3))) exact arithmethic.
+For zero return `-1`
+"""
+ilog3(a::Integer) = ilog(3, a)
+
+"""
+    ilog(base::Integer, a::Integer)::Int
+
+For nonzero integers `a > 0` return Int(floor(log(abs(a)) / log(base))) exact arithmethic.
+For zero return `-1`
+"""
+function ilog(base::Integer, a::Integer)
+    a < base && return a <= 0 ? -one(a) : zero(a)
+    b = oftype(a, base)
+    a = div(a, b)
+    f = max(Integer(floor(log(b, a) + 0.5)), 0)
+    f3 = b^f
+    f3 > a ? f : f + 1
+end
+
+function ilog(base::Real, a::Real)
+    Integer(floor(log(base, a)))
 end
 
 """

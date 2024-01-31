@@ -45,7 +45,14 @@ end
     @test all(FF .== F * δ)
 end
 
-@testset "schoenhage_strassen " for N in (8, 16, 32, 64)
+@testset "schoenhage_strassen 1" begin
+    F = [1]
+    G = [1]
+    H = [1]
+    @test schoenhage_strasse(F, G, 0) == H
+end
+
+@testset "schoenhage_strassen $N" for N in (8, 16, 32, 64)
     F = rand(-100:100, N)
     P = ZZ{Int}[:x]
     Q = P / (monom(P, N) + 1)

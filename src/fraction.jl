@@ -163,7 +163,7 @@ evaluate(p::Frac, a) = fracdiv(evaluate(p.num, a), evaluate(p.den, a))
 (p::Frac)(a, b...) = evaluate(p, a, b...)
 
 fracdiv(a, b) = fracdiv(promote(a, b)...)
-fracdiv(a::T, b::T) where T = a // b
+fracdiv(a::T, b::T) where T = a * inv(b)
 fracdiv(a::T, b::T) where T<:OtherFloat = a / b
 
 derive(p::Frac) = (derive(p.num) * p.den - p.num * derive(p.den)) // p.den // p.den

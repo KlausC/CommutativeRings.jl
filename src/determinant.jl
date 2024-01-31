@@ -167,13 +167,21 @@ function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{
 end
 
 """
-    _crt(x, y, p, q)
+    crt(x, y, p, q)
 
 Chinese remainder theorem.
+Given `x, y, p, q` with `gcd(p, q) == 1`,
+return `0 <= z < lcm(p, q)` with 'mod(z - x, p) == 0` and `mod(z - y, q) == 0`.
+The result type is widened to avoid overflows.
 """
-function _crt(x, y, p, q)
+function crt(x, y, p, q)
+    g, c = _crt2(widen(x), widen(y), p, q)
+    mod(c, div(widen(p) * widen(q), g))
+end
+_crt(x, y, p, q) = _crt2(x, y, p, q)[2]
+function _crt2(x, y, p, q)
     g, u, v = gcdx(p, q)
-    y * u * p + x * v * q
+    g, y * u * p + x * v * q
 end
 """
     v = splitmod(a, m)
