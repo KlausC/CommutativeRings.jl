@@ -40,8 +40,8 @@ end
     z = d == δ ? 4 : 2
     F = rand(1:100, 2n)
     W = similar(F)
-    FQ = fft!(δ, copy(F), 2d, z, W)
-    FF = fft!(δ, copy(FQ), 2d, -z, W)
+    FQ = fft!(δ, copy(F), 2d, z)
+    FF = fft!(δ, copy(FQ), 2d, -z)
     @test all(FF .== F * δ)
 end
 
@@ -49,7 +49,7 @@ end
     F = [1]
     G = [1]
     H = [1]
-    @test schoenhage_strasse(F, G, 0) == H
+    @test schoenhage_strassen(F, G, 0) == H
 end
 
 @testset "schoenhage_strassen $N" for N in (8, 16, 32, 64)
@@ -58,7 +58,7 @@ end
     Q = P / (monom(P, N) + 1)
     p = P(F)^2
     F2 = schoenhage_strassen(F, F, 2N)
-    @test p[0:2N-1] == F2
+    @test p[0:2N-2] == F2
     q = Q(p)
     FN = schoenhage_strassen(F, F, N)
     @test value(q)[0:N-1] == FN

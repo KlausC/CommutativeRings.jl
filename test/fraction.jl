@@ -93,8 +93,8 @@ end
     @test pade(p, 0, 0) == 1
 
     pa = pade(p, 3, 3)
-    @test all(evaluate.(derive.(pa, 0:5), 0) .== 1)
-    @test derive(pa, 7) != 1
+    @test all(evaluate.(derive.(pa, 0:6), 0) .== 1)
+    @test derive(pa, 7)(0) != 1
 
     pa = pade(p, 6, 6)
     @test all(evaluate.(derive.(pa, 0:10), 0) .== 1)

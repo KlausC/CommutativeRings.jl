@@ -15,7 +15,7 @@ x = P([0, 1])
     Qp = P / (x^3 + 1)
 
     @test Quotient(12, Int) == ZZmod{12,Int}
-    @test Quotient(12, ZZ) == ZZmod{12,Int8}
+    @test ZZ/12 == ZZmod{12,Int8}
 
     @test basetype(Q) == P
     @test depth(Q) == 3
