@@ -20,8 +20,7 @@ function fft(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ri
     m = length(f)
     F = copy(f)
     if n > m
-        resize!(F, n)
-        F[m+1:n] .= zero(R)
+        fill_end!(F, n, 0)
     end
     isone(w[1]) || throw(ArgumentError("w[1] must be one"))
     iszero(w[2]^(n ÷ 2) + 1) || throw(ArgumentError("w^($(n)/2) must be -1"))
@@ -194,7 +193,9 @@ function _schoenhage_strassen!(k::Int, FF::Q, GG::Q, W::Q) where Q<:AbstractVect
     convolute_all!(FF, FF, GG, 2d, W)
     fft!(δ, FF, 2d, -w)
     scale!(FF, 2d, -z)
-    FF .= sdiv.(FF, δ)
+    for l in axes(FF, 1)
+        FF[l] = sdiv(FF[l], δ)
+    end
     shrink!(FF, d, δ)
 end
 
@@ -222,14 +223,17 @@ function shrink!(A, d, δ)
     length(A) >= 2d * δ || throw(ArgumentError("length of B"))
     length(A) >= d * δ || throw(ArgumentError("length of A"))
     n = d * δ
-    A[1:2d] .= A[1:2d]
     δ <= 1 && return A, n
     for i = d:d:n-2d
-        A[i+1:i+d] .+= A[2i+1:2i+d]
-        A[i+d+1:i+2d] .= A[2i+d+1:2i+2d]
+        for l = 1:d
+            A[i+l] += A[2i+l]
+            A[i+d+l] = A[2i+d+l]
+        end
     end
-    A[n-d+1:n] .+= A[2n-2d+1:2n-d]
-    A[1:d] .-= A[2n-d+1:2n]
+    for l = 1:d
+        A[n-d+l] += A[2n-2d+l]
+        A[l] -= A[2n-d+l]
+    end
     return A, n
 end
 
@@ -288,7 +292,7 @@ function convolute_all!(r::P, a::P, b::P, n::Int, w::P) where P<:AbstractVector
 end
 
 function convolute_naive!(r::P, a::P, b::P, n::Int, w::P) where P<:AbstractVector
-    w .= a
+    copy!(w, a)
     fill!(r, 0)
 
     for jn = 0:n:length(a)-1
@@ -303,10 +307,6 @@ function convolute_naive!(r::P, a::P, b::P, n::Int, w::P) where P<:AbstractVecto
         end
     end
     return r
-end
-
-function convolute_rec!(r::P, a::P, b::P, n::Int, w::P) where P<:AbstractVector
-    throw(MethodError("convolute_rec!", n))
 end
 
 """
@@ -357,7 +357,7 @@ function ord(F::AbstractVector)
     return (f === nothing ? 1 : f) - 1
 end
 
-e_factor = 100.0 # float!
+e_factor = Ref(200)
 
 function convolute(F::AbstractVector{R}, G::AbstractVector{R}) where R
     convolute!(R[], F, G)
@@ -487,7 +487,7 @@ function effort_noresize(n, m)
 end
 
 function effort_sch(N)
-    (N * ilog2(N) + 1) * e_factor
+    (N * ilog2(N) + 1) * e_factor[]
 end
 
 """
@@ -525,26 +525,4 @@ function butterfly!(F::AbstractVector, dd::Int, n::Int)
         id += dd
     end
     F
-end
-
-function butterfly2!(F::AbstractVector, dd::Int, n::Int, W::AbstractVector)
-    m = 2
-    F0 = F
-    while m <= n
-        k = m ÷ 2
-        for j = 0:m:n-1
-            for i = 0:k-1
-                for l = 1:dd
-                    W[(2i+j)*dd+l] = F[(i+j)*dd+l]
-                    W[(2i+j+1)*dd+l] = F[(i+k+j)*dd+l]
-                end
-            end
-        end
-        F, W = W, F
-        m += m
-    end
-    if F !== F0
-        F0 .= F
-    end
-    F0
 end
