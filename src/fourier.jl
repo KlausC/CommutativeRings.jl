@@ -2,6 +2,7 @@
 
 export fft!, fft
 
+import Base: length
 
 convolute(a::R, b::R) where R<:Ring = a * b
 
@@ -13,9 +14,9 @@ Calculate Fast Fourier Transform of degree `n` (power of 2) for `f`
 Given `w` a `n`th principal root of `R(1)`. (`w^n == 1` && w^(n/2) == -1)`.
 For efficiency reasons, w may be substituted by precalculated `[1, w, w^2, ..., w^(n/2-1)]`.
 """
-fft(n::Integer, f::AbstractVector{R}, w::R) where R<:Ring = fft(n, f, [1, w])
+fft(n::Integer, f::AbstractVector{R}, w::R) where R<:Ring = fft2(n, f, [1, w])
 
-function fft(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ring
+function fft2(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ring
     n > 0 && count_ones(n) == 1 || throw(ArgumentError("n must be power of 2"))
     m = length(f)
     F = copy(f)
@@ -43,21 +44,156 @@ function fft(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ri
         m = k
         d += d
     end
-    G = similar(F)
-    m = 2
-    while m <= n
-        k = m ÷ 2
-        for j = 1:m:n
-            for i = 0:k-1
-                G[2i+j] = F[i+j]
-                G[2i+j+1] = F[i+k+j]
+    return butterfly!(F, 1, n)
+end
+
+function fft3(n::Integer, x::AbstractVector{R}, w::R) where R<:Ring
+    if n == 1
+        return x
+    end
+    k = ilog3(n)
+    3^k == n || throw(ArgumentError("$n != $(3^k) must be a power of 3"))
+    w^n == 1 || throw(ArgumentError("$w must be a $n-th root of unity"))
+    # Extact the even indices from array.
+    n3 = n ÷ 3
+    w^n3 != 0 || throw(ArgumentError("$w must not be a $(n3)-th root of unity"))
+    w3 = w^3
+    W = w^n3
+    W2 = W * W
+
+    y_0 = fft3(n3, x[1:3:n], w3)
+    y_1 = fft3(n3, x[2:3:n], w3)
+    y_2 = fft3(n3, x[3:3:n], w3)
+
+    y = similar(x)
+    omega = one(w)
+    n6 = n3 + n3
+    for k = 1:n3
+        y0 = y_0[k]
+        y1 = y_1[k] * omega
+        y2 = y_2[k] * omega^2
+        y[k] = y0 + y1 + y2
+        y[k+n3] = y0 + W * y1 + W2 * y2
+        y[k+n6] = y0 + W2 * y1 + W * y2
+        omega *= w
+    end
+    return y
+end
+
+function ffthf(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ring
+    m = length(f)
+    F = copy(f)
+    if n > m
+        fill_end!(F, n, 0)
+    end
+    isone(w[1]) || throw(ArgumentError("w[1] must be one"))
+    M = firstprime(n)
+    N = n ÷ M
+    W = w[2]^N
+    iszero(W^M - 1) || throw(ArgumentError("w^$n must be one"))
+    isunit(W - 1) || throw(ArgumentError("w^$N - 1 must be unit"))
+    for j = length(w)+1:n
+        resize!(w, n)
+        w[j] = w[j-1] * w[2]
+    end
+    L = 1
+    while L < n
+        for base = 1:n÷L:n
+            for j = 0:N-1
+                dftf!(F, L, N, Val(M), j, base, w)
             end
         end
-        F, G = G, F
-        m += m
+        L *= M
+        M = firstprime(N)
+        N ÷= M
     end
-    F
+    return F
 end
+
+function dftf!(F, L, N, ::Val{M}, j, base, w) where M
+    n = L * M * N
+    @assert n == length(w)
+    ω(x) = w[mod(x, n)+1]
+    f = tuple((F[base+j+k*N] for k = 0:M-1)...)
+
+    rNL = zero(L)
+    rjL = zero(L)
+    NL = N * L
+    jL = j * L
+    for r = 0:M-1
+        s = f[1]
+        #print("N=$N: F'[$base+$j+$(r)N] = (F[$base+$j+$(0)N] ")
+        rkNL = rNL
+        for k = 1:M-1
+            s += f[k+1] * ω(rkNL)
+            #print("+ F[$base+$j+$(k)N] * $(ω(rkNL)) ")
+            rkNL += rNL
+        end
+        F[base+j+r*N] = s * ω(rjL)
+        #println(") * $(ω(rjL))")
+        rNL += NL
+        rjL += jL
+    end
+    nothing
+end
+
+function ffthb(n::Integer, f::AbstractVector{R}, w::AbstractVector{R}) where R<:Ring
+    m = length(f)
+    F = copy(f)
+    if n > m
+        fill_end!(F, n, 0)
+    end
+    isone(w[1]) || throw(ArgumentError("w[1] must be one"))
+    M = lastprime(n)
+    N = 1
+    L = n ÷ M
+    W = w[2]^L
+    iszero(W^M - 1) || throw(ArgumentError("w^$n must be one"))
+    isunit(W - 1) || throw(ArgumentError("w^$L - 1 must be unit"))
+    for j = length(w)+1:n
+        resize!(w, n)
+        w[j] = w[j-1] * w[2]
+    end
+    while N < n
+        for base = 1:n÷L:n
+            for j = 0:N-1
+                dftb!(F, L, N, Val(M), j, base, w)
+            end
+        end
+        N *= M
+        M = lastprime(L)
+        L ÷= M
+    end
+    return F
+end
+
+function dftb!(F, L, N, ::Val{M}, j, base, w) where M
+    n = L * M * N
+    @assert n == length(w)
+    ω(x) = w[mod(n - x, n)+1]
+
+    rNL = zero(L)
+    rjL = zero(L)
+    NL = N * L
+    jL = j * L
+    f = tuple((F[base+j+k*N] * ω(k * jL) for k = 0:M-1)...)
+    for r = 0:M-1
+        s = f[1]
+        #print("LMN=$L $M $N: F'[$base+$j+$(r)N] = (F[$base+$j+$(0)N] ")
+        rkNL = rNL
+        for k = 1:M-1
+            s += f[k+1] * ω(rkNL)
+            #print("+ F[$base+$j+$(k)N] * $(ω(j*k*L)) * $(ω(rkNL)) ")
+            rkNL += rNL
+        end
+        F[base+j+r*N] = s
+        #println(")")
+        rNL += NL
+        rjL += jL
+    end
+    nothing
+end
+
 
 """
     fft!(n, F:Vector{R}, dd, z, W::Vector) where R
@@ -94,15 +230,16 @@ function fft!(n::Integer, F::V, dd::Int, z::Int) where {R,V<:AbstractVector{R}}
         m = k
         d += d
     end
-    butterfly!(F, dd, n)
-    F
+    return butterfly!(F, dd, n)
 end
 
 """
     schoenhage_strassen_algo(P, Q, n::Integer)
 
-For polynomials `P` and `Q` calculate `P * Q mod x^n + 1`.
+For polynomials `P` and `Q` with degree `< n` calculate `P * Q mod x^n + 1`.
 The element type of `P` and `Q` must have invertible `2`.
+
+`n` must be a power of `2` or `0`, in latter case the smallest possible value is calculated.
 
 Only the principle of the algorithm is demonstrated.
 The implementation does not allow the estimated efficiency gains.
@@ -112,30 +249,33 @@ function schoenhage_strassen_algo(
     G::P,
     n::Integer,
 ) where {R<:Ring,P<:UnivariatePolynomial{R}}
-    # characteristic(R) != 2 || throw(ArgumentError("R must not have characteristic 2"))
+    characteristic(R) == 0 || isunit(R(2)) || throw(ArgumentError("R(2) must be inverible"))
     dF = deg(F)
     dG = deg(G)
     n = n <= 0 ? 2^(ilog2(dF + dG) + 1) : n
+    @assert count_ones(n) == 1 "$n must be a power of 2"
     max(dF, dG) < n || throw(ArgumentError("degrees for F and G must both be < $n"))
-    k = ilog2(n)
-    d = 2^(k ÷ 2)
-    δ = 2^(k - k ÷ 2)
-    @assert n == d * δ # = 2^k
+    N = 2^(ilog2(2n - 1) + 1)
+    @assert N >= 2n - 1
+    N2 = isqrt(N)
+    N1H = N ÷ N2
+    N1 = N1H * 2
+    @assert N1H * N2 == N
 
     X = monom(P)
-    B = Quotient(P, X^(2 * d) + 1) # avoid P / (x^2d +1) which implies irreducibility check
-    FF = [B(F[di:di+d-1]) for di = 0:d:n-1]
-    GG = [B(G[di:di+d-1]) for di = 0:d:n-1]
-    w = B(X)^2
-    FQ = fft(2d, FF, w)
-    GQ = fft(2d, GG, w)
+    B = Quotient(P, X^N1 + 1) # avoid P / (x^N1 + 1) which implies irreducibility check
+    FF = [B(F[di:di+N1H-1]) for di = 0:N1H:n-1]
+    GG = [B(G[di:di+N1H-1]) for di = 0:N1H:n-1]
+    Ψ = B(X)^(2N1 ÷ N2)
+    FQ = fft(N2, FF, Ψ)
+    GQ = fft(N2, GG, Ψ)
 
     HQ = FQ .* GQ # should be recursive call to obtain efficiency!
-    HH = fft(2d, HQ, inv(w))
+    HH = fft(N2, HQ, inv(Ψ))
 
-    H = value.(HH) / (2d)
-    Y = X^d
-    sum(H[i+1] * Y^i for i = 0:δ-1)
+    H = value.(HH) / N2
+    Y = X^N1H
+    sum(H[i+1] * Y^i for i = 0:N2-1)
 end
 
 """
@@ -495,7 +635,7 @@ end
 
 Return `a` with bits `0:n-1` in reverse order.
 """
-function revert(a, n)
+function revert(a::Integer, n::Integer)
     accu = (a >> UInt8(n)) << UInt8(n)
     for i = 1:n
         accu += accu
@@ -503,6 +643,24 @@ function revert(a, n)
         a >>= 0x1
     end
     accu
+end
+
+"""
+    revert(a::Int, v::Vector)
+
+Represent `a` in a digit system given by `v`, revert positions and return "reverse" of `a`.
+"""
+function revert(a::Integer, v::Vector{T}) where {T<:Integer}
+    n = length(v)
+    resize!(v, 2n)
+    for i = 1:n
+        a, v[i+n] = divrem(a, v[i])
+    end
+    for i = 1:n
+        a = a * v[i] + v[i+n]
+    end
+    resize!(v, n)
+    a
 end
 
 """
@@ -525,4 +683,96 @@ function butterfly!(F::AbstractVector, dd::Int, n::Int)
         id += dd
     end
     F
+end
+
+struct Comb
+    comb::Vector{Int}
+end
+
+Base.length(c::Comb) = prod(c.comb)
+
+Base.iterate(c::Comb) = begin
+    z = zeros(Int, length(c.comb))
+    z, z
+end
+
+function Base.iterate(c::Comb, s)
+    l = findlast(i -> s[i] < c.comb[i] - 1, axes(s, 1))
+    l === nothing && return l
+    s = copy(s)
+    s[l] += 1
+    s[l+1:end] .= 0
+    s, s
+end
+
+"""
+    bestpowers(n::Integer, p::Vector{Integer})
+
+Calculate the smallest number `m >= n`, which is a product of integral powers of the
+elements of `p`.
+"""
+function bestpowers(n::T, p::Vector) where T<:Integer
+    p = T.(sort(p; rev = true))
+    pe = p[end]
+    tm = Base.hastypemax(T) ? typemax(T) : T(0)
+    nm = tm ÷ pe + 1
+    n <= nm || iszero(tm) || throw(ArgumentError("n must be < $nm"))
+    m = ilog.(p, n - 1) .+ 1
+    lp = log.(p)
+    lpe = lp[end]
+    vbest = tm
+    lm = iszero(tm) ? typemax(float(T)) : log(vbest)
+    for i in axes(p, 1)
+        if m[i] * log(p[i]) < lm
+            z = p[i]^m[i]
+            if z < vbest || iszero(vbest)
+                vbest = z
+                lm = log(vbest)
+            end
+        end
+    end
+    comb = Comb(m[1:end-1])
+    for i in comb
+        lz = sum(lp[1:end-1] .* i)
+        if lz >= lm
+            k = findlast(!iszero, i)
+            i[k] = m[k]
+            continue
+        end
+        z = T(prod(p[1:end-1] .^ i))
+        if z < n
+            k = ilog(pe, n ÷ z)
+            # println("$n $z $k lm=$lm $lz")
+            z *= pe^k
+            lz += lpe * k
+        end
+        while z < n && lz < lm
+            z *= pe
+            lz += lpe
+        end
+        if z < vbest && lz < lm
+            vbest = z
+        end
+    end
+    vbest
+end
+
+import Primes
+
+function firstprime(f::Primes.Factorization)
+    i = findfirst(x -> last(x) > 0, f.pe)
+    i === nothing ? 1 : first(f.pe[i])
+end
+
+function firstprime(n::Integer)
+    firstprime(factor(abs(n)))
+end
+
+function lastprime(f::Primes.Factorization)
+    i = findlast(x -> last(x) > 0, f.pe)
+    i === nothing ? 1 : first(f.pe[i])
+end
+
+function lastprime(n::Integer)
+    lastprime(factor(abs(n)))
 end
