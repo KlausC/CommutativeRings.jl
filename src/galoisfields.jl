@@ -129,7 +129,7 @@ end
 basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
 dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
-order(G::Type{<:GaloisField}) = order(basetype(G))
+order(G::Type{<:GaloisField}) = characteristic(G)^dimension(G)
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
 issimpler(a::G, b::G) where G<:GaloisField = a.val < b.val
