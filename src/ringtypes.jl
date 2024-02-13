@@ -146,9 +146,9 @@ struct UnivariatePolynomial{S<:Ring,X} <: Polynomial{S,UniPolyRingClass{X,S}}
 end
 
 """
-    MultivariatePolynomial{S<:RingInt,N,Id}
+    MultivariatePolynomial{S<:Ring,N,Id}
 
-Polynomials of ring elemets `S` in `N` variables.
+Polynomials of ring elements `S` in `N` variables.
 The `Id` identifies on object of type `MultiPolyRingClass` which is needed to store
 the variable names and properties.
 

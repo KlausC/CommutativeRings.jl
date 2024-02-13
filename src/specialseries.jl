@@ -68,11 +68,15 @@ expm1(z) = sum(z^k / fac(k) for k = 1:p1(z))
 
 # log(1 + z)
 log1p(z) = sum(-(-z)^k / k for k = 1:p1(z))
+function Base.log(z::PowerSeries)
+    isone(z[0]) || throw(ArgumentError("log of power series requires first term of `1`"))
+    log1p(z - 1)
+end
 
 """
     sqrt1p(z) = sqrt(1 + z)
 """
-sqrt1p(z) = sum(-(-1)^k * binomial(2k, k) * (z / 4)^k / (2k - 1) for k = 0:p1(z))
+sqrt1p(z) = sqrt(1 + z)
 
 """
     power1p(z, p) = (1 + z)^p
