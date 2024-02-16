@@ -84,6 +84,7 @@ include("conway.jl")
 include("lll.jl")
 include("ll.jl")
 include("fourier.jl")
+include("fastmultiply.jl")
 
 using .SpecialPowerSeries
 using .Conway
