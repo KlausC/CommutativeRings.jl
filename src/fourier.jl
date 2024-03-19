@@ -257,6 +257,24 @@ function revert(a::Integer, n::Integer)
 end
 
 """
+    revert(a::Int, n::Int, base::Int)
+
+Represent `a` in a n-digit system given by `base`, revert positions and return "reverse" of `a`.
+"""
+function revert(a::Integer, n::Int, base::Int)
+    b = zero(a)
+    for i = 1:n
+        vi = base
+        b *= vi
+        if a != 0
+            a, w = divrem(a, vi)
+            b += w
+        end
+    end
+    a == 0 ? b : a * base^n + b
+end
+
+"""
     revert(a::Int, v::Vector)
 
 Represent `a` in a digit system given by `v`, revert positions and return "reverse" of `a`.

@@ -44,6 +44,43 @@ function schoenhage_strassen_algo(
     sum(H[i+1] * Y^i for i = 0:N2-1)
 end
 
+function schoenhage_algo(F::P, G::P) where {R<:Ring,P<:UnivariatePolynomial{R}}
+    characteristic(R) == 0 || isunit(R(3)) || throw(ArgumentError("R(3) must be inverible"))
+    dF = deg(F)
+    dG = deg(G)
+    n = 3^(ilog3(max(dF, dG)) + 1)
+    @assert max(dF, dG) < n
+    ν = ilog3(n - 1) + 1
+    N = 3^ν
+    @assert 2N >= 2n - 1
+    N2 = 3^(ν÷2)
+    N1 = N ÷ N2
+
+    X = monom(P)
+    B = Quotient(P, X^2N1 + X^N1 + 1) # avoid irreducibility check
+    FF = [B(F[di:di+N1-1]) for di = 0:N1:n-1]
+    GG = [B(G[di:di+N1-1]) for di = 0:N1:n-1]
+    ψ = B(X)^(N1 ÷ N2)
+    @assert isone(ψ^3N2)
+    @assert !isone(ψ^N2)
+
+    f = ffthf(3N2, FF, ψ)
+    g = ffthf(3N2, GG, ψ)
+
+    h = f .* g
+
+    H = ffthb(3N2, h, inv(ψ))
+
+    H
+
+
+
+
+
+
+
+end
+
 """
     schoenhage_strassen(F, G, n)
 
