@@ -58,7 +58,7 @@ const IdentSymbols = Union{Symbol,Base.BitInteger,BigInt}
 """
     sintern(a)
 
-Return a symbol, which uniquly identifies the argument.
+Return a symbol, which uniquely identifies the argument.
 """
 sintern(m::IdentSymbols) = m
 sintern(m::BigInt) = Symbol(m)
