@@ -47,6 +47,7 @@ Base.map(f, a::Ring, bs::Ring...) = f(a, bs...)
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = Union{}
 basetype(::Type{Union{}}) = Union{}
+basetype(::Type{Rational{S}}) where S = S
 
 depth(::Type{Union{}}) = -1
 depth(::Type) = 0

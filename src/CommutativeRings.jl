@@ -4,10 +4,17 @@ using LinearAlgebra
 using Base.Checked
 using Primes
 using Random
+using FLINT_jll
+
+const libflint = FLINT_jll.libflint
+
+function flint_abort()
+  error("Problem in the Flint-Subsystem")
+end
 
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
-export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
+export ZZ, ZZZ, ZI, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
 export GaloisField, FSeries
 
 export SpecialPowerSeries, PowerSeries, O, precision, absprecision
@@ -62,6 +69,7 @@ include("typevars.jl")
 include("promoteconvert.jl")
 include("generic.jl")
 include("zz.jl")
+include("zzflint.jl")
 include("qq.jl")
 include("zzmod.jl")
 include("quotient.jl")

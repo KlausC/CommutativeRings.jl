@@ -3,12 +3,12 @@
 """
 const MINPRIME = 9999
 
-function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
+function isirreducible(p::P; p0 = MINPRIME) where {T<:ZI, P<:UnivariatePolynomial{T}}
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
     iszero(p[0]) && return false
     X = varname(P)
-    Z = ZZ{BigInt}[X]
+    Z = wide_type(T)[X]
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
     zassenhaus_irr(q, p0)
@@ -20,11 +20,11 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     isirreducible(pp; p0)
 end
 
-function factor(p::P, a::Integer=1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P, a::Integer=1; p0 = MINPRIME) where {T<:ZI,P<:UnivariatePolynomial{T}}
     #println("factor($p)")
     X = varname(P)
     c = content(p)
-    Z = ZZ{BigInt}[X]
+    Z = wide_type(T)[X]
     q = Z(isone(c) ? copy(p) : p / c)
     x = monom(Z)
     q, e, k = stripzeroscompress(q)
@@ -81,7 +81,7 @@ end
 Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
 such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
 """
-function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
+function yun(u::P) where P<:UnivariatePolynomial{<:ZI}
     t, v, w = GCD(u, derive(u))
     res = P[]
     if isone(t)
@@ -120,8 +120,7 @@ function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}, p0)
 end
 
 # D = []
-
-function zassenhaus2(u::P, ::Val{BO}, p0) where {BO,P<:UnivariatePolynomial{ZZ{BigInt}}}
+function zassenhaus2(u::P, ::Val{BO}, p0) where {BO,T<:Union{ZZ{BigInt},ZZZ},P<:UnivariatePolynomial{T}}
     v, p = best_prime(u, p0)
     a = allgcdx(v)
     #println(" initial v/$p = "); display([v a])
@@ -241,7 +240,7 @@ function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
 end
 
 # check if p is coprime with leading coefficient
-function compatible_with(p::Integer, u::ZZ)
+function compatible_with(p::Integer, u::ZI)
     u = abs(value(u))
     gcd(p, u) == 1
 end
@@ -310,7 +309,7 @@ function combinefactors(
     u::Z,
     vv::AbstractVector{<:UnivariatePolynomial{Zp}},
     aa::AbstractVector,
-) where {Z<:UnivariatePolynomial{<:ZZ},Zp}
+) where {Z<:UnivariatePolynomial{<:ZI},Zp}
     res = Tuple{Z,Any,Any}[]
     un = LC(u)
     unp = Zp(un)
@@ -369,10 +368,10 @@ end
 function stripmod(
     ::Type{P},
     a::UnivariatePolynomial{<:ZZmod},
-) where {Z<:ZZ,P<:UnivariatePolynomial{Z}}
+) where {Z<:ZI,P<:UnivariatePolynomial{Z}}
     P(stripmod.(Z, a.coeff), ord(a))
 end
-stripmod(::Type{Z}, a::ZZmod) where Z<:ZZ = Z(value(a))
+stripmod(::Type{Z}, a::ZZmod) where Z<:ZI = Z(value(a))
 
 
 function subset_with_a(v, d, a)
@@ -396,8 +395,8 @@ If `u` has an integer factor polynom `v` with `deg(v) == m`,
 calculate array of bounds `b` with `abs(v[i]) <= b[i+1] for i = 0:m`.
 Algorithm see TAoCP 2.Ed 4.6.2 Exercise 20.
 """
-function coeffbounds(u::UnivariatePolynomial{ZZ{T},X}, m::Integer) where {T<:Integer,X}
-    W = widen(T)
+function coeffbounds(u::UnivariatePolynomial{T,X}, m::Integer) where {T<:ZI,X}
+    W = widen(basetype(T))
     n = deg(u)
     0 <= m <= n || throw(ArgumentError("required m ∈ [0,deg(u)] but $m ∉ [0,$n]"))
     accuracy = 100 # use fixed point decimal arithmetic with accuracy 0.01 for the norm
@@ -450,7 +449,7 @@ function hensel_lift(
     v::AbstractVector{Pq},
     a::AbstractVector{Pp},
 ) where {
-    Z<:ZZ,
+    Z<:ZI,
     Zq<:ZZmod,
     Zp<:ZZmod,
     Pq<:UnivariatePolynomial{Zq},
@@ -492,10 +491,10 @@ function downmod(::Type{Zp}, f::P, q::Integer) where {Zp,X,T,P<:UnivariatePolyno
 end
 
 
-function _liftmod(::Type{Z}, a::ZZmod) where {T,Z<:ZZ{T}}
-    Z(signed(T)(value(a)))
+function _liftmod(::Type{Z}, a::ZZmod) where {Z<:ZI}
+    Z(signed(basetype(Z))(value(a)))
 end
-function _liftmod(::Type{Z}, a::ZZ) where {X,T,Z<:ZZmod{X,T}}
+function _liftmod(::Type{Z}, a::ZI) where {X,T,Z<:ZZmod{X,T}}
     Z(value(a))
 end
 function _liftmod(::Type{Z}, a::ZZmod) where {X,T,Z<:ZZmod{X,T}}

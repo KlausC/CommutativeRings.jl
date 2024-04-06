@@ -1,18 +1,18 @@
 
 # promotions
 
-_xpromote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt} = begin
+function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
     depth(T) < depth(S) && return Base.Bottom
     B = basetype(T)
     (S <: T || S <: B) ? T : promote_type(B, S) == B ? T : Base.Bottom
 end
 _xpromote_rule(a::Type, b::Type) = promote_type(a, b)
-
+#=
 @generated function Base.promote_rule(a::Type{<:Ring}, b::Type{<:RingInt})
     bt = _xpromote_rule(a.parameters[1], b.parameters[1])
     :($bt)
 end
-
+=#
 function promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}
     promote_rule(R, promote_type(basetype(R), S))
 end
