@@ -1,6 +1,6 @@
 
 export cyclotomic
-export jacobi, kronecker, moebius, necklace, carmichael, fibonacci
+export jacobi, kronecker, moebius, necklace, carmichael, fibonacci, lucas
 
 using Primes
 
@@ -154,14 +154,17 @@ end
     fibonacci(n)
 
 Calculate the n^th Fibonacci number `F_n`. (`F_0 = 0, F_1 = 1, F_n+1 = F_n + F_n-1`)
+Valid for all integer `n`.
 
 Algorithm by D. Takahashi / Information Processing Letters 75 (2000) 243–246
 """
-function fibonacci(n)
+function fibonacci(n::Integer)
+    s = n >= 0 ? 1 : 2isodd(n) - 1
+    n = abs(n)
     if n == 0
         return big(0)
     elseif n <= 2
-        return big(1)
+        return big(s)
     else
         f = big(1)
         l = big(1)
@@ -188,6 +191,13 @@ function fibonacci(n)
             f = (f + l) ÷ 2
             f = f * l - sign
         end
-        return f
+        return f * s
     end
 end
+
+"""
+    lucas(n)
+
+Calculate the n^th Lucas number `L_n`. (`L_0 = 2, L_1 = 1, L_n+1 = L_n + L_n-1`)
+"""
+lucas(n) = 2fibonacci(n) + fibonacci(n - 3)

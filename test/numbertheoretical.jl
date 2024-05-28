@@ -74,8 +74,13 @@ end
     f1 = fibonacci(1)
     @test f1 isa BigInt
     @test f1 == 1
+    @test fibonacci(-2) == -1
+    @test fibonacci(-3) == 2
     f10 = fibonacci(10^6)
     @test length(digits(f10)) == 208988
+    @test Int64(fibonacci(21)) / Int64(fibonacci(20)) ≈ (sqrt(5) + 1) / 2
+    @test fibonacci(-10^6) == -f10
+    @test lucas(-10) == 2fibonacci(-10) + fibonacci(-13)
 end
 
 end # module
