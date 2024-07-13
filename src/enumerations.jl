@@ -396,7 +396,7 @@ function hypercube(
         ei1 = ei1 * (n - i) ÷ i # binomial(n-1, i)
         ki ÷= k # k ^ (n - i)
         ki1 ÷= k
-        @assert mi1 == sides^(i - 1)
+        @assert mi1 == T(sides)^(i - 1)
         @assert ei == binomial(T(n - 1), i - 1)
         @assert ki == T(k)^(n - i)
         t = mi1 * ei * ki
@@ -408,7 +408,7 @@ function hypercube(
             x -= t
         end
         #println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
-        @assert mi == sides^i
+        @assert mi == T(sides)^i
         @assert ei1 == binomial(T(n - 1), i)
         @assert ei1 == 0 || ki1 == (T(k)^(n - i) - T(k)^(n - i - 1)) ÷ 2
         t = mi * ei1 * ki1
