@@ -32,4 +32,13 @@ end
     @test discriminant(3x^3 + x^2 + 4x + 10) == -22932
 end
 
+@testset "pgcdx" begin
+    P = ZZ{BigInt}[:x]
+    x = monom(P)
+    A = x^2 + 2x + 1
+    B = x + 1
+    @test pgcdx(A, B) == (x + 1, 0, 1, 1)
+    @test pgcdx(2A, 2B) == (2x + 2, 0, 1, 1)
+end
+
 end # module
