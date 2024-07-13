@@ -44,8 +44,7 @@ function promote_rule(ZT::Type{ZZmod{m,S}}, ZS::Type{ZZmod{n,T}}) where {n,m,T,S
             ZZmod{m,R}
         end
     else
-        mn = gcd(m,n)
-        ZZmod(mn, mintype_for(mn, 1, false))
+        Union{}
     end
 end
 promote_rule(::Type{ZZmod{m,S}}, ::Type{T}) where {m,S,T<:Integer} = ZZmod{m,S}
