@@ -332,28 +332,46 @@ end
 
 #TODO fix algorithm. normal forms to dedicated file
 """
-    hermite_normal_form(A::AbstractMatrix{R}) where R<:Ring -> H, U
+    hermite_normal_form(A::AbstractMatrix; column_style=true, round=RoundUp) -> H, U
 
-Calculate matrixes `H` in column Hermite normal form and unimodular `U` with `A * U = H`.
+Calculate matrixes `H` in column/row Hermite normal form and unimodular `U` and
+ `if column_style; A * U else U * A end == H`.
 Unimodular means `det(U)` is unit element of the ring `R`.
 
+`H` is lower triangular, if `column_style`, else upper triangular.
+The off-pivot elements in a row (if `column_style`) or else column are strictly smaller than
+the pivot elements, which are not negative.
+The off-pivot elements are non-negative, non-positive, minimal-abs, maximum-abs depending
+on `round` in `(RoundDown, RoundUp, RoundToZero, RoundFromZero)` correspondingly.
+
 See [Wiki](https://en.wikipedia.org/wiki/Hermite_normal_form)
-[Algorithm](https://www.math.tamu.edu/~rojas/kanna?nbachemhermitesmith79.pdf)
+[Algorithm](https://www.math.tamu.edu/~rojas/kannanbachemhermitesmith79.pdf)
 """
-function hermite_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
+function hermite_normal_form(a::AbstractMatrix{R}; column_style::Bool=true, round::RoundingMode=RoundUp) where R<:Union{Ring,Integer}
     m, n = size(a)
-    u = Matrix(R.(I(n)))
-    hermite_normal_form!(copy(a), u)
+
+    if column_style
+        m >= n || throw(ArgumentError("matrix has more columns than rows (column style)"))
+        u = Matrix(R.(I(n)))
+        hermite_normal_form!(copy(a), u, round)
+    else
+        m <= n || throw(ArgumentError("matrix has more rows than columns (row style)"))
+        u = Matrix(R.(I(m)))
+        H, U = hermite_normal_form!(copy(a'), u, round)
+        Matrix(H'), Matrix(U')
+    end
 end
 
-function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R
+function hermite_normal_form!(a::AbstractMatrix{R}, u::AbstractMatrix{R}, round::RoundingMode) where R
     m, n = size(a)
-
     for i = 1:min(m, n)-1
         for j = 1:i
             ajj = a[j, j]
             aji = a[j, i+1]
             r, p, q = gcdx(ajj, aji)
+            if iszero(r)
+                continue
+            end
             #@assert max(abs(p), abs(q)) <= max(abs(ajj), abs(aji))
             pp = -div(aji, r)
             qq = div(ajj, r)
@@ -373,28 +391,32 @@ function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R
                 u[k, j] = bkj
                 u[k, i+1] = bki
             end
-            reduce_off_diagonal!(a, u, j)
+            reduce_off_diagonal!(a, u, j, round)
         end
-        reduce_off_diagonal!(a, u, i + 1)
+        reduce_off_diagonal!(a, u, i + 1, round)
     end
     a, u
 end
 
-function reduce_off_diagonal!(a, u, k)
-    akk = a[k, k]
+function reduce_off_diagonal!(a, u, k, round)
+    j = k
+    akk = a[j, k]
+    while j < size(a, 1) && iszero(akk)
+        j += 1
+        akk = a[j, k]
+    end
+    iszero(akk) && return
     if akk < 0
         akk = -akk
         a[:, k] .= -a[:, k]
         u[:, k] .= -u[:, k]
     end
     for z = 1:k-1
-        d = cld(a[k, z], akk)
-        a[:, z] .-= a[:, k] .* d
-        u[:, z] .-= u[:, k] .* d
+        d = div(-a[j, z], akk, round)
+        a[:, z] .+= a[:, k] .* d
+        u[:, z] .+= u[:, k] .* d
     end
 end
 
-Base.cld(a::T, b::T) where T<:ZZ = T(cld(value(a), value(b)))
-Base.fld(a::T, b::T) where T<:ZZ = T(fld(value(a), value(b)))
-Base.cld(a::T, b::T) where T<:Ring = div(a, b)
-Base.fld(a::T, b::T) where T<:Ring = div(a, b)
+Base.div(a::T, b::T, round::RoundingMode) where T<:ZZ = T(div(value(a), value(b), round))
+Base.div(a::T, b::T, ::RoundingMode) where T<:Ring = div(a, b)
