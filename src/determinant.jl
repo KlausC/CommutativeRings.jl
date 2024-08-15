@@ -346,73 +346,101 @@ on `round` in `(RoundDown, RoundUp, RoundToZero, RoundFromZero)` correspondingly
 
 See [Wiki](https://en.wikipedia.org/wiki/Hermite_normal_form)
 [Algorithm](https://www.math.tamu.edu/~rojas/kannanbachemhermitesmith79.pdf)
+
+The algorithm was generalized to matrices of arbitrary rank and shape.
 """
 function hermite_normal_form(a::AbstractMatrix{R}; column_style::Bool=true, round::RoundingMode=RoundUp) where R<:Union{Ring,Integer}
     m, n = size(a)
 
     if column_style
-        m >= n || throw(ArgumentError("matrix has more columns than rows (column style)"))
         u = Matrix(R.(I(n)))
         hermite_normal_form!(copy(a), u, round)
     else
-        m <= n || throw(ArgumentError("matrix has more rows than columns (row style)"))
         u = Matrix(R.(I(m)))
-        H, U = hermite_normal_form!(copy(a'), u, round)
-        Matrix(H'), Matrix(U')
+        H, U = hermite_normal_form!(copy(permutedims(a)), u, round)
+        permutedims(H), permutedims(U)
     end
 end
 
 function hermite_normal_form!(a::AbstractMatrix{R}, u::AbstractMatrix{R}, round::RoundingMode) where R
     m, n = size(a)
-    for i = 1:min(m, n)-1
-        for j = 1:i
-            ajj = a[j, j]
-            aji = a[j, i+1]
-            r, p, q = gcdx(ajj, aji)
-            if iszero(r)
-                continue
-            end
-            #@assert max(abs(p), abs(q)) <= max(abs(ajj), abs(aji))
-            pp = -div(aji, r)
-            qq = div(ajj, r)
-            for k = 1:m
-                akj = a[k, j]
-                aki = a[k, i+1]
-                bkj = akj * p + aki * q
-                bki = akj * pp + aki * qq
-                a[k, j] = bkj
-                a[k, i+1] = bki
-            end
-            for k = 1:n
-                akj = u[k, j]
-                aki = u[k, i+1]
-                bkj = akj * p + aki * q
-                bki = akj * pp + aki * qq
-                u[k, j] = bkj
-                u[k, i+1] = bki
-            end
-            reduce_off_diagonal!(a, u, j, round)
+    piv = something.(findfirst.(!iszero, eachcol(a)), m + 1)
+    n = something(findlast(x -> x <= m, piv), 0)
+    i = 1
+    while i <= n
+        while i < n && piv[i] > m
+            swap(a, i, n)
+            swap(u, i, n)
+            swap(piv, i, n)
+            n -= 1
         end
-        reduce_off_diagonal!(a, u, i + 1, round)
+        if i <= n
+            for j = 1:i-1
+                pj = piv[j]
+                pi = piv[i]
+                if pj > pi
+                    swap(a, j, i)
+                    swap(u, j, i)
+                    swap(piv, j, i)
+                    reduce_off_diagonal!(a, u, j, piv, round)
+                elseif pi == pj && pi <= m
+                    ajj = a[pj, j]
+                    aji = a[pj, i]
+                    r, p, q = gcdx(ajj, aji)
+                    @assert !iszero(r)
+                    #@assert max(abs(p), abs(q)) <= max(abs(ajj), abs(aji))
+                    pp = -div(aji, r)
+                    qq = div(ajj, r)
+                    for k = 1:m
+                        akj = a[k, j]
+                        aki = a[k, i]
+                        bkj = akj * p + aki * q
+                        bki = akj * pp + aki * qq
+                        a[k, j] = bkj
+                        a[k, i] = bki
+                    end
+                    for k = 1:n
+                        akj = u[k, j]
+                        aki = u[k, i]
+                        bkj = akj * p + aki * q
+                        bki = akj * pp + aki * qq
+                        u[k, j] = bkj
+                        u[k, i] = bki
+                    end
+                    piv[i] = something(findfirst(!iszero, view(a, 1:m, i)), m + 1)
+                    reduce_off_diagonal!(a, u, j, piv, round)
+                end
+            end
+        end
+        reduce_off_diagonal!(a, u, i, piv, round)
+        i += 1
     end
     a, u
 end
 
-function reduce_off_diagonal!(a, u, k, round)
-    j = k
-    akk = a[j, k]
-    while j < size(a, 1) && iszero(akk)
-        j += 1
-        akk = a[j, k]
+function swap(a::AbstractMatrix, i, j)
+    m = size(a, 1)
+    for k = 1:m
+        b = a[k, i]
+        a[k, i] = a[k, j]
+        a[k, j] = b
     end
-    iszero(akk) && return
+end
+function swap(a::AbstractVector, i, j)
+    a[i], a[j] = a[j], a[i]
+end
+
+function reduce_off_diagonal!(a, u, k, piv, round)
+    pk = piv[k]
+    pk > size(a, 1) && return
+    akk = a[pk, k]
     if akk < 0
         akk = -akk
         a[:, k] .= -a[:, k]
         u[:, k] .= -u[:, k]
     end
     for z = 1:k-1
-        d = div(-a[j, z], akk, round)
+        d = div(-a[pk, z], akk, round)
         a[:, z] .+= a[:, k] .* d
         u[:, z] .+= u[:, k] .* d
     end
