@@ -21,7 +21,7 @@ function ZZ{T}(a::Union{QQ{T},Frac{ZZ{T}}}) where T
     a.den != 1 && throw(InexactError(:ZZ, ZZ{T}, a))
     ZZ(a.num)
 end
-ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
+#ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
 ZZ{S}(a::Union{QQ{T},Frac{ZZ{T}}}) where {S,T} = ZZ(promote_type(S,T)(a))
 
 # promotion and conversion

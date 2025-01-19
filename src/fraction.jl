@@ -1,6 +1,7 @@
 
 # class constructors
 Frac(::Type{R}) where R<:Ring = Frac{R}
+Frac(::Type{<:ZZ{R}}) where R<:Integer = QQ{R}
 Frac(::Type{R}) where R<:Integer = QQ{R}
 
 # construction
@@ -48,7 +49,7 @@ Frac{T}(a::Base.Rational) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
 Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
 Frac(a::T) where T<:Ring = Frac{T}(a)
 Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
-Frac(a::Rational{T}) where T<:Integer = Frac{ZZ{T}}(a)
+Frac(a::Rational{T}) where T<:Integer = Frac(ZZ{T})(a)
 Frac{T}(a::Integer, b::Integer) where T = Frac(T(a), T(b))
 function Frac(a::T, b::T) where T<:UnivariatePolynomial
     sh = ord(a) - ord(b)

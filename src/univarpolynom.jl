@@ -103,6 +103,9 @@ promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rationa
     UnivariatePolynomial{promote_type(R, S),X}
 
 (P::Type{<:UnivariatePolynomial{S}})(a::S) where {S} = P([a])
+function (P::Type{<:UnivariatePolynomial{S}})(a::UnivariatePolynomial{T,X}) where {S,T,X}
+    UnivariatePolynomial{S,X}(a.first, S.(a.coeff), NOCHECK)
+end
 (P::Type{<:UnivariatePolynomial{S}})(a::T) where {S,T<:RingInt} = P([S(a)])
 
 # convert coefficient vector to polynomial

@@ -148,10 +148,10 @@ end
     @test CommutativeRings._unsigned(big"-1") == big"-1"
 end
 
-@testset "promotion moduli not supported" begin
+@testset "promotion of moduli not supported" begin
     a = (ZZ / 12)(5)
     b = (ZZ / 21)(3)
-    @test_throws a + b isa ZZ / 3
+    @test_throws Exception a + b isa ZZ / 3
 end
 
 @testset "generator of ZZmod" begin

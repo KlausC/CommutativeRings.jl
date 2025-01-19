@@ -131,9 +131,9 @@ end
     @test iroot(196, 65) == 1
 end
 
-@testset "oftype" begin
+@testset "ofindex" begin
     P = ZZ{BigInt}[:x]
-    A = oftype(big(10)^1000, P)
+    A = ofindex(big(10)^1000, P)
     @test deg(A) > 1000
 end
 
