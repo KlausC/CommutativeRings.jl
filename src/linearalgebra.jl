@@ -442,6 +442,9 @@ function companion(p::UnivariatePolynomial{T}) where T
     ismonic(p) || throw(ArgumentError("polynomial is not monic"))
     n = deg(p)
     A = diagm(-1 => ones(T, n - 1))
-    A[:, n] = -p.coeff[1:n]
+    b = p.first
+    for i in 1:length(p.coeff)-1
+        A[i+b, n] = -p.coeff[i]
+    end
     A
 end

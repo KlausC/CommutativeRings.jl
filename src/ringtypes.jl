@@ -26,6 +26,8 @@ struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     zechtable::Vector{T}
 end
 
+struct AlgebraicNumberClass <: FractionRingClass end
+
 const NCT = Val{:nocheck}
 const NOCHECK = Val(:nocheck)
 
@@ -47,6 +49,13 @@ abstract type Ring{T<:RingClass} end
 Union of system `Integer` types and any `Ring` subtype.
 """
 const RingInt = Union{Ring,Integer}
+
+"""
+    RingIntRatSc
+
+Union of system `Integer`, `Rational`, and `UniformScaling` types and any `Ring` subtype.
+"""
+const RingIntRatSc = Union{Ring,Integer,Rational,UniformScaling}
 
 """
     FractionRing{S<:RingInt,T<:FractionRingClass}
@@ -176,6 +185,17 @@ end
 struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
     GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))
+end
+
+"""
+An algebraic number `α` of degree `n` is represented as the set of zeros of an
+irreducible monic polynomial over `Q` of degree `n`, the minimal polynomial of `α`.
+The set of algebraic numbers form a field and it is possible to derive representions
+of `α` ∘ `β` for all field operations `∘` and `-α` and `inv(α)`.
+"""
+struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
+    minpol::UnivariatePolynomial{QQ{BigInt},:x}
+    AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, ::NCT) = new(p)
 end
 
 # Categorial traits specify algebraic properties of ring types

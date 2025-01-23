@@ -8,7 +8,7 @@ using Random
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
-export GaloisField, FSeries
+export GaloisField, FSeries, AlgebraicNumber
 
 export SpecialPowerSeries, PowerSeries, O, precision, absprecision
 export Conway
@@ -85,6 +85,7 @@ include("lll.jl")
 include("ll.jl")
 include("fourier.jl")
 include("fastmultiply.jl")
+include("algebraic.jl")
 
 using .SpecialPowerSeries
 using .Conway
