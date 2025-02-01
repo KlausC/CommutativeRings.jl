@@ -20,7 +20,7 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     isirreducible(pp; p0)
 end
 
-function factor(p::P, a::Integer=1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P, a::Integer = 1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     #println("factor($p)")
     X = varname(P)
     c = content(p)
@@ -81,12 +81,12 @@ end
 Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
 such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
 """
-function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
+function yun(u::P) where P<:UnivariatePolynomial
     t, v, w = GCD(u, derive(u))
-    res = P[]
     if isone(t)
-        push!(res, u)
+        [u]
     else
+        res = P[]
         wv = w - derive(v)
         while !iszero(wv)
             u, v, w = GCD(v, wv)
@@ -95,7 +95,6 @@ function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
         end
         push!(res, v)
     end
-    res
 end
 
 """
@@ -107,6 +106,66 @@ return `gcd(u, v), u / g, v / g`.
 function GCD(u, v)
     t = pgcd(u, v)
     isone(t) ? (t, u, v) : (t, u / t, v / t)
+end
+
+"""
+    squarefree(p::UnivariatePolynomial)
+
+Factor polynomial `p` into into coprime squarefree factors `u_i for i = 1:e`
+such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
+
+Valid for ring types with characteristic `0` and finite fields.
+"""
+function sff(u::P) where {R,P<:UnivariatePolynomial{R}}
+    p = characteristic(R)
+    r = dimension(R)
+
+    v = yun(u)
+    n = size(v, 1)
+    if p > 0 && sum(deg(v[i]) * i for i = 1:n) < deg(u)
+        g = u / prod(v[i]^i for i = 1:n if mod(i, p) != 0)
+        h = proot(g)
+        #@assert h^p == g
+        w = squarefree(h)
+        sf_merge!(v, w, p)
+    end
+    v
+end
+
+function sf_merge!(v::V, w::V, p::Integer) where V<:Vector
+    n = size(v, 1)
+    m = size(w, 1)
+    resize!(v, p * m + n)
+    for i = n+1:p*m+n
+        v[i] = one(eltype(V))
+    end
+    for i = 1:m
+        v[p*i] = w[i]
+    end
+    k = max(n, p * m)
+    for i = 1:n
+        mod(i, p) == 0 && continue
+        a = v[i]
+        isunit(a) && continue
+        jp = 0
+        for j = 1:m
+            jp += p
+            b = v[jp]
+            isunit(b) && continue
+            c = gcd(a, b)
+            if !isunit(c)
+                a /= c
+                b /= c
+                v[i] = a
+                v[jp] = b
+                x = jp + i
+                k = max(k, x)
+                v[x] *= c
+            end
+        end
+    end
+    resize!(v, k)
+    v
 end
 
 function zassenhaus(u; p0)
