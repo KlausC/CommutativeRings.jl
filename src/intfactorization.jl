@@ -109,63 +109,22 @@ function GCD(u, v)
 end
 
 """
-    squarefree(p::UnivariatePolynomial)
+    issquarefree(p)
 
-Factor polynomial `p` into into coprime squarefree factors `u_i for i = 1:e`
-such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
-
-Valid for ring types with characteristic `0` and finite fields.
+Return iff the univariate polynomial `p` is squarefree.
 """
-function sff(u::P) where {R,P<:UnivariatePolynomial{R}}
-    p = characteristic(R)
-    r = dimension(R)
-
-    v = yun(u)
-    n = size(v, 1)
-    if p > 0 && sum(deg(v[i]) * i for i = 1:n) < deg(u)
-        g = u / prod(v[i]^i for i = 1:n if mod(i, p) != 0)
-        h = proot(g)
-        #@assert h^p == g
-        w = squarefree(h)
-        sf_merge!(v, w, p)
-    end
-    v
+function issquarefree(u::P) where {R,P<:UnivariatePolynomial{R}}
+    deg(u) <= 0 && return true
+    v = derive(u)
+    iszero(v) && return false
+    w = pgcd(u, v)
+    return deg(w) <= 0
 end
 
-function sf_merge!(v::V, w::V, p::Integer) where V<:Vector
-    n = size(v, 1)
-    m = size(w, 1)
-    resize!(v, p * m + n)
-    for i = n+1:p*m+n
-        v[i] = one(eltype(V))
-    end
-    for i = 1:m
-        v[p*i] = w[i]
-    end
-    k = max(n, p * m)
-    for i = 1:n
-        mod(i, p) == 0 && continue
-        a = v[i]
-        isunit(a) && continue
-        jp = 0
-        for j = 1:m
-            jp += p
-            b = v[jp]
-            isunit(b) && continue
-            c = gcd(a, b)
-            if !isunit(c)
-                a /= c
-                b /= c
-                v[i] = a
-                v[jp] = b
-                x = jp + i
-                k = max(k, x)
-                v[x] *= c
-            end
-        end
-    end
-    resize!(v, k)
-    v
+# implementation of squarefree factorization for characteristic 0
+function _sff(u::P, ::Val{0}) where P<:UnivariatePolynomial
+    v = yun(u)
+    [Pair(v[i], i) for i = axes(v, 1) if deg(v[i]) > 0]
 end
 
 function zassenhaus(u; p0)

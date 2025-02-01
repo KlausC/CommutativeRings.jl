@@ -20,7 +20,7 @@ export LC, LM, LT, CC, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx
 export resultant, discriminant, signed_subresultant_polynomials, sylvester_matrix
 export basetype, basetypes, depth, iszerodiv
-export monom, ismonom, ismonic, issimpler, iscoprime
+export monom, ismonom, ismonic, issimpler, iscoprime, issquarefree, sff
 export evaluate, derive, pade, pade_normal!
 export mapping, domain, codomain
 export isirreducible, irreducible, irreducibles
