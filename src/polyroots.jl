@@ -43,7 +43,7 @@ function descend(f, df)
         if norm(df) <= eps()
             dvu = randn(R, 2) * sqrt(eps(R))
         else
-            dvu = pinv(df) \ f
+            dvu = pinv(df) * f
         end
     end
     desc = 2 * dot(f, df * dvu)

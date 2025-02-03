@@ -195,7 +195,8 @@ of `α` ∘ `β` for all field operations `∘` and `-α` and `inv(α)`.
 """
 struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
     minpol::UnivariatePolynomial{QQ{BigInt},:x}
-    AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, ::NCT) = new(p)
+    approx::Complex{BigFloat}
+    AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, a::Any, ::NCT) = new(p, a)
 end
 
 # Categorial traits specify algebraic properties of ring types

@@ -97,6 +97,13 @@ function yun(u::P) where P<:UnivariatePolynomial
     end
 end
 
+function yun(u::P) where P<:UnivariatePolynomial{<:QQ}
+    c, q = content_primpart(u) # q is ZZ!
+    y = yun(q)
+    c *= LC(q)
+    z = [P(y[1])*c; [P(y[i])/LC(y[i]) for i in 2:length(y)]]
+end
+
 """
     GCD(u::P, v::P) where P<:UnivariatePolynomial
 
@@ -113,7 +120,7 @@ end
 
 Return iff the univariate polynomial `p` is squarefree.
 """
-function issquarefree(u::P) where {R,P<:UnivariatePolynomial{R}}
+function issquarefree(u::P) where P<:UnivariatePolynomial
     deg(u) <= 0 && return true
     v = derive(u)
     iszero(v) && return false
