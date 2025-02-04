@@ -1130,3 +1130,74 @@ function checkpositions(pos::AbstractVector{<:Integer}, xa::AbstractVector, va, 
         throw(ArgumentError("Variable :$(va[i]) not contained in $vp."))
     end
 end
+
+struct SymIter
+    n::Int
+    m::Int
+end
+
+"""
+    elementary_symmetric(::Type{Polynomial}, β::Integer)
+
+Return the elementary symmetric function `Eᵦ` of degree `0 <= β <= N`.
+Return zero polynomial for other `β`.
+"""
+function elementary_symmetric(::Type{P}, m::Integer) where {S,N,P<:MultivariatePolynomial{S,N}}
+    sum(monom.(P, collect(SymIter(N, m))))
+end
+
+function elementary_symmetric(::Type{P}, m::Integer) where P<:UnivariatePolynomial
+    0 <= m <= 1 ? monom(P, m) : zero(P)
+end
+
+
+Base.length(a::SymIter) = binomial(a.n, a.m)
+Base.iterate(a::SymIter) = a.n >= a.m >= 0 ? (s = collect(1:a.m); (vset(a.n, s),s))  : nothing
+function Base.iterate(a::SymIter, s::Vector)
+    t = copy(s)
+    m, n = a.m, a.n
+    for i = 0:m-1
+        ti = t[m-i]
+        if ti < n - i
+            for j = m-i:m
+                t[j] = (ti += 1)
+            end
+            return vset(n, t), t
+        end
+    end
+    return nothing
+end
+function vset(n::Integer, v)
+    z = zeros(Int, n)
+    for i in v
+        z[i] = 1
+    end
+    z
+end
+
+"""
+    newton_symmetric(p::Polynomial)
+
+For a multivariate polynomial which is symmetric in all variables
+(the polynomial does not change if you apply any permutation to the variables)
+represent the polynomial by a polynomial of the elementary symmetric functions.
+The result is a polynomial of the same type as the input, but the variables
+have the meaning of E₁, E₂, ... .
+If the input is not symmetric, throw an error.
+
+The algorithm is due to Newton's Theorem on Symmetric Polynomials.
+"""
+function newton_symmetric(p::P) where P<:Polynomial
+    G = generators(P)
+    n = size(G, 1)
+    z = zero(P)
+    while !iszero(p)
+        v = sort!(multideg(p), rev=true)
+        expo = [[v[i]-v[i+1] for i = 1:n-1]; v[n]]
+        iszero(z[expo...]) || throw(ArgumentError("input polynomial is not symmetric"))
+        lc = LC(p)
+        z += monom(P, expo) * lc
+        p -= prod(elementary_symmetric(P,i)^expo[i] for i in 1:n) * lc
+    end
+    z
+end

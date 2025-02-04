@@ -30,6 +30,7 @@ export ofindex
 export generator
 export GF, homomorphism
 export num_primitives, isprimitive
+export elementary_symmetric
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
