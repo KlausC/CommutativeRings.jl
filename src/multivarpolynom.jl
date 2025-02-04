@@ -1181,22 +1181,25 @@ end
 For a multivariate polynomial which is symmetric in all variables
 (the polynomial does not change if you apply any permutation to the variables)
 represent the polynomial by a polynomial of the elementary symmetric functions.
-The result is a polynomial of the same type as the input, but the variables
-have the meaning of E₁, E₂, ... .
-If the input is not symmetric, throw an error.
+The result is a polynomial of the same element type as the input, but the variables
+have the meaning of E₁, E₂, ... and lexical ordering is applied.
+
+If the input is not symmetric, throw an `ArgumentError`.
 
 The algorithm is due to Newton's Theorem on Symmetric Polynomials.
 """
-function newton_symmetric(p::P) where P<:Polynomial
+function newton_symmetric(p::P) where {S,P<:MultivariatePolynomial{S}}
     G = generators(P)
     n = size(G, 1)
-    z = zero(P)
+    vars = ([Symbol("E(", i, ")")] for i = 1:n)
+    Q = S[vars...]
+    z = zero(Q)
     while !iszero(p)
         v = sort!(multideg(p), rev=true)
         expo = [[v[i]-v[i+1] for i = 1:n-1]; v[n]]
         iszero(z[expo...]) || throw(ArgumentError("input polynomial is not symmetric"))
-        lc = LC(p)
-        z += monom(P, expo) * lc
+        lc = p[v...]
+        z += monom(Q, expo) * lc
         p -= prod(elementary_symmetric(P,i)^expo[i] for i in 1:n) * lc
     end
     z
