@@ -94,7 +94,7 @@ promote_rule(
     ::Type{UnivariatePolynomial{S,X}},
 ) where {X,R,S} = UnivariatePolynomial{promote_type(R, S),X}
 function _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Ring}
-    U = promote_type(R,S)
+    U = promote_type(R, S)
     U <: Ring ? UnivariatePolynomial{U,X} : Base.Bottom
 end
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} =
@@ -702,13 +702,13 @@ function evaluate(
 end
 
 function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
+    R = promote_type(S, eltype(T))
+    iszero(x) && return convert(R, p[0])
     c = p.coeff
     n = length(c)
     d = n + ord(p) - 1
-    R = promote_type(S, eltype(T))
     d < 0 && return one(x) * zero(R)
     d == 0 && return one(x) * convert(R, c[1])
-    iszero(x) && return one(x) * convert(R, p[0])
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x
@@ -767,6 +767,54 @@ function isless(p::T, q::T) where T<:UnivariatePolynomial
         isless(q[k], p[k]) && return false
     end
     false
+end
+
+"""
+    companion(p::UnivariatePolynomial[, q::UnivariatePolynomial])
+
+Return the companion matrix of monic polynomial `p`.
+The negative of `p`'s trailing coefficients are in the last column of the matrix.
+Its characteristic polynomial is identical to `p`.
+
+If `q` is given, return the companion matrix with respect to `q`. For `q == x` that is
+identical to the original definition. If `p` is the minimal polynomial of an algebraic
+number `a`, then `det(x*I - companion(p, q))` is a multiple of the minimal polynomial
+of `q(a)`.
+"""
+function companion(p::UnivariatePolynomial{T}) where T
+    ismonic(p) || throw(ArgumentError("polynomial is not monic"))
+    n = deg(p)
+    A = diagm(-1 => ones(T, n - 1))
+    b = p.first
+    for i = 1:length(p.coeff)-1
+        A[i+b, n] = -p.coeff[i]
+    end
+    A
+end
+
+function companion(p::UnivariatePolynomial{S}, q::UnivariatePolynomial{T}) where {S,T}
+    R = promote_type(S, T)
+    n = deg(p)
+    A = zeros(R, n, n)
+    if deg(q) >= n
+        q = mod(q, p)
+    end
+    f = q.first
+    for k in axes(q.coeff, 1)
+        A[k+f, 1] = q.coeff[k]
+    end
+    for j = 2:n
+        aa = A[n, j-1]
+        for i = 2:n
+            A[i, j] = A[i-1, j-1]
+        end
+        if !iszero(aa)
+            for i = 1:n
+                A[i, j] -= p[i-1] * aa
+            end
+        end
+    end
+    A
 end
 
 ### Display functions

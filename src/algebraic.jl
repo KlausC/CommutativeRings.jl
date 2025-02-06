@@ -6,8 +6,11 @@ import Base: conj, real, imag, abs, copy
 category_trait(::Type{<:AlgebraicNumber}) = FieldTrait
 basetype(::Type{<:AlgebraicNumber}) = QQ{BigInt}
 
-function AlgebraicNumber(p::UnivariatePolynomial{<:basetype(AlgebraicNumber)}, a = 0)
-    ps = [first(x) for x in factor(p)]
+function AlgebraicNumber(p::UnivariatePolynomial{<:basetype(AlgebraicNumber)}, a = -Inf)
+    if !isfinite(a)
+        a = copysign(oftype(a, 100), a)
+    end
+    ps = [first(x) for x in factor(p)] # factors could be cached in a
     p, a = findbest(ps, a)
     AlgebraicNumber(p, a, NOCHECK)
 end
@@ -17,7 +20,7 @@ function AlgebraicNumber(a::RingIntRatSc)
     qa = Q(a)
     AlgebraicNumber(x - qa, qa, NOCHECK)
 end
-function AlgebraicNumber(p::UnivariatePolynomial, a = 0)
+function AlgebraicNumber(p::UnivariatePolynomial, a = -Inf)
     Q = basetype(AlgebraicNumber)
     AlgebraicNumber(Q[:x](p), a)
 end
@@ -50,8 +53,8 @@ zero(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([0, 1]), 0)
 one(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([-1, 1]), 1)
-iszero(a::AlgebraicNumber) = deg(a) == 1 && iszero(poly(a)(0))
-isone(a::AlgebraicNumber) = deg(a) == 1 && isone(poly(a)(0))
+iszero(a::AlgebraicNumber) = deg(a) == 1 && poly(a).first == 1
+isone(a::AlgebraicNumber) = deg(a) == 1 && poly(a).first == 0 && isone(-poly(a)[0])
 isunit(a::AlgebraicNumber) = !iszero(a)
 
 function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
@@ -118,6 +121,8 @@ abs(a::AlgebraicNumber) =
 function *(a::T, b::T) where T<:AlgebraicNumber
     if a == b
         literal_pow(^, a, Val(2))
+    elseif iszero(a) || iszero(b)
+        zero(T)
     else
         pab = multiply(a, b)
         AlgebraicNumber(pab, approx(a) * approx(b))
@@ -181,6 +186,8 @@ function inv(a::T) where T<:AlgebraicNumber
     AlgebraicNumber(q, inv(approx(a)))
 end
 
+Base.isreal(a::AlgebraicNumber) = isreal(approx(a))
+
 # find best of irreducible factors with respect to having a root close to `a`.
 function findbest(ps::Vector, a)
     _, i = findmin(ps) do p
@@ -203,12 +210,7 @@ function closeroot(p, a)
     epsb = abs(a) * sqrt(epsa)
     da = p(a) / dp(a)
     if abs(da) > epsa * abs(a) * 2^20
-        pp = Polynomials.Polynomial(Float64.(value.(coeffs(p))))
-        r = roots(pp)
-        _, i = findmin(r) do x
-            abs(a - x)
-        end
-        a = oftype(a, r[i])
+        _, a = nextroot(p, a)
         da = p(a) / dp(a)
     end
     i = 100
@@ -220,4 +222,68 @@ function closeroot(p, a)
         da = p(a) / dp(a)
     end
     a
+end
+
+function Polynomials.roots(p::UnivariatePolynomial)
+    pp = Polynomials.Polynomial(Float64.(value.(coeffs(p))))
+    r = roots(pp)
+end
+
+function nextroot(p::UnivariatePolynomial, a)
+    r = roots(p) # roots could be cached in a
+    _, i = findmin(r) do x
+        abs(a - x)
+    end
+    i, oftype(Complex(a), r[i]), r
+end
+
+function Base.conj(a::AlgebraicNumber, n::Integer)
+    if n == typemin(Int)
+        if isreal(a)
+            a
+        else
+            AlgebraicNumber(poly(a), closeroot(poly(a), conj(approx(a))))
+        end
+    else
+        m = deg(a)
+        n = mod1(n, m)
+        if n == 1
+            a
+        else
+            i, _, r = nextroot(poly(a), approx(a)) # i could be cached in a
+            n = mod1(i + n - 1, m)
+            AlgebraicNumber(poly(a), r[n])
+        end
+    end
+end
+
+"""
+    field_polynomial(α::AlgebraicNumber, b)
+
+Calculate the field polynomial over the field Q(α) for a field element β, which
+is represented as a polynomial of `α` of degree <= degree of α.
+"""
+function field_polynomial(α::A, b::B) where {A<:AlgebraicNumber,B<:UnivariatePolynomial}
+    n = deg(α)
+    Q = basetype(A)
+    # set up a multivariate polynomial with variables a(1), ... a(n)
+    vars = [[Symbol("α(", k, ")")] for k = 1:n]
+    M = Q[vars...]
+    a = generators(M)
+    sigmas = [b(a[k]) for k = 1:n]
+    p = poly(α)
+    # PX = M[:X]
+    # X = monom(PX)
+    # the field polynomial in terms of the a(i)
+    # fp = prod(X - sigma(i) for i = 1:n)
+    # the coefficients of fp are the elementary symmetric functions of the a(i)
+    # as they are symmetric in a(i), they can be expressed by the symmetric e(i)
+    # which are essentially the coefficients of the minimal polynomial of α.
+    ce = Vector{Q}(undef, n + 1)
+    ce[n+1] = one(Q)
+    for i = 1:n
+        cai = elementary_symmetric(M, i)(sigmas...)
+        ce[n-i+1] = newton_symmetric(cai)(((-1)^j * p[n-j] for j = 1:n)...) * (-1)^i
+    end
+    (Q[:X])(ce)
 end

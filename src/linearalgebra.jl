@@ -430,21 +430,3 @@ function _adjugate_fallback(A::AbstractMatrix{P}) where P
     D = numerator.(C)
     convert.(P, evaluate.(D, 0))
 end
-
-"""
-    companion(p::UnivariatePolynomial)
-
-Return the companion matrix of monic polynomial `p`.
-The negative of `p`'s trailing coefficients are in the last column of the matrix.
-Its characteristic polynomial is identical to `p`.
-"""
-function companion(p::UnivariatePolynomial{T}) where T
-    ismonic(p) || throw(ArgumentError("polynomial is not monic"))
-    n = deg(p)
-    A = diagm(-1 => ones(T, n - 1))
-    b = p.first
-    for i in 1:length(p.coeff)-1
-        A[i+b, n] = -p.coeff[i]
-    end
-    A
-end
