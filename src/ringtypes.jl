@@ -28,6 +28,10 @@ end
 
 struct AlgebraicNumberClass <: FractionRingClass end
 
+struct NumberFieldClass{T,Id} <: QuotientRingClass
+    generator::T
+end
+
 const NCT = Val{:nocheck}
 const NOCHECK = Val(:nocheck)
 
@@ -188,7 +192,7 @@ struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
 end
 
 """
-An algebraic number `α` of degree `n` is represented as the set of zeros of an
+An algebraic number `α` of degree `n` is represented as a root of an
 irreducible monic polynomial over `Q` of degree `n`, the minimal polynomial of `α`.
 The set of algebraic numbers form a field and it is possible to derive representions
 of `α` ∘ `β` for all field operations `∘` and `-α` and `inv(α)`.
@@ -197,6 +201,20 @@ struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
     minpol::UnivariatePolynomial{QQ{BigInt},:x}
     approx::Complex{BigFloat}
     AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, a::Any, ::NCT) = new(p, a)
+end
+
+"""
+A number field is a subfield of the algebraic numbers, which consists of all linear
+combinations of powers of a fixed base algebraic number `α`.
+
+As a vector space it has the basis `α^i for i = 1:n-1` where `n`is the degree of `α`.
+
+Each element of a field number is represented by a polynomial modulo the minimal polynomial
+of `α`, by a field isomorphism.
+"""
+struct NumberField{T<:AlgebraicNumber,Id,Q} <: Ring{NumberFieldClass{T,Id}}
+    repr::Q
+    NumberField{T,Id}(r::Q, ::NCT) where {T,Id,Q<:Quotient} = new{T,Id,Q}(r)
 end
 
 # Categorial traits specify algebraic properties of ring types

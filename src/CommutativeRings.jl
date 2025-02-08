@@ -8,7 +8,7 @@ using Random
 export category_trait, isfield
 export Ring, RingInt, FractionRing, QuotientRing, Polynomial
 export ZZ, QQ, ZZmod, Frac, Quotient, UnivariatePolynomial, MultivariatePolynomial
-export GaloisField, FSeries, AlgebraicNumber
+export GaloisField, GF, FSeries, AlgebraicNumber, NumberField, NF
 
 export SpecialPowerSeries, PowerSeries, O, precision, absprecision
 export Conway
@@ -20,6 +20,7 @@ export LC, LM, LT, CC, lcunit, multideg, modulus, value
 export isdiv, pdivrem, divremv, pgcd, pgcdx
 export resultant, discriminant, signed_subresultant_polynomials, sylvester_matrix
 export basetype, basetypes, depth, iszerodiv
+export base, approx
 export monom, ismonom, ismonic, issimpler, iscoprime, issquarefree, sff
 export evaluate, derive, pade, pade_normal!
 export mapping, domain, codomain
@@ -27,20 +28,19 @@ export isirreducible, irreducible, irreducibles
 export num_irreducibles, isreducible, reducible, reducibles
 export characteristic, dimension, order
 export ofindex
-export generator
-export GF, homomorphism
+export generator, generators
+export homomorphism
 export num_primitives, isprimitive
 export elementary_symmetric, newton_symmetric
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
-export generators, varnames, varname, factors
+export varnames, varname, factors
 
-export characteristic_polynomial, adjugate, companion
+export characteristic_polynomial, minimal_polynomial, field_polynomial, adjugate, companion
 
 export compose_inv, Li, Ein, lin1p, lin1pe, ver
 
-export minimal_polynomial
 export rational_normal_form, matrix, transformation, polynomials
 export weierstrass_normal_form, smith_normal_form
 export mfactor, killmemo!, memoize
@@ -88,6 +88,7 @@ include("fourier.jl")
 include("fastmultiply.jl")
 include("polyroots.jl")
 include("algebraic.jl")
+include("numberfield.jl")
 
 using .SpecialPowerSeries
 using .Conway
