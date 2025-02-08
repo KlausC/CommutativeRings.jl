@@ -28,3 +28,4 @@ using CommutativeRings
 @testset "fourier" begin include("fourier.jl") end
 @testset "fastMultiply" begin include("fastmultiply.jl") end
 @testset "algebraic numbers" begin include("algebraic.jl") end
+@testset "number fields" begin include("numberfield.jl") end

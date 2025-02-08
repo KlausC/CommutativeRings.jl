@@ -27,12 +27,13 @@ promote_rule(::Type{N}, ::Type{<:ZZ}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Integer}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Rational}) where N<:NumberField = N
 
-# return the generator of this number field
-@inline generator(t::Type{<:NumberField}) = gettypevar(t).generator
+# return the base algebraic number of this number field
+@inline base(t::Type{<:NumberField}) = gettypevar(t).generator
+@inline base(b::NumberField) = base(typeof(b))
 
 Base.show(io::IO, nf::NumberField) = show(io, nf.repr)
 
-approx(nf::N) where N<:NumberField = value(nf.repr)(approx(generator(N)))
+approx(nf::N) where N<:NumberField = value(nf.repr)(approx(base(N)))
 
 +(a::N, b::N) where {A,Id,N<:NumberField{A,Id}} =
     NumberField{A,Id}(a.repr + b.repr, NOCHECK)
@@ -47,17 +48,41 @@ inv(a::N) where {A,Id,N<:NumberField{A,Id}} = NumberField{A,Id}(inv(a.repr), NOC
 isunit(a::N) where {A,Id,N<:NumberField{A,Id}} = isunit(a.repr)
 iszero(a::N) where {A,Id,N<:NumberField{A,Id}} = iszero(a.repr)
 isone(a::N) where {A,Id,N<:NumberField{A,Id}} = isone(a.repr)
-zero(::Type{N}) where {A,Id,Q,N<:NumberField{A,Id,Q}} = NumberField{A,Id}(zero(Q), NOCHECK)
-one(::Type{N}) where {A,Id,Q,N<:NumberField{A,Id,Q}} = NumberField{A,Id}(one(Q), NOCHECK)
-monom(::Type{N}, k::Integer = 1) where {A,Id,Q,N<:NumberField{A,Id,Q}} =
+
+==(a::N, b::N) where N<:NumberField = value(a.repr) == value(b.repr)
+function ==(a::NumberField, b::NumberField)
+    va = value(a.repr)
+    vb = value(b.repr)
+    (0 >= deg(va) == deg(vb)) && va[0] == vb[0]
+end
+function hash(a::NumberField, x::UInt)
+    if 0 >= deg(value(a.repr))
+        hash(value(a.repr)[0])
+    else
+        hash(base(a), hash(a.repr, x))
+    end
+end
+
+function zero(::Type{N}) where {A,Id,Q,N<:NumberField{A,Id,Q}}
+    NumberField{A,Id}(zero(Q), NOCHECK)
+end
+
+function one(::Type{N}) where {A,Id,Q,N<:NumberField{A,Id,Q}}
+    NumberField{A,Id}(one(Q), NOCHECK)
+end
+
+function monom(::Type{N}, k::Integer = 1) where {A,Id,Q,N<:NumberField{A,Id,Q}}
     NumberField{A,Id}(monom(Q, k), NOCHECK)
+end
+
+generator(::Type{N}) where N<:NumberField = monom(N)
 
 minimal_polynomial(b::NumberField) = minimal_polynomial(AlgebraicNumber(b))
 
 function field_polynomial(b::N) where N<:NumberField
     r = b.repr
     q = value(r)
-    p = modulus(r) # == minimal_polynomial(generator(N))
+    p = modulus(r) # == minimal_polynomial(base(N))
     x = monom(typeof(p))
     m = det(x * I - companion(p, q))
     m

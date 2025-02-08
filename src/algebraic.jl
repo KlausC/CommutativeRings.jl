@@ -1,5 +1,5 @@
 
-import Base: *, /, inv, +, -, sqrt, cbrt, ^, literal_pow, iszero, zero, one, ==, hash
+import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, hash
 import Base: conj, real, imag, abs, copy
 
 # construction
@@ -38,14 +38,20 @@ promote_rule(::Type{<:A}, ::Type{<:Integer}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Rational}) where A<:AlgebraicNumber = A
 
 copy(a::AlgebraicNumber) = typeof(a)(minimal_polynomial(a), approx(a))
-==(a::T, b::T) where T<:AlgebraicNumber =
-    minimal_polynomial(a) == minimal_polynomial(b) && approx(a) == approx(b)
-hash(a::AlgebraicNumber, x::UInt) = hash(minimal_polynomial(a), hash(approx(a), x))
 
-function minimalpart(p::UnivariatePolynomial)
-    f = factor(p)
-    _, i = findmin(x -> deg(first(first(x))), f)
-    first(f[i])
+function ==(a::T, b::T) where T<:AlgebraicNumber
+    ma = minimal_polynomial(a)
+    mb = minimal_polynomial(b)
+    ma == mb == minimal_polynomial(b) && (deg(ma) <= 1 || approx(a) == approx(b))
+end
+
+function hash(a::AlgebraicNumber, x::UInt)
+    p = minimal_polynomial(a)
+    if deg(p) <= 1
+        hash(-p[0], x)
+    else
+        hash(p, hash(approx(a), x))
+    end
 end
 
 minimal_polynomial(a::AlgebraicNumber) = a.minpol
@@ -116,10 +122,11 @@ function root(a::AlgebraicNumber, n::Integer)
 end
 
 sqrt(a::AlgebraicNumber) = ^(a, 1 // 2)
-cbrt(a::AlgebraicNumber) = ^(a, 1 // 3)
+# cbrt(a::AlgebraicNumber) = ^(a, 1 // 3) # intentionally not defined - alike Complex.
 conj(a::AlgebraicNumber) = AlgebraicNumber(minimal_polynomial(a), conj(approx(a)), NOCHECK)
 real(a::AlgebraicNumber) = (a + conj(a)) / 2
-imag(a::AlgebraicNumber) = (a - real(a)) * AlgebraicNumber(monom(typeof(minimal_polynomial(a)))^2 + 1, -im)
+imag(a::AlgebraicNumber) =
+    (a - real(a)) * AlgebraicNumber(monom(typeof(minimal_polynomial(a)))^2 + 1, -im)
 abs(a::AlgebraicNumber) =
     !isreal(approx(a)) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
 

@@ -7,7 +7,7 @@ P = QQ{BigInt}[:x]
 x = monom(P)
 tol = eps(BigFloat) * 100
 
-@testset "AlgebraicNumber" for (p, s, r) in [
+@testset "AlgebraicNumber basics" for (p, s, r) in [
     (x^2 + 1, 0, im),
     (x^2 - 2, 1, sqrt(big(2))),
     (x^2 - 2, -1, -sqrt(big(2))),
@@ -17,7 +17,23 @@ tol = eps(BigFloat) * 100
     @test approx(a) ≈ r
 end
 
-@testset "AlgebraicNumber irr" begin
+@testset "Algebraic identities" begin
+    a = AlgebraicNumber(x^2 + 1, im)
+    b = AlgebraicNumber(x^2 + 1, -im)
+    @test a == a + 0
+    @test a != b
+    @test hash(a) == hash(a + 0)
+    @test isunit(a)
+    @test !isunit(zero(a))
+    @test isone(one(a))
+    @test !iszero(a)
+    @test one(a) == 1
+    @test zero(a) == 0
+    @test hash(zero(a)) == hash(0)
+    @test hash(one(a)) == hash(1)
+end
+
+@testset "AlgebraicNumber reducible" begin
     p = x^17 + x - 1 # == (x^15 + x^14 .... -1) * (x^2 - x + 1)
     a = AlgebraicNumber(p, 0.5 + 0.9 * im)
     @test p(approx(a)) ≈ 0.0 atol = tol
@@ -43,8 +59,8 @@ end
     @test field_polynomial(a, x^2, Val(true)) == field_polynomial(a, x^2)
 end
 
-# that should be defined in Base! Her is "type piracy"
-Base.cbrt(a::Complex) = a^(1 // 3)
+# cbrt is not defined for complex arguments intentionally - we use it here to test `pow`.
+cbrt(a::Any) = a^(1 // 3)
 @testset "Algebraic $op arithmetic" for (op, d) in (
     (-, 3),
     (inv, 3),

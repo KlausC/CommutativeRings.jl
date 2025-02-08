@@ -112,7 +112,9 @@ end
 
     @test sprint(show, g1) !== nothing
     @test sprint(show, q1) !== nothing
-    @test endswith(sprint(show, generator(G)), r"{(0:)*1:0%[1-9]}")
+    g = Polynomial(generator(G))
+    @test deg(g) == 1 && g(0) == 0 && g(1) == 1
+    @test endswith(sprint(show, generator(G)), r"1:0.[1-9]")
 
     @test G(one(ZZ / p)) == one(G)
     @test length(modulus(G).(collect(G))) == length(G)
