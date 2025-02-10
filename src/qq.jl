@@ -3,6 +3,8 @@
 QQ(::Type{T}) where T<:Integer = QQ{T}
 QQ(::Type{ZZ{T}}) where T = QQ{T}
 
+Base.big(::Type{<:QQ}) = QQ{BigInt}
+
 category_trait(::Type{<:QQ}) = FieldTrait
 Base.IteratorSize(::Type{<:QQ}) = IsInfinite()
 

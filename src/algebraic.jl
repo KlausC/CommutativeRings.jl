@@ -1,17 +1,29 @@
 
 import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, hash
-import Base: conj, real, imag, abs, copy
+import Base: conj, real, imag, abs, copy, isreal
 
 # construction
 basetype(::Type{<:AlgebraicNumber}) = QQ{BigInt}
 category_trait(::Type{A}) where A<:AlgebraicNumber = category_trait(basetype(A))
 
-function AlgebraicNumber(p::UnivariatePolynomial{<:basetype(AlgebraicNumber)}, a = -Inf)
+function AlgebraicNumber(
+    p::UnivariatePolynomial{<:basetype(AlgebraicNumber)},
+    a = -Inf,
+    ::Val = Val(:check),
+)
     if !isfinite(a)
         a = copysign(oftype(a, 100), a)
     end
-    ps = [first(x) for x in factor(p)] # factors could be cached in a
+    ps = [first(x) / LC(first(x)) for x in sff(p)] # factors could be cached in a
     p, a = findbest(ps, a)
+    AlgebraicNumber(p, a, NOCHECK)
+end
+function AlgebraicNumber(
+    p::UnivariatePolynomial{<:basetype(AlgebraicNumber)},
+    a,
+    ::Val{:irreducible},
+)
+    a = closeroot(p, big(value(a)))
     AlgebraicNumber(p, a, NOCHECK)
 end
 function AlgebraicNumber(a::RingIntRatSc)
@@ -25,7 +37,9 @@ function AlgebraicNumber(p::UnivariatePolynomial, a = -Inf)
     AlgebraicNumber(Q[:x](p), a)
 end
 AlgebraicNumber(a::AlgebraicNumber) = a
-AlgebraicNumber(b::NumberField) = AlgebraicNumber(field_polynomial(b), approx(b))
+function AlgebraicNumber(b::NumberField, ab = approx(b), irreducible::Val = Val(:check))
+    AlgebraicNumber(field_polynomial(b), ab, irreducible)
+end
 
 # promotion and conversion
 Base.convert(::Type{T}, a::Union{Integer,Rational}) where T<:AlgebraicNumber = T(a)
@@ -45,7 +59,7 @@ function ==(a::T, b::T) where T<:AlgebraicNumber
     ma == mb == minimal_polynomial(b) && (deg(ma) <= 1 || approx(a) == approx(b))
 end
 
-function hash(a::AlgebraicNumber, x::UInt)
+function Base.hash(a::AlgebraicNumber, x::UInt)
     p = minimal_polynomial(a)
     if deg(p) <= 1
         hash(-p[0], x)
@@ -57,11 +71,11 @@ end
 minimal_polynomial(a::AlgebraicNumber) = a.minpol
 approx(a::AlgebraicNumber) = a.approx
 deg(a::AlgebraicNumber) = deg(minimal_polynomial(a))
-zero(::Type{T}) where T<:AlgebraicNumber =
+Base.zero(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([0, 1]), 0)
-one(::Type{T}) where T<:AlgebraicNumber =
+Base.one(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([-1, 1]), 1)
-iszero(a::AlgebraicNumber) = deg(a) == 1 && minimal_polynomial(a).first == 1
+Base.iszero(a::AlgebraicNumber) = deg(a) == 1 && minimal_polynomial(a).first == 1
 isone(a::AlgebraicNumber) =
     deg(a) == 1 && minimal_polynomial(a).first == 0 && isone(-minimal_polynomial(a)[0])
 isunit(a::AlgebraicNumber) = !iszero(a)
@@ -108,12 +122,16 @@ function _pow(p::UnivariatePolynomial, m::Integer)
     end
     C
 end
-function pow(a::A, m::Integer) where A<:AlgebraicNumber
-    evaluate(monom((basetype(A)[:x]), m), a)
+function pow(a::A, m::Integer, irreducible::Val = Val(:check)) where A<:AlgebraicNumber
+    m == 0 ? one(A) : m == 1 ? a : evaluate(monom((basetype(A)[:x]), m), a, irreducible)
 end
 
-function evaluate(p::UnivariatePolynomial, a::A) where A<:AlgebraicNumber
-    A(evaluate(p, monom(NF(a))))
+function evaluate(
+    p::UnivariatePolynomial,
+    a::A,
+    irreducible = Val(:check),
+) where A<:AlgebraicNumber
+    A(evaluate(p, monom(NF(a))), p(approx(a)), irreducible)
 end
 
 function root(a::AlgebraicNumber, n::Integer)
@@ -124,11 +142,10 @@ end
 sqrt(a::AlgebraicNumber) = ^(a, 1 // 2)
 # cbrt(a::AlgebraicNumber) = ^(a, 1 // 3) # intentionally not defined - alike Complex.
 conj(a::AlgebraicNumber) = AlgebraicNumber(minimal_polynomial(a), conj(approx(a)), NOCHECK)
+isreal(a::AlgebraicNumber) = isreal(approx(a))
 real(a::AlgebraicNumber) = (a + conj(a)) / 2
-imag(a::AlgebraicNumber) =
-    (a - real(a)) * AlgebraicNumber(monom(typeof(minimal_polynomial(a)))^2 + 1, -im)
-abs(a::AlgebraicNumber) =
-    !isreal(approx(a)) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
+imag(a::AlgebraicNumber) = sqrt(-(a - conj(a))^2) / 4
+abs(a::AlgebraicNumber) = !isreal(a) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
 
 function *(a::T, b::T) where T<:AlgebraicNumber
     if a == b
@@ -147,6 +164,11 @@ end
 *(a::T, aa::RingIntRatSc) where T<:AlgebraicNumber =
     AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * value(aa))
 *(aa::RingIntRatSc, a::T) where T<:AlgebraicNumber = a * aa
+
+/(aa::T, a::T) where T<:AlgebraicNumber = aa * inv(a)
+/(aa::Ring, a::T) where T<:AlgebraicNumber = aa * inv(a)
+/(aa::T, a::RingIntRatSc) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
+/(aa::RingIntRatSc, a::T) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
 
 +(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
     lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, 1),
@@ -172,6 +194,10 @@ function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
         lincomb(a, aa)
     elseif iszero(aa)
         lincomb(b, bb)
+    elseif a == b
+        ca = companion(a)
+        ea = I(deg(a))
+        characteristic_polynomial(kron(ca, ea * aa) + kron(ea * bb, ca))
     else
         ca = companion(a)
         cb = companion(b)
@@ -204,10 +230,18 @@ function inv(a::T) where T<:AlgebraicNumber
     AlgebraicNumber(q, inv(approx(a)))
 end
 
-Base.isreal(a::AlgebraicNumber) = isreal(approx(a))
-
 # find best of irreducible factors with respect to having a root close to `a`.
 function findbest(ps::Vector, a)
+    p = bestpoly(ps, a)
+    if isreducible(p)
+        pss = [first(s) for s in factor(p)]
+        p = bestpoly(pss, a)
+    end
+    b = closeroot(p, big(value(a)))
+    p, b
+end
+
+function bestpoly(ps::Vector, a)
     if length(ps) > 1
         _, i = findmin(ps) do p
             pa = abs(p(a))
@@ -217,10 +251,9 @@ function findbest(ps::Vector, a)
     else
         i = 1
     end
-    p = ps[i]
-    b = closeroot(p, big(value(a)))
-    p, b
+    ps[i]
 end
+
 
 value(a::Number) = float(a)
 
@@ -229,13 +262,13 @@ import Polynomials: Polynomials, roots
 # find root of `p`, which is closest to `a`.
 function closeroot(p, a)
     dp = derive(p)
-    epsa = eps(float(real(typeof(a))))
-    epsb = abs(a) * sqrt(epsa)
+    epsa = eps(Float64(abs(a))) * 2^20
     da = p(a) / dp(a)
-    if !(abs(da) <= epsa * abs(a) * 2^20)
+    if !(abs(da) <= epsa)
         _, a = nextroot(p, a)
         da = p(a) / dp(a)
     end
+    epsb = abs(a) * sqrt(eps(real(typeof(a))))
     i = 100
     while true
         a -= da
@@ -329,4 +362,35 @@ function field_polynomial(
         ce[n-i+1] = newton_symmetric(cai)(((-1)^j * p[n-j] for j = 1:n)...) * (-1)^i
     end
     QX(ce)
+end
+
+"""
+    cispi(r::QQ)
+
+Return the algebraic number at `exp(pi * r * im)`.
+"""
+Base.cispi(q::Q) where Q<:QQ = cispi(Q, value(q))
+function Base.cispi(Q::Type{<:QQ}, r::Rational)
+    r = mod(r + 1, 2) - 1
+    e = cispi(r)
+    r //= 2
+    num = numerator(r)
+    den = denominator(r)
+    p = cyclotomic(big(Q)[:x], den)
+    pow(AlgebraicNumber(p, e, Val(:irreducible)), num, Val(:irreducible))
+end
+
+Base.sinpi(q::QQ) = sqrt(1 - cospi(q)^2)
+function Base.sincospi(q::QQ)
+    d = cispi(q)
+    N = NF(d)
+    e = monom(N)
+    a = e
+    b = inv(e)
+    c = (a + b) / 2
+    s = ((a - b) / 2)^2
+    fs, fc = sincospi(big(value(q)))
+    as = sqrt(AlgebraicNumber(-s, fs^2, Val(:irreducible)))
+    ac = AlgebraicNumber(c, fc, Val(:irreducible))
+    as, ac
 end

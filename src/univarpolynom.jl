@@ -706,9 +706,6 @@ function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     iszero(x) && return convert(R, p[0])
     c = p.coeff
     n = length(c)
-    d = n + ord(p) - 1
-    d < 0 && return one(x) * zero(R)
-    d == 0 && return one(x) * convert(R, c[1])
     a = convert(R, c[n])
     for k = n-1:-1:1
         a *= x

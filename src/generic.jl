@@ -43,6 +43,7 @@ Base.iterate(::Ring, ::Any) = nothing
 Base.isempty(::Ring) = false
 Base.in(a::Ring, b::Ring) = a == b
 Base.map(f, a::Ring, bs::Ring...) = f(a, bs...)
+Base.big(a::T) where T<:Union{QQ,ZZ} = big(T)(a)
 
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = Union{}

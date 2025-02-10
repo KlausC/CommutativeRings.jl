@@ -21,6 +21,7 @@ If `v = p1*...*pk` with the distinct prime factors of `n`, we have
 `cyclotomic(P, n)(x) = cyclotomic(P, v)(x^(n/v))`.
 """
 function cyclotomic(::Type{P}, n::Integer) where P<:UnivariatePolynomial
+    n < 0 && throw(ArgumentError("Index of cyclotomic polynomial is negative"))
     T = basetype(P)
     (n < 2 || isprime(n)) && return P(ones(T, n))
     f = factor(n)
@@ -174,7 +175,7 @@ function fibonacci(n::Integer)
         for _ = 1:log2n-1
             temp = f * f
             f = (f + l) ÷ 2
-            f = 2 * (f * f ) - 3 * temp - 2 * sign
+            f = 2 * (f * f) - 3 * temp - 2 * sign
             l = 5 * temp + 2 * sign
             sign = 1
             if (n & mask) != 0
