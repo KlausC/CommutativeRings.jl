@@ -87,9 +87,27 @@ end
     @test approx(c) ≈ op(approx(a), approx(b))
 end
 
+@testset "Algebraic $op(A, $b) arithmetic" for op in (+, -, *, /), b in (11, QQ(1 // 11))
+    a = AlgebraicNumber(x^3 + x + 1)
+    b = big(b)
+    c = op(a, b)
+    @test deg(c) == deg(a)
+    @test minimal_polynomial(c)(c) == 0
+    @test approx(c) ≈ op(approx(a), approx(b))
+end
+
+@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (11, ZZ(11))
+    a = big(a)
+    b = AlgebraicNumber(x^3 + x + 1)
+    c = op(a, b)
+    @test deg(c) == deg(b)
+    @test minimal_polynomial(c)(c) == 0
+    @test approx(c) ≈ op(approx(a), approx(b))
+end
+
 @testset "Algebraic conjugates $n" for n in (2, 3, 5)
     p = (x^n - 1) / (x - 1)
-    a = AlgebraicNumber(p, 1+0.5im)
+    a = AlgebraicNumber(p, 1 + 0.5im)
     @test conj(a) == conj(a, 0)
     @test conj(a, 1) === a
     @test conj(a, n) === a
@@ -103,4 +121,24 @@ end
     end
 end
 
+@testset "Algebraic - roots of unity" begin
+    q = QQ(1 // 5)
+    a = cispi(q)
+    @test minimal_polynomial(a) == (x^5 + 1) / (x + 1)
+    @test cospi(q) == real(a)
+    @test sinpi(q) == imag(a)
+    @test cispi(-q) * cispi(q) == 1
+end
+
+@testset "Algebraic - expressions" begin
+    expr5 = :( sqrt(5) + 1)
+    @test AlgebraicNumber(expr5) / 4 ≈ cospi(QQ(1//5))
+
+    expr17 = :(
+        1 - sqrt(17) +
+        sqrt(34 - sqrt(68)) +
+        sqrt(68 + sqrt(2448) + sqrt(2720 + sqrt(6284288)))
+    )
+    @test AlgebraicNumber(expr17) / 16 ≈ cospi(QQ(1 // 17))
+end
 end
