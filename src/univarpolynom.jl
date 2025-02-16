@@ -779,11 +779,17 @@ number `a`, then `det(x*I - companion(p, q))` is a multiple of the minimal polyn
 of `q(a)`.
 """
 function companion(p::UnivariatePolynomial{T}) where T
+    companion(T, p)
+end
+function companion(::Type{S}, p::UnivariatePolynomial) where S
     ismonic(p) || throw(ArgumentError("polynomial is not monic"))
     n = deg(p)
-    A = diagm(-1 => ones(T, n - 1))
+    A = zeros(S, n, n)
+    @inbounds for i = 1:n-1
+        A[i+1,i] = 1
+    end
     b = p.first
-    for i = 1:length(p.coeff)-1
+    @inbounds for i = 1:length(p.coeff)-1
         A[i+b, n] = -p.coeff[i]
     end
     A

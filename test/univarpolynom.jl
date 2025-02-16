@@ -357,7 +357,7 @@ end
     @test p(a) ≈ (a^4 + 2) * a + 1
 end
 
-@testset "evaluate with zero zero polynomial and zero matrix" begin
+@testset "evaluate with zero polynomial and zero matrix" begin
     A = rand(-10:10, 3, 3)
     P = ZZ{Int}[:x]
     x = monom(P)

@@ -264,8 +264,6 @@ end
 
 value(a::Number) = float(a)
 
-import Polynomials: Polynomials, roots
-
 # find root of `p`, which is closest to `a`.
 function closeroot(p, a)
     p = primpart(p) # converts to ZZ[:x] - faster than QQ[:x]
@@ -293,13 +291,13 @@ struct NumericalError <: Exception
     text::AbstractString
 end
 
-function Polynomials.roots(p::UnivariatePolynomial)
-    pp = Polynomials.Polynomial(Float64.(value.(coeffs(p))))
-    r = roots(pp)
+function cr_roots(p::UnivariatePolynomial)
+    A = companion(Float64, p)
+    LinearAlgebra.eigvals(A; permute=false, scale=false)
 end
 
 function nextroot(p::UnivariatePolynomial, a)
-    r = roots(p) # roots could be cached in AlgebraicNumber
+    r = cr_roots(p) # roots could be cached in AlgebraicNumber
     _, i = findmin(r) do x
         if isfinite(a)
             abs(a - x)

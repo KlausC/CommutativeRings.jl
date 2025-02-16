@@ -86,7 +86,6 @@ include("lll.jl")
 include("ll.jl")
 include("fourier.jl")
 include("fastmultiply.jl")
-include("polyroots.jl")
 include("algebraic.jl")
 include("numberfield.jl")
 

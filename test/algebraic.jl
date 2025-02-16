@@ -8,7 +8,7 @@ x = monom(P)
 tol = eps(BigFloat) * 100
 
 @testset "AlgebraicNumber basics" for (p, s, r) in [
-    (x^2 + 1, 0, im),
+    (x^2 + 1, eps()*im, im),
     (x^2 - 2, 1, sqrt(big(2))),
     (x^2 - 2, -1, -sqrt(big(2))),
 ]

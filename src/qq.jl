@@ -52,7 +52,8 @@ function QQ(num::ZZ, den::ZZ)
 end
 Base.Rational(a::QQ{T}) where T = Rational(a.num, a.den)
 //(a::ZZ{T}, b::ZZ{T}) where T = QQ(Rational(a.val, b.val))
-Base.float(a::QQ) = float(Rational(a))
+Base.float(a::R) where {R<:Union{ZZ,QQ}} = float(value(a))
+(::Type{T})(a::R) where {R<:Union{ZZ,QQ},T<:AbstractFloat} = T(value(a))
 
 # promotion and conversion
 promote_rule(::Type{QQ{T}}, ::Type{QQ{S}}) where {S,T} = QQ{promote_type(S, T)}
