@@ -20,7 +20,7 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     isirreducible(pp; p0)
 end
 
-function factor(p::P, a::Integer=1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
+function factor(p::P, a::Integer = 1; p0 = MINPRIME) where P<:UnivariatePolynomial{<:ZZ}
     #println("factor($p)")
     X = varname(P)
     c = content(p)
@@ -81,12 +81,12 @@ end
 Split integer polynomial `p` into coprime factors `u_i for i = 1:e`
 such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
 """
-function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
+function yun(u::P) where P<:UnivariatePolynomial
     t, v, w = GCD(u, derive(u))
-    res = P[]
     if isone(t)
-        push!(res, u)
+        [u]
     else
+        res = P[]
         wv = w - derive(v)
         while !iszero(wv)
             u, v, w = GCD(v, wv)
@@ -95,7 +95,13 @@ function yun(u::P) where P<:UnivariatePolynomial{<:ZZ}
         end
         push!(res, v)
     end
-    res
+end
+
+function yun(u::P) where P<:UnivariatePolynomial{<:QQ}
+    c, q = content_primpart(u) # q is ZZ!
+    y = yun(q)
+    c *= LC(q)
+    z = [P(y[1])*c; [P(y[i])/LC(y[i]) for i in 2:length(y)]]
 end
 
 """
@@ -107,6 +113,25 @@ return `gcd(u, v), u / g, v / g`.
 function GCD(u, v)
     t = pgcd(u, v)
     isone(t) ? (t, u, v) : (t, u / t, v / t)
+end
+
+"""
+    issquarefree(p)
+
+Return iff the univariate polynomial `p` is squarefree.
+"""
+function issquarefree(u::P) where P<:UnivariatePolynomial
+    deg(u) <= 0 && return true
+    v = derive(u)
+    iszero(v) && return false
+    w = pgcd(u, v)
+    return deg(w) <= 0
+end
+
+# implementation of squarefree factorization for characteristic 0
+function _sff(u::P, ::Val{0}) where P<:UnivariatePolynomial
+    v = yun(u)
+    [Pair(v[i], i) for i = axes(v, 1) if deg(v[i]) > 0]
 end
 
 function zassenhaus(u; p0)

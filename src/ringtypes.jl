@@ -26,6 +26,12 @@ struct GaloisFieldClass{Id,T,Q} <: QuotientRingClass
     zechtable::Vector{T}
 end
 
+struct AlgebraicNumberClass <: FractionRingClass end
+
+struct NumberFieldClass{T,Id} <: QuotientRingClass
+    generator::T
+end
+
 const NCT = Val{:nocheck}
 const NOCHECK = Val(:nocheck)
 
@@ -47,6 +53,13 @@ abstract type Ring{T<:RingClass} end
 Union of system `Integer` types and any `Ring` subtype.
 """
 const RingInt = Union{Ring,Integer}
+
+"""
+    RingIntRatSc
+
+Union of system `Integer`, `Rational`, and `UniformScaling` types and any `Ring` subtype.
+"""
+const RingIntRatSc = Union{Ring,Integer,Rational,UniformScaling}
 
 """
     FractionRing{S<:RingInt,T<:FractionRingClass}
@@ -177,6 +190,64 @@ struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
     GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))
 end
+
+"""
+    AlgebraicNumber(p, approx=-Inf)
+
+Create an AlgebraicNumer with minimal polynomial `p` being a root of `p` closet to `approx`.
+
+An algebraic number `α` of degree `n` is represented as a root of an
+irreducible monic polynomial over `Q` of degree `n`, the minimal polynomial of `α`.
+The set of algebraic numbers form a field and it is possible to derive representions
+of `α` ∘ `β` for all field operations `∘` and `-α` and `inv(α)`.
+
+# Extended help
+Algebraic numbers are defined to be real or complex numbers, which are zeros of monic
+polynomials over the rational numbers. Each algebraic number `A` is defined by its
+minimal polynomial and an approximation of the zero of it. The minimal polynomial is
+the uniquely determined irreducible monic polynomial, which has this zero.
+Algebraic operations with algebraic numbers are possible but expensive, because polynomials
+of a degree of the product of the degrees of the operands have to be factored in the worst
+case.
+"""
+struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
+    minpol::UnivariatePolynomial{QQ{BigInt},:x}
+    approx::Complex{BigFloat}
+    AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, a::Any, ::NCT) = new(p, a)
+end
+
+"""
+    NumberField{<:AlgebraicNumber}
+    NF(A::AlgebraicNumber)
+
+Create the NumberField of an algebraic number `A`. Elements of the number field can be
+created by `NF(A)(polynomial)`.
+
+A number field is a subfield of the algebraic numbers, which consists of all linear
+combinations of powers of a fixed base algebraic number `α`.
+
+As a vector space it has the basis `α^i for i = 1:n-1` where `n`is the degree of `α`.
+
+Each element of a field number is represented by a polynomial modulo the minimal polynomial
+of `α`, by a field isomorphism.
+
+# Extended help
+A number field over an algebraic number NF(A) is the vector space of rational linear
+combinations of the powers of A. It has dimension of the degree of the minimal polynomial.
+It has a natural field isomorphism with the quotient ring of the minimal polynomial,
+which is used to allow efficient operations.
+"""
+struct NumberField{T<:AlgebraicNumber,Id,Q} <: Ring{NumberFieldClass{T,Id}}
+    repr::Q
+    NumberField{T,Id}(r::Q, ::NCT) where {T,Id,Q<:Quotient} = new{T,Id,Q}(r)
+end
+
+"""
+    RingNumber
+
+Union of all scalar and discrete types.
+"""
+const RingNumber = Union{Integer,Rational,ZZ,QQ,ZZmod,GaloisField}
 
 # Categorial traits specify algebraic properties of ring types
 # (cf. https://en.wikipedia.org/wiki/Integral_domain)

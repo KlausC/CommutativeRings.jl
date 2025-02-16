@@ -511,8 +511,6 @@ function diameter(::EnumPolynomial, x, n)
     (r + 1)^(n - 1) * r > x ? r : r + 1
 end
 
-Base.binomial(x::Int128, y::Integer) = binomial(big(x), y)
-
 """
     iroot(a::Integer, n::Integer)
 

@@ -108,12 +108,25 @@ end
     sff(p)
 
 `Square-free factorization`.
-Algorithm to split polynomial `p` into a product of powers of squarefree factors.
+
+Factor polynomial `p` into into coprime squarefree factors `u_i for i = 1:e`
+such that `p = u_1^1 * u_2^2 * ... * u_e^e`.
+
 Return an array of pairs of squarefree factors and corresponding powers.
+The implementation depends on the characteristic of the Ring.
+
+For characteristic 0 see:
+`https://en.wikipedia.org/wiki/Square-free_polynomial#Yun's_algorithm`
+
+For characteristic > 0 see:
+`https://en.wikipedia.org/wiki/Factorization_of_polynomials_over_finite_fields#Square-free_factorization`
 """
-function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
-    q = order(Z)
-    p = characteristic(Z)
+function sff(f::UnivariatePolynomial{R}) where R
+    _sff(f, Val(characteristic(R)))
+end
+
+function _sff(f::P, vch::Val{p}) where {p,P<:UnivariatePolynomial}
+    @assert p > 0
     i = 1
     R = Pair{P,Int}[]
     fs = derive(f)
@@ -131,12 +144,22 @@ function sff(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     end
 
     if deg(c) > 0
-        c = compress(c, p)
-        for (g, i) in sff(c)
+        c = proot(c)
+        for (g, i) in _sff(c, vch)
             push!(R, Pair(g, i * p))
         end
     end
     R
+end
+"""
+    proot(p)
+
+Calculate the `p`-th root of a polynomial over a field with characteristic `p != 0`.
+"""
+function proot(g::P) where {R,P<:UnivariatePolynomial{R}}
+    p = characteristic(R)
+    r = p^(dimension(R) - 1)
+    compress(P([x^r for x in coeffs(g)]), p)
 end
 
 """
@@ -147,7 +170,7 @@ Return polynomial `q` with `q(x^n) == p(x)`.
 Assuming `p` has this form. `compress(uncompress(p) == p`.
 """
 function compress(p::P, n::Integer) where P<:UnivariatePolynomial
-    r = (length(p.coeff) - 1) ÷ n
+    r = (size(p.coeff, 1) + n - 1) ÷ n - 1
     nc = [p.coeff[k*n+1] for k ∈ 0:r]
     P(nc, ord(p) ÷ n)
 end
