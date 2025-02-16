@@ -167,19 +167,15 @@ function *(a::T, b::T) where T<:AlgebraicNumber
     end
 end
 
-*(a::T, aa::Ring) where T<:AlgebraicNumber =
+*(a::T, aa::RingNumber) where T<:AlgebraicNumber =
     AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * value(aa))
-*(aa::Ring, a::T) where T<:AlgebraicNumber = a * aa
-*(a::T, aa::RingIntRatSc) where T<:AlgebraicNumber =
-    AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * value(aa))
-*(aa::RingIntRatSc, a::T) where T<:AlgebraicNumber = a * aa
+*(aa::RingNumber, a::T) where T<:AlgebraicNumber = a * aa
 *(p::P, a::R) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
 *(a::R, p::P) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
 
 /(aa::T, a::T) where T<:AlgebraicNumber = inv(a) * aa
-/(aa::Ring, a::T) where T<:AlgebraicNumber = inv(a) * aa
-/(aa::T, a::Ring) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
-/(aa::RingIntRatSc, a::T) where T<:AlgebraicNumber = inv(a) * aa
+/(aa::RingNumber, a::T) where T<:AlgebraicNumber = inv(a) * aa
+/(aa::T, a::RingNumber) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
 
 +(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
     lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, 1),

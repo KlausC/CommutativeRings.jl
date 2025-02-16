@@ -2,6 +2,13 @@
 # class constructors
 
 # by default assume modulus is irreducible
+"""
+    NF(A::AlgebraicNumber)
+
+Construct the `NumberField` class for `A`.
+Elements of that field can be constructed by calling `NF(A)(p)` where `p` is a polynomial
+or with `monomial(NF(A))`.
+"""
 function NF(a::A) where A<:AlgebraicNumber
     p = minimal_polynomial(a)
     Q = Quotient(typeof(p), p) # no check for irreducibility - compared to T / p
