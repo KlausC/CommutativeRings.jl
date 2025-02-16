@@ -703,7 +703,7 @@ end
 
 function _evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
     R = promote_type(S, eltype(T))
-    iszero(x) && return convert(R, p[0])
+    iszero(x) && return convert(R, p[0]) * one(x)
     c = p.coeff
     n = length(c)
     a = n == 0 ? zero(R) : convert(R, c[n])
