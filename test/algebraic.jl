@@ -159,7 +159,7 @@ end
 end
 
 @testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in
-                                                    ((1, -8, -6), rand(-10:10, 3))
+                                                    ((1, -8, -6), (6, 9, 8), rand(-10:10, 3))
     a, b, c = QQ.((a, b, c))
     pc = x^3 + a * x^2 + b * x + c
     p = b - a^2 / 3
@@ -167,7 +167,7 @@ end
 
     da = sqrt(AlgebraicNumber((q / 2)^2 + (p / 3)^3))
     ua = (da - q / 2)^(1 // 3)
-    va = (-da - q / 2)^(1 // 3)
+    va = (-p/3) / ua # (-da - q / 2)^(1 // 3)
     e3 = cispi(QQ(2 // 3))
     @test ua * va == -p / 3
 
