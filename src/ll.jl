@@ -197,7 +197,7 @@ end
 
 # find smallest integer type to hold Gram matrix of B
 function gram_type(B::AbstractMatrix{T}) where T<:Integer
-    g = maximum(sum(x -> abs2(float(x)), B; dims = 1))
+    g = maximum(Base.sum(x -> abs2(float(x)), B; dims = 1))
     G = BigInt
     for t in (Int64, Int128)
         if typemax(t) > g

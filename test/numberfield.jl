@@ -53,4 +53,9 @@ end
     @test approx(v) ≈ approx(u)
 end
 
+@testset "show NumberField class and element" begin
+    @test string(N(x)) isa String
+    @test string(N) isa String
+end
+
 end

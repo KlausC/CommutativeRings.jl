@@ -212,8 +212,10 @@ case.
 """
 struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
     minpol::UnivariatePolynomial{QQ{BigInt},:x}
+    roots::Vector{ComplexF64}
+    rootid::Int
     approx::Complex{BigFloat}
-    AlgebraicNumber(p::UnivariatePolynomial{<:QQ{BigInt}}, a::Any, ::NCT) = new(p, a)
+    AlgebraicNumber(p::UnivariatePolynomial, r, id::Integer, a, ::NCT) = new(p, r, id, a)
 end
 
 """
@@ -298,7 +300,7 @@ end
 """
     VectorSpace{R,V}
 
-Represent a vector space over a Vfield `R`.
+Represent a vector space over a field `R`.
 """
 struct VectorSpace{R,V}
     base::V

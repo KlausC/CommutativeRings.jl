@@ -1,5 +1,5 @@
 
-import Base: length, iterate, eltype, IteratorSize, HasLength, IsInfinite
+import Base: iterate, eltype, IteratorSize, HasLength, IsInfinite
 export Monic
 
 struct Monic{T<:Ring,X}
@@ -7,7 +7,7 @@ struct Monic{T<:Ring,X}
     Monic(::Type{P}, n) where {X,T,P<:UnivariatePolynomial{T,X}} = new{T,X}(n)
 end
 eltype(::Type{Z}) where Z<:Ring = Z
-length(::Type{Z}) where Z<:Ring = order(Z)
+Base.length(::Type{Z}) where Z<:Ring = order(Z)
 
 function iterate(::Type{Z}) where Z<:QuotientRing
     z = zero(Z)

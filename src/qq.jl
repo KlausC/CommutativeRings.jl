@@ -19,7 +19,7 @@ value(a::QQ) = Rational(a.num, a.den)
 QQ{T}(a::QQ) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 QQ{T}(a::ZZ) where T = QQ{T}(T(a.val), one(T), NOCHECK)
 QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
-QQ{T}(a::Rational) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
+QQ{T}(a::Rational{<:Integer}) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 
 QQ(a::QQ{T}) where T = a
 QQ(a::ZZ{T}) where T = QQ{T}(a)
