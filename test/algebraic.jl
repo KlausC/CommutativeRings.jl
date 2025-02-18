@@ -146,7 +146,7 @@ end
 end
 
 @testset "exactness of pure imaginary roots" begin
-    q = QQ(1//7)
+    q = QQ(1 // 7)
     a = cospi(q)
     @test real(approx(a * AlgebraicNumber(im))) == 0
 end
@@ -158,8 +158,9 @@ end
     @test string(a) == "AlgebraicNumber(x^2 + 4, 2, 0.0 + 2.0im)"
 end
 
-@testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in (QQ.(rand(-10:10, 3)),)
-
+@testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in
+                                                    ((1, -8, -6), rand(-10:10, 3))
+    a, b, c = QQ.((a, b, c))
     pc = x^3 + a * x^2 + b * x + c
     p = b - a^2 / 3
     q = 2 * a^3 / 27 - a * b / 3 + c
@@ -168,14 +169,25 @@ end
     ua = (da - q / 2)^(1 // 3)
     va = (-da - q / 2)^(1 // 3)
     e3 = cispi(QQ(2 // 3))
+    @test ua * va == -p / 3
 
     ra = ua + va - a / 3
-    @test minimal_polynomial(ra) == pc
     rb = (ua * e3 + va) * e3 - a / 3
     rc = (ua + va * e3) * e3 - a / 3
-    @test minimal_polynomial(rb) == pc
-    @test minimal_polynomial(rc) == pc
-    @test Set(conj.(ra, 1:3)) == Set([ra, rb, rc])
+
+    if isreducible(pc)
+        @test pc(ra) == 0
+        @test pc(rb) == 0
+        @test pc(rc) == 0
+        @test Set(conj.(ra, 1:2)) ⊆ Set([ra, rb, rc])
+        @test Set(conj.(rb, 1:2)) ⊆ Set([ra, rb, rc])
+        @test Set(conj.(rc, 1:2)) ⊆ Set([ra, rb, rc])
+    else
+        @test minimal_polynomial(ra) == pc
+        @test minimal_polynomial(rb) == pc
+        @test minimal_polynomial(rc) == pc
+        @test Set(conj.(ra, 1:3)) == Set([ra, rb, rc])
+    end
 end
 
 end
