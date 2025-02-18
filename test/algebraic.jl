@@ -20,6 +20,7 @@ end
 @testset "Algebraic identities" begin
     a = AlgebraicNumber(x^2 + 1, im)
     b = AlgebraicNumber(x^2 + 1, -im)
+    @test AlgebraicNumber(im) == a
     @test a == a + 0
     @test a != b
     @test hash(a) == hash(a + 0)
@@ -125,8 +126,9 @@ end
 @testset "Algebraic - roots of unity" begin
     q = QQ(1 // 5)
     a = cispi(q)
+    b = cospi(q)
     @test minimal_polynomial(a) == (x^5 + 1) / (x + 1)
-    @test cospi(q) == real(a)
+    @test b == real(a)
     @test sinpi(q) == imag(a)
     @test cispi(-q) * cispi(q) == 1
 end
@@ -141,6 +143,12 @@ end
         sqrt(68 + sqrt(2448) + sqrt(2720 + sqrt(6284288)))
     )
     @test AlgebraicNumber(expr17) / 16 == cospi(QQ(1 // 17))
+end
+
+@testset "exactness of pure imaginary roots" begin
+    q = QQ(1//7)
+    a = cospi(q)
+    @test real(approx(a * AlgebraicNumber(im))) == 0
 end
 
 @testset "show AlgebraicNumber" begin

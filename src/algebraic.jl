@@ -57,7 +57,7 @@ function AlgebraicNumber(b::NumberField, ab = approx(b))
 end
 
 # promotion and conversion
-Base.convert(::Type{T}, a::Union{Integer,Rational}) where T<:AlgebraicNumber = T(a)
+Base.convert(::Type{T}, a::Union{Integer,Rational,Complex}) where T<:AlgebraicNumber = T(a)
 Base.convert(::Type{T}, a::Ring) where T<:AlgebraicNumber = T(a)
 Base.convert(::Type{T}, a::AlgebraicNumber) where T<:AlgebraicNumber = a
 
@@ -65,6 +65,7 @@ promote_rule(::Type{<:A}, ::Type{<:QQ}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:ZZ}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Integer}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Rational}) where A<:AlgebraicNumber = A
+promote_rule(::Type{<:A}, ::Type{<:Complex}) where A<:AlgebraicNumber = A
 
 copy(a::AlgebraicNumber) = typeof(a)(minimal_polynomial(a), approx(a))
 
@@ -97,7 +98,7 @@ Base.zero(::Type{T}) where T<:AlgebraicNumber =
 Base.one(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([-1, 1]), 1)
 Base.iszero(a::AlgebraicNumber) = deg(a) == 1 && minimal_polynomial(a).first == 1
-isone(a::AlgebraicNumber) = isone(minimal_polynomial(a))
+isone(a::AlgebraicNumber) = deg(a) == 1 && isone(-minimal_polynomial(a)[0])
 isunit(a::AlgebraicNumber) = !iszero(a)
 
 approx(a::Union{Integer,Rational,ZZ,QQ}) = float(value(a))
@@ -303,7 +304,11 @@ end
 
 function cr_roots(p::UnivariatePolynomial)
     A = companion(Float64, p)
-    LinearAlgebra.eigvals(A; permute = false, scale = false)
+    roots = LinearAlgebra.eigvals(A; permute = false, scale = false)
+    map(roots) do x
+        e = sqrt(eps())
+        abs(real(x)) < e * abs(imag(x)) ? Complex(0, imag(x)) : x
+    end
 end
 
 function nextroot(a, r::AbstractVector)
