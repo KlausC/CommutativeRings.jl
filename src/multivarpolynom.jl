@@ -1,6 +1,3 @@
-
-import Base: length
-
 # class constructors
 # convenience type constructor:
 # enable `R[:x,:y,:z,...]` as short for `MultivariatePolynomial{R,N,Id}`
@@ -408,7 +405,7 @@ function hash(a::MultivariatePolynomial, h::UInt)
     n = deg(a)
     n < 0 ? hash(0, h) : n == 0 ? hash(LC(a), h) : hash(a.ind, hash(a.coeff, h))
 end
-function isless(a::T, b::T) where T<:MultivariatePolynomial
+function Base.isless(a::T, b::T) where T<:MultivariatePolynomial
     m = length(a.ind)
     n = length(b.ind)
     if m == 0
@@ -808,7 +805,7 @@ function prototype(::Type{P}, n1::Integer = 2, n2::Integer = 0) where P<:Polynom
     n1 = n1 == 0 ? n2 : n1
     n2 = n2 == 0 ? N * n1 : n2
     for ex in _exponents(N, 0:n1)
-        if sum(ex) <= n2
+        if Base.sum(ex) <= n2
             s += monom(P, ex)
         end
     end
@@ -1143,7 +1140,7 @@ Return the elementary symmetric function `Eᵦ` of degree `0 <= β <= N`.
 Return zero polynomial for other `β`.
 """
 function elementary_symmetric(::Type{P}, m::Integer) where {S,N,P<:MultivariatePolynomial{S,N}}
-    sum(monom.(P, collect(SymIter(N, m))))
+    Base.sum(monom.(P, collect(SymIter(N, m))))
 end
 
 function elementary_symmetric(::Type{P}, m::Integer) where P<:UnivariatePolynomial

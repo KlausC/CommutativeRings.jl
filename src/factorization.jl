@@ -289,12 +289,12 @@ function powersum(h, ex, f)
 end
 
 # random samplers for finite rings
-function rand(r::AbstractRNG, ::SamplerType{Z}) where {Z<:ZZmod}
+function Base.rand(r::AbstractRNG, ::SamplerType{Z}) where {Z<:ZZmod}
     m = modulus(Z)
     Z(rand(r, 0:m-1))
 end
 # Random field element of `Q = P / (polynomial)`, whith `basetype(P) <: ZZmod`.
-function rand(
+function Base.rand(
     r::AbstractRNG,
     ::SamplerType{Q},
 ) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}

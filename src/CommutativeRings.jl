@@ -46,11 +46,12 @@ export weierstrass_normal_form, smith_normal_form
 export mfactor, killmemo!, memoize
 
 import Base: +, -, *, /, inv, ^, \, //, ==, hash, isapprox
-import Base: getindex, sign, log, sqrt, isfinite, adjoint, length
+import Base: getindex, sign, log, sqrt, isfinite, adjoint
 import Base: iszero, isone, isless, zero, one, div, rem, divrem, mod, gcd, gcdx, lcm
 import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, eltype, sum
+import Base: Rational, numerator, denominator, precision
+
 import Primes: factor, isprime
-import Base: Rational, numerator, denominator, precision, sqrt
 import LinearAlgebra: checksquare, det
 
 # Re-exports (of non-Base functions)

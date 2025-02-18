@@ -24,6 +24,13 @@ function (::Type{<:NumberField{A,Id,Q}})(q::P) where {A,P,Id,Q}
     NumberField{A,Id}(v, NOCHECK)
 end
 
+function Base.show(io::IO, b::N) where N<:NumberField
+    print(io, value(b.repr), " over ", base(N))
+end
+function Base.show(io::IO, b::Type{N}) where N<:NumberField
+    print(io, "NumberField over ", base(N))
+end
+
 # promotion and conversion
 Base.convert(::Type{T}, a::Union{Integer,Rational}) where T<:NumberField = T(a)
 Base.convert(::Type{T}, a::Ring) where T<:NumberField = T(a)
@@ -37,8 +44,6 @@ promote_rule(::Type{N}, ::Type{<:Rational}) where N<:NumberField = N
 # return the base algebraic number of this number field
 @inline base(t::Type{<:NumberField}) = gettypevar(t).generator
 @inline base(b::NumberField) = base(typeof(b))
-
-Base.show(io::IO, nf::NumberField) = show(io, nf.repr)
 
 approx(nf::N) where N<:NumberField = value(nf.repr)(approx(base(N)))
 
