@@ -97,11 +97,15 @@ end
     @test approx(c) ≈ op(approx(a), approx(b))
 end
 
-@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (11, ZZ(11))
+@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (0, 11, ZZ(11))
     a = big(a)
     b = AlgebraicNumber(x^3 + x + 1)
     c = op(a, b)
-    @test deg(c) == deg(b)
+    if a != 0 || op in (+, -)
+        @test deg(c) == deg(b)
+    else
+        @test c == 0
+    end
     @test minimal_polynomial(c)(c) == 0
     @test approx(c) ≈ op(approx(a), approx(b))
 end
@@ -134,8 +138,23 @@ end
 end
 
 @testset "Algebraic - expressions" begin
+    expr2 = :(sqrt(-2))
+    @test AlgebraicNumber(expr2) == AlgebraicNumber(x^2 + 2, im)
+
+    exprq = :(sqrt((11 / 12)^2))
+    @test AlgebraicNumber(exprq) == AlgebraicNumber(x - 11//12)
+
     expr5 = :(sqrt(5) + 1)
     @test AlgebraicNumber(expr5) / 4 == cospi(QQ(1 // 5))
+
+    expr217 = :(
+        (
+            2sqrt(17 + 3sqrt(17) - sqrt(34 - 2sqrt(17)) - 2sqrt(34 + 2sqrt(17))) +
+            sqrt(34 - 2sqrt(17)) +
+            sqrt(17) - 1
+        ) / 8
+    )
+    @test AlgebraicNumber(expr217) == cospi(QQ(2 // 17)) * 2
 
     expr17 = :(
         1 - sqrt(17) +
@@ -143,6 +162,10 @@ end
         sqrt(68 + sqrt(2448) + sqrt(2720 + sqrt(6284288)))
     )
     @test AlgebraicNumber(expr17) / 16 == cospi(QQ(1 // 17))
+
+    a = AlgebraicNumber(:((3^(1 // 3) - 6^(1 // 3) + 12^(1 // 3)) / 3))
+    b = AlgebraicNumber(:((2^(1 // 3) - 1)^(1 // 3)))
+    @test a == b
 end
 
 @testset "exactness of pure imaginary roots" begin
@@ -158,8 +181,11 @@ end
     @test string(a) == "AlgebraicNumber(x^2 + 4, 2, 0.0 + 2.0im)"
 end
 
-@testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in
-                                                    ((1, -8, -6), (6, 9, 8), rand(-10:10, 3))
+@testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in (
+    (1, -8, -6),
+    (6, 9, 8),
+    rand(-10:10, 3),
+)
     a, b, c = QQ.((a, b, c))
     pc = x^3 + a * x^2 + b * x + c
     p = b - a^2 / 3
@@ -167,7 +193,7 @@ end
 
     da = sqrt(AlgebraicNumber((q / 2)^2 + (p / 3)^3))
     ua = (da - q / 2)^(1 // 3)
-    va = (-p/3) / ua # (-da - q / 2)^(1 // 3)
+    va = (-p / 3) / ua # (-da - q / 2)^(1 // 3)
     e3 = cispi(QQ(2 // 3))
     @test ua * va == -p / 3
 

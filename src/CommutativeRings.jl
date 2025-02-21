@@ -38,7 +38,7 @@ export groebnerbase, SPOL, lextend
 export varnames, varname, factors
 
 export characteristic_polynomial, minimal_polynomial, field_polynomial, adjugate, companion
-
+export field_matrix, field_polynomial, tr, norm
 export compose_inv, Li, Ein, lin1p, lin1pe, ver
 
 export rational_normal_form, matrix, transformation, polynomials
@@ -52,7 +52,7 @@ import Base: copy, show, promote_rule, convert, abs, isless, length, iterate, el
 import Base: Rational, numerator, denominator, precision
 
 import Primes: factor, isprime
-import LinearAlgebra: checksquare, det
+import LinearAlgebra: checksquare, det, norm, tr
 
 # Re-exports (of non-Base functions)
 export det, isprime, factor

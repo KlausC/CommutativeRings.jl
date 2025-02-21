@@ -563,7 +563,7 @@ end
 function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
     c = content(p)
     Z = ZZ{T}
-    pp = Z[X](Z.(numerator.((p / c).coeff)), ord(p))
+    pp = Z[X]([Z(numerator(x/c)) for x in p.coeff], ord(p))
     c, pp
 end
 
@@ -777,6 +777,8 @@ If `q` is given, return the companion matrix with respect to `q`. For `q == x` t
 identical to the original definition. If `p` is the minimal polynomial of an algebraic
 number `a`, then `det(x*I - companion(p, q))` is a multiple of the minimal polynomial
 of `q(a)`.
+
+Note, that `companion(p, q) == q(companion(p))`.
 """
 function companion(p::UnivariatePolynomial{T}) where T
     companion(T, p)
