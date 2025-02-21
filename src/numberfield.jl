@@ -91,14 +91,32 @@ generator(::Type{N}) where N<:NumberField = monom(N)
 
 minimal_polynomial(b::NumberField) = minimal_polynomial(AlgebraicNumber(b))
 
-function field_polynomial(b::N) where N<:NumberField
-    r = b.repr
-    q = value(r)
-    p = modulus(r) # == minimal_polynomial(base(N))
-    x = monom(typeof(p))
-    m = det(x * I - companion(p, q))
-    m
+minimal_polynomial(::Type{N}) where N<:NumberField = minimal_polynomial(base(N))
+
+"""
+    field_matrix(b::NumberField)
+
+Return the field matrix for number field element `b` in the standard basis.
+"""
+function field_matrix(b::N) where N <:NumberField
+    p = minimal_polynomial(N)
+    q = value(b.repr)
+    companion(p, q)
 end
+
+"""
+    field polynomial(b::NumberField)
+
+The characteristic polynomial of any field matrix of an element `b` of a number field
+over `a`.
+
+The field matrix of `b` with the standard basis `a^0, a, ..., a^(n-1)` is the
+`companion(p, q)`, where `p` is the minimal polynomial of `a` and `q` is the
+polynomial representing `b (b = q(a))`.
+"""
+field_polynomial(b::NumberField) = characteristic_polynomial(field_matrix(b))
+tr(b::NumberField) = tr(field_matrix(b))
+norm(b::NumberField) = det(field_matrix(b))
 
 function field_polynomial(a::A, b::B) where {A<:AlgebraicNumber,B<:UnivariatePolynomial}
     field_polynomial(b(monom(NF(a))))

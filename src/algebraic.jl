@@ -44,7 +44,7 @@ function AlgebraicNumber(a::Complex)
         id = 2
         ca = conj(ca)
     end
-    AlgebraicNumber(x^2 - 2*ra * x + ia^2 + ra^2, [ca, conj(ca)], id, a, NOCHECK)
+    AlgebraicNumber(x^2 - 2 * ra * x + ia^2 + ra^2, [ca, conj(ca)], id, a, NOCHECK)
 end
 
 function AlgebraicNumber(p::UnivariatePolynomial, a = -Inf)
@@ -215,7 +215,7 @@ function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
         lincomb(a, aa)
     elseif iszero(aa)
         lincomb(b, bb)
-    elseif a == b
+    elseif a == b # there should be better performance possible in this case - also check if a and b are collinear
         ca = companion(a)
         ea = I(deg(a))
         characteristic_polynomial(kron(ca, ea * aa) + kron(ea * bb, ca))
@@ -231,6 +231,8 @@ end
 function lincomb(p::T, aa) where T<:UnivariatePolynomial
     if isone(aa)
         p
+    elseif iszero(aa)
+        monom(T)
     else
         q = copy(p)
         qq = q.coeff
@@ -465,8 +467,15 @@ function rationalconst(expr::Expr)
             p = rationalconst(args[2])
             isnothing(p) && return p
             return inv(p)
+        elseif fun == :sqrt
+            p = rationalconst(args[2])
+            isnothing(p) && return p
+            sn = isqrt(abs(numerator(p)))
+            sd = isqrt(denominator(p))
+            q = sn // sd
+            return q^2 == p ? q : nothing
         end
-        if fun ∉ (:(+), :(-), :(*), :(//), :(inv), (:sqrt))
+        if fun ∉ (:(+), :(-), :(*), :(//))
             return false
         end
         n = length(args)
@@ -516,21 +525,26 @@ function isalgebraic(expr::Expr)
     end
 end
 
-function AlgebraicNumber(expr::Expr)
+AlgebraicNumber(expr::Expr) = AlgebraicNumber(to_algebraic_or_rational(expr))
+
+function to_algebraic_or_rational(expr::Expr)
+    x = rationalconst(expr)
+    !isnothing(x) && return x
     isalgebraic(expr) || throw(ArgumentError("expression is not an algebraic number"))
     head = expr.head
     if head == :call
         args = expr.args
         fun = args[1]
         if fun == :(^)
-            a = AlgebraicNumber(args[2])
+            a = to_algebraic_or_rational(args[2])
             q = rationalconst(args[3])
+            denominator(q) != 1 && (a = AlgebraicNumber(a))
             return a^q
         elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :sqrt)
             n = length(args)
             eargs = Vector{Any}(undef, n - 1)
             for j = 2:n
-                eargs[j-1] = AlgebraicNumber(args[j])
+                eargs[j-1] = to_algebraic_or_rational(args[j])
             end
             return evaluate(Val(fun), eargs)
         end
@@ -539,11 +553,58 @@ function AlgebraicNumber(expr::Expr)
         throw(ArgumentError("no call, but $head"))
     end
 end
+to_algebraic_or_rational(a::Integer) = a
 
 evaluate(::Val{:(+)}, args) = +(args...)
 evaluate(::Val{:(-)}, args) = -(args...)
 evaluate(::Val{:(*)}, args) = *(args...)
-evaluate(::Val{:(/)}, args) = //(args...)
-evaluate(::Val{:(//)}, args) = //(args...)
+evaluate(::Val{:(/)}, args) = /(args...)
+evaluate(::Val{:(//)}, args) = /(args...)
 evaluate(::Val{:(inv)}, args) = inv(args...)
-evaluate(::Val{:(sqrt)}, args) = sqrt(args...)
+evaluate(::Val{:(sqrt)}, args) = sqrt(AlgebraicNumber(args[1]))
+
+"""
+    com2(p, q)
+
+calculates `mod(q^i, p)` for i = 0:n and stores coeffs in n*n matrix M and vector V.
+The solution of the linear sytem of equations delivers the coefficients of
+the field polynomial of `q(a)` when p is the minimal polynomial of `a`.
+
+Is an alternative to `det(x - companion(p, q))` which is faster sometimes.
+"""
+function com2(p::UnivariatePolynomial{T}, q) where T
+    n = deg(p)
+    S = typeof(value(p[0]))
+    M = zeros(S, n, n)
+    s = q^0
+    for i = 0:n-1
+        k = deg(s)
+        for k = 0:k
+            M[k+1, i+1] = s[k]
+        end
+        s = mod(s * q, p)
+    end
+    V = zeros(S, n)
+    k = deg(s)
+    for k = 0:k
+        V[k+1] = s[k]
+    end
+    M, V
+end
+
+"""
+    evaluate2(q::UnivariatePolynomial, a::AlgebraicNumber)
+
+Evaluates polynomial `q` for an algebraic number `a` using algorithm `com2`.
+"""
+function evaluate2(q::P, a::AlgebraicNumber) where P<:UnivariatePolynomial
+    p = minimal_polynomial(a)
+    M, V = com2(p, q)
+    m = -P(M \ V) + monom(P, deg(a))
+    AlgebraicNumber(m, q(approx(a)))
+end
+
+field_matrix(a::AlgebraicNumber) = companion(minimal_polynomial(a))
+norm(a::AlgebraicNumber) = minimal_polynomial(a)[0] * (-1)^deg(a)
+tr(a::AlgebraicNumber) = -minimal_polynomial(a)[deg(a)-1]
+discriminant(a::AlgebraicNumber) = discriminant(minimal_polynomial(a))
