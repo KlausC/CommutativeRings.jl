@@ -2,6 +2,8 @@
 # class constructors
 ZZ(::Type{T}) where T<:Integer = ZZ{T}
 
+Base.big(::Type{<:ZZ}) = ZZ{BigInt}
+
 # construction
 category_trait(::Type{<:ZZ}) = EuclidianDomainTrait
 basetype(::Type{<:ZZ{T}}) where T = T
@@ -21,6 +23,7 @@ function ZZ{T}(a::Union{QQ{T},Frac{ZZ{T}}}) where T
     a.den != 1 && throw(InexactError(:ZZ, ZZ{T}, a))
     ZZ(a.num)
 end
+
 ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
 ZZ{S}(a::Union{QQ{T},Frac{ZZ{T}}}) where {S,T} = ZZ(promote_type(S, T)(a))
 

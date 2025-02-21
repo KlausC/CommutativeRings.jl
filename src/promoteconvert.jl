@@ -50,5 +50,5 @@ end
 function (G::Type{<:Ring})(a::Any)
     B = basetype(G)
     # println("G = $G $(isconcretetype(G)) B = $B $(isconcretetype(B))")
-    isconcretetype(B) && !(a isa B) ? G(convert(B, a)) : throw(MethodError(G, Ref(a)))
+    isconcretetype(B) && !(a isa B) ? G(convert(B, a)) : throw(MethodError(G, (a,)))
 end

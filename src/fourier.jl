@@ -1,8 +1,6 @@
 
 export fft!, fft2, ffthf, ffthb
 
-import Base: length
-
 convolute(a::R, b::R) where R<:Ring = a * b
 
 """

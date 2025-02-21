@@ -1,5 +1,5 @@
 
-export GF, normalmatrix, allzeros
+export GF, normalmatrix, allzeros, @G_str
 
 category_trait(::Type{<:GaloisField}) = FieldTrait
 """
@@ -371,10 +371,12 @@ end
 
 function tovalue(::Type{G}, num::Integer) where G<:GaloisField
     logtable = gettypevar(G).logtable
-    logtable[num+1]
+    n = length(logtable)
+    logtable[mod(num, n)+1]
 end
-function tovalue(::Type{<:GaloisField{Id,V}}, num::Integer) where {Id,V<:Quotient}
-    toquotient(num, V)
+function tovalue(::Type{G}, num::Integer) where {Id,V<:Quotient,G<:GaloisField{Id,V}}
+    n = order(G)
+    toquotient(mod(num, n), V)
 end
 
 function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
@@ -474,16 +476,40 @@ function GFImpl(
     end
 end
 
-function Base.show(io::IO, g::G) where G<:GaloisField
+"""
+    G_str
 
+Constructor literal for elements of Galois Fields. Example: `G"::1:2"5`.
+"""
+macro G_str(a::String, b::Integer)
+    gf(a, b)
+end
+function gf(a::String, b::Integer)
+    f = factor(b)
+    length(f) != 1 && throw(ArgumentError("only powers of primes"))
+    p, r = f.pe[1]
+    digs = split(a, ':')
+    s = findfirst(!isempty, a)
+    r1 = size(digs, 1)
+    r > 1 && r1 > r && throw(ArgumentError("invalid GF string"))
+    r = max(r, r1)
+    G = GF(p, r)
+    tp(x) = isempty(x) ? 0 : tryparse(Int, x)
+    v = mapfoldl(tp, (a, b) -> a * p + b, digs; init = 0)
+    ofindex(v, G)
+end
+
+function Base.show(io::IO, g::G) where G<:GaloisField
     m = dimension(G)
     p = characteristic(G)
     cc = toquotient(g).val
-    print(io, '{', cc[m-1].val)
-    for k = m-2:-1:0
-        print(io, ':', cc[k].val)
+    st(v) = iszero(v) ? "" : v
+    print(io, "G\"")
+    for k = m-1:-1:1
+        print(io, st(cc[k].val), ':')
     end
-    print(io, '%', p, '}')
+    print(io, cc[0].val)
+    print(io, '"', st(p))
 end
 
 """
@@ -492,7 +518,7 @@ end
 Return a matrix of element type `ZZ/p`, whose colums are the coefficient
 vectors of `a^(p^i) for i = 0:m-1`.
 
-Here Q is a galois field of characteristic `p` and order `p^r`.
+Here Q is a Galois field of characteristic `p` and order `p^r`.
 
 `m` m defaults to `r`.
 

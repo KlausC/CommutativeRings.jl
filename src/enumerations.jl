@@ -1,5 +1,5 @@
 
-import Base: length, iterate, eltype, IteratorSize, HasLength, IsInfinite
+import Base: iterate, eltype, IteratorSize, HasLength, IsInfinite
 export Monic
 
 struct Monic{T<:Ring,X}
@@ -7,7 +7,7 @@ struct Monic{T<:Ring,X}
     Monic(::Type{P}, n) where {X,T,P<:UnivariatePolynomial{T,X}} = new{T,X}(n)
 end
 eltype(::Type{Z}) where Z<:Ring = Z
-length(::Type{Z}) where Z<:Ring = order(Z)
+Base.length(::Type{Z}) where Z<:Ring = order(Z)
 
 function iterate(::Type{Z}) where Z<:QuotientRing
     z = zero(Z)
@@ -396,7 +396,7 @@ function hypercube(
         ei1 = ei1 * (n - i) ÷ i # binomial(n-1, i)
         ki ÷= k # k ^ (n - i)
         ki1 ÷= k
-        @assert mi1 == sides^(i - 1)
+        @assert mi1 == T(sides)^(i - 1)
         @assert ei == binomial(T(n - 1), i - 1)
         @assert ki == T(k)^(n - i)
         t = mi1 * ei * ki
@@ -408,7 +408,7 @@ function hypercube(
             x -= t
         end
         #println("i=$i x = $x $t = t = mi*ei1*ki1 = $mi * $ei1 * $ki1")
-        @assert mi == sides^i
+        @assert mi == T(sides)^i
         @assert ei1 == binomial(T(n - 1), i)
         @assert ei1 == 0 || ki1 == (T(k)^(n - i) - T(k)^(n - i - 1)) ÷ 2
         t = mi * ei1 * ki1
@@ -510,8 +510,6 @@ function diameter(::EnumPolynomial, x, n)
     r = iroot(x, n)
     (r + 1)^(n - 1) * r > x ? r : r + 1
 end
-
-Base.binomial(x::Int128, y::Integer) = binomial(big(x), y)
 
 """
     iroot(a::Integer, n::Integer)

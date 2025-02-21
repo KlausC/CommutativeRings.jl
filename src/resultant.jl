@@ -218,7 +218,7 @@ function pgcdx(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     cs = gcd(content(s2), content(t2))
     a = a / cs
     f = content(a)
-    a / (f / cc), s2 / cs, t2 / cs, f
+    a * cc / f, s2 / cs, t2 / cs, f
 end
 
 """

@@ -4,6 +4,7 @@ using Test
 using CommutativeRings
 using LinearAlgebra
 
+Z = ZZ{BigInt}
 Q = QQ{BigInt}
 #! format: off
 tm = [
@@ -39,6 +40,7 @@ push!(tm, [A A; -A A])
     @test rem(characteristic_polynomial(A), ma) == 0
     B = CommutativeRings.axspace(A, xa, n)
     @test A * B == B * ca
+    @test minimal_polynomial(Z.(A)) == ma
 end
 
 @testset "rational normal form test $i" for (i, A) in enumerate(tm)

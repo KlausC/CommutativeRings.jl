@@ -76,11 +76,19 @@ Calculate the minimal polynomial `m_A` of a square matrix `A` over a ring.
 `m_A` is the minimum degree monic polynomial with `m_A(A) == 0`.
 """
 function minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
-    _minimal_polynomial(A)[1]
+    minimal_polynomial(A, category_trait(R))
 end
 
+function minimal_polynomial(A::AbstractMatrix{R}, ::Type{<:IntegralDomainTrait}) where R
+    ma = minimal_polynomial(Frac(R).(A))
+    UnivariatePolynomial{R}(ma)
+end
+
+function minimal_polynomial(A::AbstractMatrix{R}, ::Type{<:FieldTrait}) where R
+    _minimal_polynomial(A)[1]
+end
 # Implementation - also return a generating vector of stable space
-function _minimal_polynomial(A::AbstractMatrix{R}) where R<:Ring
+function _minimal_polynomial(A::AbstractMatrix{R}) where R
     n = checksquare(A)
     u = zeros(R, n)
     v = zeros(R, n)

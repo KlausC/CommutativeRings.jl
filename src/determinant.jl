@@ -330,71 +330,233 @@ function det_MV(a::AbstractMatrix{D}) where D<:Union{Ring,Integer}
 end
 
 
-#TODO fix algorithm. normal forms to dedicated file
+#TODO normal forms to dedicated file
 """
-    hermite_normal_form(A::AbstractMatrix{R}) where R<:Ring -> H, U
+    hermite_normal_form(A::AbstractMatrix; column_style=true, round=RoundUp) -> H, U
 
-Calculate matrixes `H` in column Hermite normal form and unimodular `U` with `A * U = H`.
+Calculate matrixes `H` in column/row Hermite normal form and unimodular `U` and
+ `if column_style; A * U else U * A end == H`.
 Unimodular means `det(U)` is unit element of the ring `R`.
 
+`H` is lower triangular, if `column_style`, else upper triangular.
+The off-pivot elements in a row (if `column_style`) or else column are strictly smaller than
+the pivot elements, which are not negative.
+The off-pivot elements are non-negative, non-positive, minimal-abs, maximum-abs depending
+on `round` in `(RoundDown, RoundUp, RoundToZero, RoundFromZero)` correspondingly.
+
 See [Wiki](https://en.wikipedia.org/wiki/Hermite_normal_form)
-[Algorithm](https://www.math.tamu.edu/~rojas/kanna?nbachemhermitesmith79.pdf)
+[Algorithm](https://www.math.tamu.edu/~rojas/kannanbachemhermitesmith79.pdf)
+
+The algorithm was generalized to matrices of arbitrary rank and shape.
 """
-function hermite_normal_form(a::Matrix{R}) where R<:Union{Ring,Integer}
+function hermite_normal_form(
+    a::AbstractMatrix{R};
+    column_style::Bool = true,
+    round::RoundingMode = RoundUp,
+) where R<:Union{Ring,Integer}
     m, n = size(a)
-    u = Matrix(R.(I(n)))
-    hermite_normal_form!(copy(a), u)
+
+    if column_style
+        u = Matrix(R.(I(n)))
+        hermite_normal_form!(copy(a), u, round)
+    else
+        u = Matrix(R.(I(m)))
+        H, U = hermite_normal_form!(copy(permutedims(a)), u, round)
+        permutedims(H), permutedims(U)
+    end
 end
 
-function hermite_normal_form!(a::Matrix{R}, u::Matrix{R}) where R
+function hermite_normal_form!(
+    a::AbstractMatrix{R},
+    u::AbstractMatrix{R},
+    round::RoundingMode,
+) where R
     m, n = size(a)
-
-    for i = 1:min(m, n)-1
-        for j = 1:i
-            ajj = a[j, j]
-            aji = a[j, i+1]
-            r, p, q = gcdx(ajj, aji)
-            #@assert max(abs(p), abs(q)) <= max(abs(ajj), abs(aji))
-            pp = -div(aji, r)
-            qq = div(ajj, r)
-            for k = 1:m
-                akj = a[k, j]
-                aki = a[k, i+1]
-                bkj = akj * p + aki * q
-                bki = akj * pp + aki * qq
-                a[k, j] = bkj
-                a[k, i+1] = bki
-            end
-            for k = 1:n
-                akj = u[k, j]
-                aki = u[k, i+1]
-                bkj = akj * p + aki * q
-                bki = akj * pp + aki * qq
-                u[k, j] = bkj
-                u[k, i+1] = bki
-            end
-            reduce_off_diagonal!(a, u, j)
+    piv = something.(findfirst.(!iszero, eachcol(a)), m + 1)
+    n = something(findlast(x -> x <= m, piv), 0)
+    i = 1
+    while i <= n
+        while i < n && piv[i] > m
+            swap(a, i, n)
+            swap(u, i, n)
+            swap(piv, i, n)
+            n -= 1
         end
-        reduce_off_diagonal!(a, u, i + 1)
+        if i <= n
+            for j = 1:i-1
+                pj = piv[j]
+                pi = piv[i]
+                if pj > pi
+                    swap(a, j, i)
+                    swap(u, j, i)
+                    swap(piv, j, i)
+                    reduce_off_diagonal!(a, u, j, piv, round)
+                elseif pi == pj && pi <= m
+                    ajj = a[pj, j]
+                    aji = a[pj, i]
+                    r, q, p, qq, pp = gcdex(aji, ajj)
+                    for k = 1:m
+                        akj = a[k, j]
+                        aki = a[k, i]
+                        bkj = akj * p + aki * q
+                        bki = akj * pp + aki * qq
+                        a[k, j] = bkj
+                        a[k, i] = bki
+                    end
+                    for k = 1:size(u, 1)
+                        akj = u[k, j]
+                        aki = u[k, i]
+                        bkj = akj * p + aki * q
+                        bki = akj * pp + aki * qq
+                        u[k, j] = bkj
+                        u[k, i] = bki
+                    end
+                    piv[i] = something(findfirst(!iszero, view(a, 1:m, i)), m + 1)
+                    reduce_off_diagonal!(a, u, j, piv, round)
+                end
+            end
+        end
+        reduce_off_diagonal!(a, u, i, piv, round)
+        i += 1
     end
     a, u
 end
 
-function reduce_off_diagonal!(a, u, k)
-    akk = a[k, k]
+function gcdex(a, b)
+    r, p, q = gcdx(a, b)
+    pp = -div(b, r)
+    qq = div(a, r)
+    r, p, q, pp, qq
+end
+
+function swap(a::AbstractMatrix, i, j)
+    m = size(a, 1)
+    for k = 1:m
+        b = a[k, i]
+        a[k, i] = a[k, j]
+        a[k, j] = b
+    end
+end
+function swap(a::AbstractVector, i, j)
+    a[i], a[j] = a[j], a[i]
+end
+
+function reduce_off_diagonal!(a, u, k, piv, round)
+    pk = piv[k]
+    pk > size(a, 1) && return
+    akk = a[pk, k]
     if akk < 0
         akk = -akk
         a[:, k] .= -a[:, k]
         u[:, k] .= -u[:, k]
     end
     for z = 1:k-1
-        d = cld(a[k, z], akk)
-        a[:, z] .-= a[:, k] .* d
-        u[:, z] .-= u[:, k] .* d
+        d = div(-a[pk, z], akk, round)
+        a[:, z] .+= a[:, k] .* d
+        u[:, z] .+= u[:, k] .* d
     end
 end
 
-Base.cld(a::T, b::T) where T<:ZZ = T(cld(value(a), value(b)))
-Base.fld(a::T, b::T) where T<:ZZ = T(fld(value(a), value(b)))
-Base.cld(a::T, b::T) where T<:Ring = div(a, b)
-Base.fld(a::T, b::T) where T<:Ring = div(a, b)
+Base.div(a::T, b::T, round::RoundingMode) where T<:ZZ = T(div(value(a), value(b), round))
+Base.div(a::T, b::T, ::RoundingMode) where T<:Ring = div(a, b)
+
+#
+# u, v unimodular, d diagonal with mod(d[i+1,i+1], d[i,i]) == 0
+# u * a * v = d
+function smith_normal!(a::AbstractMatrix, u::AbstractMatrix, v::AbstractMatrix)
+    b = copy(a)
+    m, n = size(a)
+    m == size(u, 1) || throw(DimensionMismatch("left square matrix"))
+    n == size(v, 2) || throw(DimensionMismatch("right square matrix"))
+    i = 1
+    while i <= min(m, n)
+        A = view(a, i:m, i:n)
+        U = view(u, i:m, 1:size(u, 2))
+        V = view(v, 1:size(v, 1), i:n)
+
+        hermite_normal_form!(A, V, RoundUp)
+        swap_zero_rows!(A, U)
+        stop = false
+        while !stop
+            hermite_left!(A, U)
+            hermite_normal_form!(A, V, RoundUp)
+            stop = is_unit_column(A)
+            if stop
+                k = first_non_multiple_column(A)
+                stop = k == 0
+                if k > 1
+                    A[:, 1] .+= A[:, k]
+                    V[:, 1] .+= V[:, k]
+                end
+            end
+        end
+        i += 1
+    end
+    u, a, v
+end
+
+function hermite_left!(a, u)
+    m, n = size(a)
+    j = 1
+    for i = 2:m
+        aij = a[i, j]
+        iszero(aij) && continue
+        ajj = a[j, j]
+        g, q, p, qq, pp = gcdex(aij, ajj)
+        for k = 1:n
+            akj = a[j, k]
+            aki = a[i, k]
+            bkj = akj * p + aki * q
+            bki = akj * pp + aki * qq
+            a[j, k] = bkj
+            a[i, k] = bki
+        end
+        for k = 1:size(u, 2)
+            akj = u[j, k]
+            aki = u[i, k]
+            bkj = akj * p + aki * q
+            bki = akj * pp + aki * qq
+            u[j, k] = bkj
+            u[i, k] = bki
+        end
+    end
+end
+
+function swap_zero_rows!(A, U)
+    m, n = size(A)
+    k = 1
+    while k <= m && iszero(A[k, 1])
+        k += 1
+    end
+    if k > 1
+        for j = k:m
+            A[j-k+1, :] .= A[j, :]
+            A[j, :] .= 0
+            for i = 1:size(U, 2)
+                ukk = U[j-k+1, i]
+                U[j-k+1, i] = U[j, i]
+                U[j, i] = ukk
+            end
+        end
+    end
+end
+
+function is_unit_column(A)
+    iszero(A[2:size(A, 1), 1])
+end
+
+function isunit(a::Integer)
+    abs(a) == 1
+end
+
+function first_non_multiple_column(A)
+    m, n = size(A)
+    akk = A[1, 1]
+    for j = 1:n
+        for i = j:m
+            aij = A[i, j]
+            iszero(aij) || iszero(mod(aij, akk)) || return j
+        end
+    end
+    return 0
+end

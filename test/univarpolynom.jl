@@ -349,11 +349,21 @@ end
     T in (Float32, BigFloat, ComplexF64)
 
     P = ZZ{Z}[:x]
+
     x = monom(P)
     p = x^5 + 2x + 1
     a = T(pi)
     @test p(a) isa promote_type(Z, T)
     @test p(a) ≈ (a^4 + 2) * a + 1
+end
+
+@testset "evaluate with zero polynomial and zero matrix" begin
+    A = rand(-10:10, 3, 3)
+    P = ZZ{Int}[:x]
+    x = monom(P)
+    p0 = 0 * x
+    @test p0(A) == zero(A)
+    @test x(zero(A)) isa Matrix{ZZ{Int}}
 end
 
 end # module

@@ -22,8 +22,8 @@ for op in (
 )
     @eval begin
         ($op)(a::Ring, b::Ring) = ($op)(promote(a, b)...)
-        ($op)(a::Ring, b::Union{Integer,Rational,UniformScaling}) = ($op)(promote(a, b)...)
-        ($op)(a::Union{Integer,Rational,UniformScaling}, b::Ring) = ($op)(promote(a, b)...)
+        ($op)(a::Ring, b::RingIntRatSc) = ($op)(promote(a, b)...)
+        ($op)(a::RingIntRatSc, b::Ring) = ($op)(promote(a, b)...)
     end
 end
 for op in (:+, :-, :*, :/, :\, :isapprox)
@@ -43,6 +43,7 @@ Base.iterate(::Ring, ::Any) = nothing
 Base.isempty(::Ring) = false
 Base.in(a::Ring, b::Ring) = a == b
 Base.map(f, a::Ring, bs::Ring...) = f(a, bs...)
+Base.big(a::T) where T<:Union{QQ,ZZ} = big(T)(a)
 
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = Union{}
@@ -382,7 +383,7 @@ end
 # generic Euclid's algorithm
 gcd(a::T, b::T) where T<:Ring = _gcd(a, b, category_trait(T))
 
-function _gcd(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Ring
+function _gcd(a::T, b::T, ::Type{<:EuclidianDomainTrait}) where T<:Ring
     iszero(b) && return a
     a, b = b, rem2(a, b)
     while !iszero(b)
@@ -396,6 +397,10 @@ function _gcd(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Rin
     end
     u = lcunit(a)
     isone(a) ? a : a * inv(u)
+end
+
+function _gcd(a::T, b::T, ::Type{<:CommutativeRingTrait}) where T<:Ring
+    pgcd(a, b)
 end
 
 # extension to array
@@ -433,7 +438,7 @@ function _gcdx(a::T, b::T, ::Type{<:UniqueFactorizationDomainTrait}) where T<:Ri
         ##println("gcdx($a, $b) T = $T")
         q, r = divrem2(a, b)
         a, b = b, r
-        issimpler(b, a) || throw(DomainError((a, b), "b is not simpler than a"))
+        issimpler(b, a) || throw(DomainError((a, b), "b is not simpler than a; try pgcd"))
         s0, s1 = s1, s0 - q * s1
         t0, t1 = t1, t0 - q * t1
     end
