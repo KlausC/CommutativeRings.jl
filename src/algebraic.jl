@@ -448,6 +448,9 @@ function Base.tanpi(q::QQ)
     AlgebraicNumber(_squaremulim(minimal_polynomial(ac)), approx(ac) / im)
 end
 
+# only for internal usage
+# assume minimal polynomial has only powers of x^2.
+# simulate effect of multiplication with `im` in minimal polynomial
 function _squaremulim(p::UnivariatePolynomial)
     c = copy(p)
     n = length(c.coeff)
