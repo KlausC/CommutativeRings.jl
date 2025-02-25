@@ -131,10 +131,13 @@ end
     q = QQ(1 // 5)
     a = cispi(q)
     b = cospi(q)
+    c = sinpi(q)
+    d = tanpi(q)
     @test minimal_polynomial(a) == (x^5 + 1) / (x + 1)
     @test b == real(a)
-    @test sinpi(q) == imag(a)
-    @test cispi(-q) * cispi(q) == 1
+    @test c == imag(a)
+    @test cispi(-q) * a == 1
+    @test c / b == d
 end
 
 @testset "Algebraic - expressions" begin
