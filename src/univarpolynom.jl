@@ -99,6 +99,8 @@ function _promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,
 end
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} =
     UnivariatePolynomial{promote_type(R, S),X}
+promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:ZI} =
+        UnivariatePolynomial{promote_type(R, S),X}
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} =
     UnivariatePolynomial{promote_type(R, S),X}
 
@@ -826,7 +828,7 @@ end
 
 import Base: show
 
-issimple(::Union{ZZ,ZZmod,QQ,Number}) = true
+issimple(::Union{ZZ,ZZmod,QQ,Number,ZZZ}) = true
 issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
 issimple(p::Polynomial) = ismonom(p)
 issimple(::Any) = false

@@ -93,6 +93,55 @@ struct ZZ{T<:Signed} <: Ring{ZZClass{T}}
     ZZ(val::T) where T<:Signed = ZZ{T}(val)
 end
 
+mutable struct ZZZ <: Ring{ZZClass{Integer}}
+    d::Int
+
+    function ZZZ(x::ZZZ)
+        z = new()
+        ccall((:fmpz_init_set, libflint), Nothing, (Ref{ZZZ}, Ref{ZZZ}), z, x)
+        finalizer(_fmpz_clear_fn, z)
+        return z
+    end
+
+    function ZZZ(x::Int)
+        z = new()
+        ccall((:fmpz_init_set_si, libflint), Nothing, (Ref{ZZZ}, Int), z, x)
+        finalizer(_fmpz_clear_fn, z)
+        return z
+    end
+
+    function ZZZ(x::UInt)
+        z = new()
+        ccall((:fmpz_init_set_ui, libflint), Nothing, (Ref{ZZZ}, UInt), z, x)
+        finalizer(_fmpz_clear_fn, z)
+        return z
+    end
+
+    function ZZZ(x::BigInt)
+        z = new()
+        ccall((:fmpz_init, libflint), Nothing, (Ref{ZZZ},), z)
+        ccall((:fmpz_set_mpz, libflint), Nothing, (Ref{ZZZ}, Ref{BigInt}), z, x)
+        finalizer(_fmpz_clear_fn, z)
+        return z
+    end
+
+    function ZZZ(x::Float64)
+        !isinteger(x) && throw(InexactError(:convert, ZZZ, x))
+        z = new()
+        ccall((:fmpz_init, libflint), Nothing, (Ref{ZZZ},), z)
+        ccall((:fmpz_set_d, libflint), Nothing, (Ref{ZZZ}, Cdouble), z, x)
+        finalizer(_fmpz_clear_fn, z)
+        return z
+    end
+
+end
+
+const ZI = Union{ZZ,ZZZ}
+
+function _fmpz_clear_fn(a::ZZZ)
+   ccall((:fmpz_clear, libflint), Nothing, (Ref{ZZZ},), a)
+end
+
 """
     ZZmod{m,S<:Integer}
 
@@ -111,7 +160,7 @@ The ring of fractions of `R`. The elements consist of pairs `num::R,den::R`.
 During creation the values may be canceled to achieve `gcd(num, den) == one(R)`.
 The special case of `R<:Integer` is handled by `QQ{R}`.
 """
-struct Frac{P<:Union{Polynomial,ZZ}} <: FractionRing{P,FractionClass{P}}
+struct Frac{P<:Union{Polynomial,ZI}} <: FractionRing{P,FractionClass{P}}
     num::P
     den::P
     Frac{P}(num::P, den::P, ::NCT) where P = new{P}(num, den)

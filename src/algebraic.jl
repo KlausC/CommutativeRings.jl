@@ -1,6 +1,6 @@
 
 import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, isapprox, hash
-import Base: conj, real, imag, abs, copy, isreal
+import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi
 
 # construction
 basetype(::Type{<:AlgebraicNumber}) = QQ{BigInt}
@@ -160,14 +160,11 @@ function root(a::AlgebraicNumber, n::Integer)
     AlgebraicNumber(p, approx(a)^(1 // n))
 end
 
-# The imaginary constant a algebraic number
-IM() = AlgebraicNumber(monom(QQ{Int}[:x], 2) + 1, im)
-
 sqrt(a::AlgebraicNumber) = ^(a, 1 // 2)
 # cbrt(a::AlgebraicNumber) = ^(a, 1 // 3) # intentionally not defined - alike Complex.
 isreal(a::AlgebraicNumber) = isreal(approx(a))
 real(a::AlgebraicNumber) = isreal(a) ? a : (a + conj(a)) / 2
-imag(a::AlgebraicNumber) = isreal(a) ? zero(a) : (conj(a) - a) * IM() / 2
+imag(a::AlgebraicNumber) = isreal(a) ? zero(a) : (conj(a) - a) * AlgebraicNumber(im) / 2
 abs(a::AlgebraicNumber) = !isreal(a) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
 
 function *(a::T, b::T) where T<:AlgebraicNumber
@@ -427,8 +424,8 @@ function Base.sinpi(q::QQ)
     b = inv(a)
     s = (a - b) / 2
     fs = sinpi(big(value(q))) * im
-    as = AlgebraicNumber(s, fs) / IM()
-    as
+    as = AlgebraicNumber(s, fs)
+    AlgebraicNumber(_squaremulim(minimal_polynomial(as)), approx(as) / im)
 end
 function Base.cospi(q::QQ)
     d = cispi(q)
@@ -440,6 +437,29 @@ function Base.cospi(q::QQ)
     ac = AlgebraicNumber(c, fc)
     ac
 end
+function Base.tanpi(q::QQ)
+    d = cispi(q)
+    N = NF(d)
+    a = monom(N)
+    b = inv(a)
+    c = (a - b) / (a + b)
+    fc = tanpi(big(value(q))) * im
+    ac = AlgebraicNumber(c, fc)
+    AlgebraicNumber(_squaremulim(minimal_polynomial(ac)), approx(ac) / im)
+end
+
+# only for internal usage
+# assume minimal polynomial has only powers of x^2.
+# simulate effect of multiplication with `im` in minimal polynomial
+function _squaremulim(p::UnivariatePolynomial)
+    c = copy(p)
+    n = length(c.coeff)
+    for k = n-2:-4:1
+        c.coeff[k] = -c.coeff[k]
+    end
+    c
+end
+
 
 """
     rationalconst(expr)

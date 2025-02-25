@@ -23,8 +23,9 @@ function ZZ{T}(a::Union{QQ{T},Frac{ZZ{T}}}) where T
     a.den != 1 && throw(InexactError(:ZZ, ZZ{T}, a))
     ZZ(a.num)
 end
-#ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
-ZZ{S}(a::Union{QQ{T},Frac{ZZ{T}}}) where {S,T} = ZZ(promote_type(S,T)(a))
+
+ZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T = ZZ{T}(a)
+ZZ{S}(a::Union{QQ{T},Frac{ZZ{T}}}) where {S,T} = ZZ(promote_type(S, T)(a))
 
 # promotion and conversion
 promote_rule(::Type{ZZ{T}}, ::Type{ZZ{S}}) where {S,T} = ZZ{promote_type(S, T)}
@@ -78,3 +79,5 @@ Base.show(io::IO, z::ZZ) = print(io, z.val)
 function (::Type{T})(a::ZZ) where T<:Integer
     T(value(a))
 end
+
+wide_type(::Type{<:ZZ}) = ZZ{BigInt}
