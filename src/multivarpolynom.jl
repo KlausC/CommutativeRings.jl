@@ -3,6 +3,7 @@
 # enable `R[:x,:y,:z,...]` as short for `MultivariatePolynomial{R,N,Id}`
 function getindex(R::Type{<:Ring}, s::Symbol, t::Symbol...)
     vs = collect((s, t...))
+    check_varnames(vs, varnameset(R))
     N = length(vs)
     Id = sintern(vs)
     new_class(MultivariatePolynomial{R,N,Id,Int,Tuple{N}}, vs)
@@ -20,12 +21,22 @@ end
 
 function construct(::Type{R}, blocks) where R<:Ring
     vs = vcat(blocks...)
+    check_varnames(vs, varnameset(R))
     N = length(vs)
     Id = sintern(vs)
     n = length(blocks)
     T = n == 1 ? Int : NTuple{n,Int}
     B = Tuple{[length(x) for x in blocks]...}
     new_class(MultivariatePolynomial{R,N,Id,T,B}, vs)
+end
+
+function check_varnames(vs, bs)
+    for v in vs
+        if v in bs
+            str = lazy"Duplicate variable names '$(join(string.(vs), ' '))'"
+            throw(ArgumentError(str))
+        end
+    end
 end
 
 import Base: copy, promote_rule
@@ -36,7 +47,7 @@ copy(p::P) where P<:MultivariatePolynomial = P(copy(p.ind), copy(p.coeff))
 
 # promotion and conversion
 # _promote_rule(::Type{<:MultivariatePolynomial{R,M,X}}, ::Type{<:Polynomial}) where {X,M,R} =
-Base.Bottom
+# Base.Bottom
 _promote_rule(
     ::Type{MultivariatePolynomial{R,N,X,T,B}},
     ::Type{MultivariatePolynomial{S,N,X,T,B}},
@@ -87,10 +98,15 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
     P(pind, pc)
 end
 function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
-    a::UnivariatePolynomial{S},
-) where {R,N,X,T,S}
+    a::U) where {R,N,X,T,S,U<:UnivariatePolynomial{S}}
 
     deg(a) <= 0 && return P(LC(a))
+    if promote_type(R, U) == R
+        b = convert(R, a)
+        return P([zeroindex(P)], [b])
+    end
+    U <: R && return P([zeroindex(P)], [a])
+
     vp = varnames(P)
     va = varnames(a)
     issubset(va, vp) || throw(ArgumentError("Variable :$(va[1]) not contained in $vp"))
@@ -117,17 +133,18 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
 end
 
 function (P::Type{<:MultivariatePolynomial{S}})(a::S) where S
-    iszero(a) ? zero(P) : P(one(P).ind, [a])
+    iszero(a) ? zero(P) : P([zeroindex(P)], [a])
 end
 function (P::Type{<:MultivariatePolynomial{S}})(a::T) where {S,T}
-    iszero(a) ? zero(P) : P(one(P).ind, [S(a)])
+    iszero(a) ? zero(P) : P([zeroindex(P)], [S(a)])
 end
 
 deg(p::MultivariatePolynomial) = isempty(p.ind) ? -1 : Base.sum(multideg(p))
 isunit(a::MultivariatePolynomial) = deg(a) == 0 && isunit(a.coeff[1])
 ismonom(p::MultivariatePolynomial) = length(p.ind) <= 1
 
-function Base.iterate(x::IterTerms{P}, st = 1) where {P<:MultivariatePolynomial}
+function Base.iterate(x::IterTerms{P}, st = typemin(Int)) where {P<:MultivariatePolynomial}
+    st = max(st, 1)
     p = x.p
     d = length(p.coeff)
     st > d && return nothing
@@ -170,19 +187,17 @@ function derive(p::P, d::NTuple{N,<:Integer}) where {S,N,P<:MultivariatePolynomi
 end
 
 """
-    monom(::Type{<:Polynomial}, expos::Vector{Int})
+    monom(::Type{<:Polynomial}, expos::Vector{Int}[, lc=LC])
 
 Return monic monomial with given exponent(s). (`monom(Z[:x.:y],[1,2]) == x * y^2`)
 """
-function monom(
-    P::Type{<:MultivariatePolynomial{S,N}},
-    xv::Vector{<:Integer},
-    lc = 1,
-) where {N,S}
+function monom(P::Type{<:MultivariatePolynomial}, xv::AbstractVector{<:Integer}, lc = 1)
     n = length(xv)
     n == 0 && return zero(P)
-    length(xv) != N &&
-        throw(ArgumentError("multivariate monom needs exponents for all $N variables"))
+    N = length(varnames(P))
+    if length(xv) != N
+        throw(ArgumentError(lazy"multivariate monom needs exponents for $N variables"))
+    end
     P([expo2ordblock(P, xv)], [lc])
 end
 
@@ -207,13 +222,13 @@ function multideg(p::MultivariatePolynomial{S,N}) where {S,N}
     isempty(p.ind) ? Int[] : index2expo(p, length(p.ind))
 end
 
-function LM(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
+function LM(p::P) where {S,P<:MultivariatePolynomial{S}}
     n = length(p.ind)
     n == 0 && return zero(P)
     P([p.ind[n]], S[1])
 end
 
-function LT(p::P) where {S,N,P<:MultivariatePolynomial{S,N}}
+function LT(p::P) where {S,P<:MultivariatePolynomial{S}}
     n = length(p.ind)
     n == 0 && return zero(P)
     P([p.ind[n]], [p.coeff[n]])
@@ -773,6 +788,25 @@ function varblocks(::Type{P}) where {R,N,X,T,B,P<:MultivariatePolynomial{R,N,X,T
     end
     res
 end
+function varblocks(::Type{P}) where P<:UnivariatePolynomial
+    [varnames(P)]
+end
+
+flatten_varblocks(::Type) = Symbol[]
+function flatten_varblocks(::Type{P}) where P<:Polynomial
+    vcat(varblocks(P), flatten_varblocks(basetype(P)))
+end
+flatten_basetype(T::Type) = T
+flatten_basetype(::Type{P}) where P<:Polynomial = flatten_basetype(basetype(P))
+
+"""
+    flat_polynomial(::Type{<:Polynomial})
+
+Construct polynomial type with a basetype, which is not a polynomial.
+"""
+function flat_polynomial(::Type{P}) where P<:Polynomial
+    getindex(flatten_basetype(P), flatten_varblocks(P)...)
+end
 
 function showvar(io::IO, var::MultivariatePolynomial{S,N}, n::Integer) where {N,S}
     ex = index2expo(var, n + 1)
@@ -1139,7 +1173,10 @@ end
 Return the elementary symmetric function `Eᵦ` of degree `0 <= β <= N`.
 Return zero polynomial for other `β`.
 """
-function elementary_symmetric(::Type{P}, m::Integer) where {S,N,P<:MultivariatePolynomial{S,N}}
+function elementary_symmetric(
+    ::Type{P},
+    m::Integer,
+) where {S,N,P<:MultivariatePolynomial{S,N}}
     Base.sum(monom.(P, collect(SymIter(N, m))))
 end
 
@@ -1149,7 +1186,8 @@ end
 
 
 Base.length(a::SymIter) = binomial(a.n, a.m)
-Base.iterate(a::SymIter) = a.n >= a.m >= 0 ? (s = collect(1:a.m); (vset(a.n, s),s))  : nothing
+Base.iterate(a::SymIter) =
+    a.n >= a.m >= 0 ? (s = collect(1:a.m); (vset(a.n, s), s)) : nothing
 function Base.iterate(a::SymIter, s::Vector)
     t = copy(s)
     m, n = a.m, a.n
@@ -1192,12 +1230,12 @@ function newton_symmetric(p::P) where {S,P<:MultivariatePolynomial{S}}
     Q = S[vars...]
     z = zero(Q)
     while !iszero(p)
-        v = sort!(multideg(p), rev=true)
-        expo = [[v[i]-v[i+1] for i = 1:n-1]; v[n]]
+        v = sort!(multideg(p); rev = true)
+        expo = [[v[i] - v[i+1] for i = 1:n-1]; v[n]]
         iszero(z[expo...]) || throw(ArgumentError("input polynomial is not symmetric"))
         lc = p[v...]
         z += monom(Q, expo) * lc
-        p -= prod(elementary_symmetric(P,i)^expo[i] for i in 1:n) * lc
+        p -= prod(elementary_symmetric(P, i)^expo[i] for i = 1:n) * lc
     end
     z
 end

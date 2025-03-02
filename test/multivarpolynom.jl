@@ -2,7 +2,9 @@ module MultivarTest
 
 using Test
 using CommutativeRings
-import CommutativeRings: ord2expo, expo2ord, cbin, varnames
+using CommutativeRings: ord2expo, expo2ord, cbin, varnames
+using CommutativeRings: generatorset, varnameset, varblocks, DeepIterPolynomial
+
 
 Z = ZZ{Int}
 
@@ -116,7 +118,7 @@ end
     @test iszero(r) && s == u + v
 end
 
-@testset "Gröbner base" for P in (Z[:x, :y], Z[[:x], [:y]])
+@testset "Gröbner base $(varblocks(P))" for P in (Z[:x, :y], Z[[:x], [:y]])
     u, v = generators(P)
     @test groebnerbase([u, u]) == [u]
     @test hash(0 * u) == hash(0)
@@ -295,6 +297,25 @@ end
         1
     @test newton_symmetric(p) == E1^2 * E2 - E1 * E3 + E1 - E2^2 + E3^10 + 1
     @test newton_symmetric(p)(e(1), e(2), e(3)) == p
+end
+
+@testset "compatibilty with univariate" begin
+    Z = ZZ{Int}
+    P = Z[:x]
+    Q = P[:y]
+    @test_throws ArgumentError P[:x]
+    R = Q[:a, :b]
+    a, b, y, x = generatorset(R)
+    p = x^2 + 3
+    r = a * b^2 * y * p + (p - 2)^2
+    @test r isa R
+    @test varnameset(R) == [:a, :b, :y, :x]
+    c = collect(DeepIterPolynomial(r))
+    @test c[1] == (1, [0, 0, 0, 0])
+    @test c[2] == (2, [0, 0, 0, 2])
+    @test c[3] == (1, [0, 0, 0, 4])
+    @test c[4] == (3, [1, 2, 1, 0])
+    @test c[5] == (1, [1, 2, 1, 2])
 end
 
 end # module

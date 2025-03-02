@@ -54,6 +54,24 @@ depth(::Type{Union{}}) = -1
 depth(::Type) = 0
 depth(::Type{R}) where R<:Ring = depth(basetype(R)) + 1
 
+"""
+    varnameset(::Type{T})
+
+Return a vector of symbols containing all variable names used by `T and basetypes of it.
+"""
+varnameset(::Type) = Symbol[]
+varnameset(::Type{P}) where P<:Polynomial = [varnames(P); varnameset(basetype(P))]
+varnameset(::Type{P}) where P<:Quotient{<:Polynomial} = varnameset(basetype(P))
+
+"""
+    generatorset(::Type{T})
+
+Return a vector of symbols containing all variable names used by `T and basetypes of it.
+"""
+generatorset(::Type) = Polynomial[]
+generatorset(::Type{P}) where P<:Polynomial = [generators(P); generatorset(basetype(P))]
+generatorset(::Type{P}) where P<:Quotient{<:Polynomial} = generatorset(basetype(P))
+
 adjoint(a::Ring) = a
 
 @generated function basetypes(a)

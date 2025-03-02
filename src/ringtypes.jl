@@ -379,8 +379,24 @@ Return iterator over all non-zero terms of polynomial `p`.
 struct IterTerms{P<:Polynomial}
     p::P
 end
+Base.IteratorSize(::IterTerms) = Base.HasLength()
+Base.IteratorEltype(::IterTerms) = Base.HasEltype()
 
-Base.IteratorSize(::IterTerms) = Base.SizeUnknown()
+"""
+    DeepIterTerms(p::Polynomial)
+
+Return iterator for the leaf terms for a polynomial of polynomials.
+"""
+struct DeepIterPolynomial{P<:Polynomial,N}
+    p::P
+    function DeepIterPolynomial(p::P, n=-1) where P<:Polynomial
+        m = pdepth(P)
+        n = n < 0 ? m : min(n, m)
+        new{P,n}(p)
+    end
+end
+Base.IteratorSize(::DeepIterPolynomial) = Base.SizeUnknown()
+Base.IteratorEltype(::DeepIterPolynomial) = Base.HasEltype()
 
 """
     RNF(polynomials, transformation)

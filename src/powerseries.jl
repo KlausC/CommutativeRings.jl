@@ -15,8 +15,13 @@ end
 # enable `R[[:x],n]` as a convenience constructor for power series
 function getindex(R::Type{<:Ring}, X::AbstractVector{Symbol}, n::Integer)
     length(X) == 1 && n >= 0 || throw(ArgumentError("invalid power series constructor"))
+    V = X[1]
+    V in varnameset(R) && throw(ArgumentError(lazy"Duplicate variable name $V"))
     PowerSeries{n,R,X[1]}
 end
+
+varnames(::Type{P}) where P<:PowerSeries = varnames(basetype(P))
+varnameset(::Type{P}) where P<:PowerSeries = [varnameset(basetype(P)); varnames(P)]
 
 # accessing coefficients
 getindex(s::PowerSeries, n) = getindex(s.poly, n)
@@ -72,6 +77,7 @@ isapprox(r::R, s::P) where {P<:PowerSeries,R<:Union{RingInt,Rational}} = isappro
 
 monom(::Type{P}, a...) where P<:PowerSeries = P(monom(basetype(P), a...))
 CC(s::PowerSeries) = CC(s.poly)
+LC(::P) where P<:PowerSeries = zero(basetype(basetype(P)))
 
 function evaluate(p::S, q::UnivariatePolynomial) where S<:PowerSeries
     s, rt = ps_from_poly!(p.poly(q), precision(S), precision(p))

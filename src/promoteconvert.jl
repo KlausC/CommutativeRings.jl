@@ -27,8 +27,10 @@ promote_rule(::Type{A}, ::Type{<:ZZ{B}}) where {A<:OtherNumber,B} = promote_type
 # convertions
 convert(::Type{T}, a) where T<:Ring = T(a)
 function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
-    if !(S <: basetype(T)) && depth(T) > depth(S)
-        b = convert(basetype(T), a)
+    B = basetype(T)
+    R = promote_type(B, S)
+    if  R <: B && S != B
+        b = convert(B, a)
         convert(T, b)
     else
         T(a)

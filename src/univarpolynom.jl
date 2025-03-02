@@ -2,7 +2,10 @@
 # class constructors
 # convenience type constructor:
 # enable `R[:x]` as short for `UnivariatePolynomial{R,:x}`
-getindex(R::Type{<:Ring}, X::Symbol) = UnivariatePolynomial{R,X}
+function getindex(R::Type{<:Ring}, X::Symbol)
+    X in varnameset(R) && throw(ArgumentError(lazy"Duplicate variable name '$X'"))
+    UnivariatePolynomial{R,X}
+end
 
 ### Constructors
 category_trait(P::Type{<:Polynomial}) = category_trait_poly(P, category_trait(basetype(P)))
@@ -100,7 +103,7 @@ end
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Integer} =
     UnivariatePolynomial{promote_type(R, S),X}
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:ZI} =
-        UnivariatePolynomial{promote_type(R, S),X}
+    UnivariatePolynomial{promote_type(R, S),X}
 promote_rule(::Type{UnivariatePolynomial{R,X}}, ::Type{S}) where {X,R,S<:Rational} =
     UnivariatePolynomial{promote_type(R, S),X}
 
@@ -112,6 +115,7 @@ end
 
 # convert coefficient vector to polynomial
 function UnivariatePolynomial{T,X}(v::Vector{S}, g::Integer = 0) where {X,T<:Ring,S<:T}
+    X in varnameset(T) && throw(ArgumentError("Cannot reuse $X as a variable name"))
     g = Int(g)
     x = Symbol(X)
     ff = findlast(!iszero, v)
@@ -565,7 +569,7 @@ end
 function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
     c = content(p)
     Z = ZZ{T}
-    pp = Z[X]([Z(numerator(x/c)) for x in p.coeff], ord(p))
+    pp = Z[X]([Z(numerator(x / c)) for x in p.coeff], ord(p))
     c, pp
 end
 
@@ -625,16 +629,20 @@ end
 Return the leading coefficient of a non-zero polynomial. This coefficient
 cannot be zero. Return zero for zero polynomial.
 """
-function LC(p::Polynomial{T}) where T
-    c = p.coeff
-    n = length(c)
-    n == 0 ? zero(T) : c[n]
+function LC(p::P) where {S,P<:Polynomial{S}}
+    n = length(p.coeff)
+    n == 0 && return zero(S)
+    p.coeff[n]
 end
 
+"""
+    LM(p::Polynomial)
+
+Return the leading monom of a non-zero polynomial.
+Return zero polynomial for zero polynomial.
+"""
 function LM(p::P) where {S,P<:UnivariatePolynomial{S}}
-    n = length(p.coeff)
-    n == 0 && return zero(P)
-    P(ones(S, 1), n - 1)
+    iszero(p) ? zero(P) : monom(P, deg(p))
 end
 
 """
@@ -643,9 +651,7 @@ end
 Return leading term of polynomial `p`. Coefficient is taken from `p`.
 """
 function LT(p::P) where {S,P<:UnivariatePolynomial{S}}
-    n = length(p.coeff)
-    n == 0 && return zero(P)
-    P([p.coeff[n]], n - 1)
+    iszero(p) ? zero(P) : monom(P, deg(p), LC(p))
 end
 
 """
@@ -790,7 +796,7 @@ function companion(::Type{S}, p::UnivariatePolynomial) where S
     n = deg(p)
     A = zeros(S, n, n)
     @inbounds for i = 1:n-1
-        A[i+1,i] = 1
+        A[i+1, i] = 1
     end
     b = p.first
     @inbounds for i = 1:length(p.coeff)-1
@@ -828,9 +834,9 @@ end
 
 import Base: show
 
-issimple(::Union{ZZ,ZZmod,QQ,Number,ZZZ}) = true
+issimple(::Union{ZI,ZZmod,QQ,Number}) = true
 issimple(::Quotient{<:UnivariatePolynomial{S,:γ}}) where S = true
-issimple(p::Polynomial) = ismonom(p)
+issimple(p::Polynomial) = ismonom(p) && issimple(LC(p))
 issimple(::Any) = false
 
 function showvar(io::IO, p::UnivariatePolynomial{S,X}, n::Integer) where {X,S}
@@ -855,6 +861,53 @@ function Base.iterate(x::IterTerms{P}, st = typemin(Int)) where P<:UnivariatePol
         st += 1
     end
     st <= d ? (p[st] * monom(P, st), st + 1) : nothing
+end
+
+Base.length(itr::IterTerms) = count(!iszero(c) for c in itr.p.coeff)
+Base.eltype(::IterTerms{P}) where P = P
+
+pdepth(::Type) = 0
+pdepth(::Type{<:Polynomial{P}}) where P = pdepth(P) + 1
+
+function Base.eltype(::Type{<:DeepIterPolynomial{P,N}}) where {P<:Polynomial,N}
+    Tuple{deep_eltype(P, N),Any}
+end
+deep_eltype(P::Type, ::Int) = P
+function deep_eltype(::Type{P}, n::Int) where P<:Polynomial
+    n == 0 ? P : deep_eltype(basetype(P), n-1)
+end
+
+const ITER_START = -1
+function Base.iterate(x::DeepIterPolynomial{P,N}) where {P,N}
+    iterate(x, fill(ITER_START, N))
+end
+
+function Base.iterate(x::DeepIterPolynomial{P,N}, st) where {P,N}
+    p = x.p
+    if N <= 0
+        return length(st) != 0 ?  nothing : ((x.p, Int[]), Int[0])
+    end
+    stp, strest... = st
+    while true
+        v = iterate(IterTerms(p), stp)
+        isnothing(v) && break
+        qt, stp1 = v
+        q = LC(qt)
+        ex = multideg(qt)
+        if N <= 1
+            return (q, ex), [stp1; strest]
+        end
+        w = iterate(DeepIterPolynomial(q, N - 1), strest)
+        if isnothing(w)
+            stp = stp1
+            fill!(strest, ITER_START)
+        else
+            qx, st2 = w
+            q, x = qx
+            return (q, [ex; x]), [stp; st2]
+        end
+    end
+    nothing
 end
 
 show(io::IO, p::Polynomial) = _show(io, p, Val(true))

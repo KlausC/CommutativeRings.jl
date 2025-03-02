@@ -1,7 +1,7 @@
 """
-    MINPRIME constant for first prime to try irreducibility
+    MINPRIME constant for default of first prime to try irreducibility
 """
-const MINPRIME = 9999
+const MINPRIME = 2147483646 # prevprime(typemax(Int32), 1) - 1
 
 function isirreducible(p::P; p0 = MINPRIME) where {T<:ZI, P<:UnivariatePolynomial{T}}
     (iszero(p) || isunit(p)) && return false
@@ -11,6 +11,9 @@ function isirreducible(p::P; p0 = MINPRIME) where {T<:ZI, P<:UnivariatePolynomia
     Z = wide_type(T)[X]
     q = convert(Z, p)
     isone(pgcd(q, derive(q))) || return false
+    v, e, k = stripzeroscompress(q)
+    e > 0 && return false
+    k > 1 && !isirreducible(v; p0) && return false
     zassenhaus_irr(q, p0)
 end
 
@@ -246,9 +249,9 @@ function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
     PP = Pair{P,Int}
     res = PP[]
-    x = monom(P)
+
     for ab in sort(collect(factors(a))) # TODO open question, if fewer factors sufficient
-        r = factor!(PP[], u(x^ab), p0)
+        r = factor!(PP[], u(monom(P, ab)), p0)
         ab == a && return r
         if length(r) > 1
             for (v, e) ∈ r
