@@ -17,7 +17,7 @@ function iterate(::Type{Z}, s) where Z<:ZZmod
     v = Z(s.val + 1)
     iszero(v) ? nothing : (v, v)
 end
-function iterate(::Type{Q}, s) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
+function iterate(::Type{Q}, s) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     c = coeffs(s.val)
     m = length(c)
     n = deg(modulus(Q))
@@ -46,22 +46,21 @@ function next(c)
     cs === nothing ? nothing : cs[1]
 end
 
-function iterate(::Type{G}) where G<:GaloisField
-    G(0), 0
-end
+iterate(::Type{G}, s...) where G<:GaloisField = _iterate(CType(G), s...)
+_iterate(::CType{G}) where G<:GaloisField = (G(0), 0)
 
-function iterate(::Type{G}, s::Integer) where G<:GaloisField
+function _iterate(::CType{G}, s::Integer) where G<:GaloisField
     s += 1
     s >= order(G) && return nothing
     ofindex(s, G), s
 end
 
 function next(g::G) where G<:GaloisField
-    s = gettypevar(G).exptable[g.val+1] + 1
+    s = tonumber(g) + 1
     s >= order(G) ? nothing : ofindex(s, G)
 end
 
-Base.eltype(::Monic{Z,X}) where {X,Z<:Ring} = Z[X]
+Base.eltype(::Type{<:Monic{Z,X}}) where {X,Z<:Ring} = Z[X]
 IteratorSize(::Type{<:Monic{Z}}) where Z = IteratorSize(Z)
 length(m::Monic{Z}) where Z = intpower(length(Z), m.n)
 
@@ -93,6 +92,11 @@ function _iterate(mo::Monic{Z,X}, s, ::IsInfinite) where {X,Z}
     ofindex(s, P, mo.n) + monom(P, mo.n), s + 1
 end
 
+"""
+    isqrt2(i::Integer)
+
+Return the smallest integer `x`, for which `x^2 >= 2i`.
+"""
 isqrt2(i::T) where T<:Integer = T(floor(sqrt(8 * i + 1) - 1)) ÷ 2
 function ipair(i::Integer)
     m = isqrt2(i)
@@ -139,6 +143,7 @@ function indexv(i::T, nn::Vector{T}) where T<:Integer
 end
 
 len(::Type, d...) = 0
+len(::Type{Union{}}, d...) = 0
 len(T::Type{<:ZZmod}, d...) = modulus(T)
 function len(T::Type{<:FractionRing{S}}, d...) where S
     n = len(S, d...)
@@ -148,6 +153,7 @@ len(T::Type{<:UnivariatePolynomial{S}}, d::Integer) where S = intpower(len(S), d
 len(T::Type{<:QuotientRing{S}}) where S<:UnivariatePolynomial = len(S, deg(modulus(T) - 1))
 len(T::Type{<:GaloisField}) = order(T)
 
+ofindex(a::Integer, u::Type{Union{}}) = throw(MethodError(ofindex, (a, u)))
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
 ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a + 1) >> 1
 ofindex(a::Integer, T::Type{ZZ{S}}) where S = T(ofindex(a, S))

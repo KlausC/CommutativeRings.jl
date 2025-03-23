@@ -5,7 +5,11 @@ function ZZmod(m::Integer, ::Type{T}) where T<:Integer
     new_class(ZZmod{sintern(m),T}, T(m))
 end
 /(::Type{ZZ{T}}, m::Integer) where T<:Integer = ZZmod(T(m), T)
-/(::Type{ZZ}, m::Integer) = ZZmod(m, mintype_for(m, 1, false))
+function /(::Type{ZZ}, m::Integer)
+    U = mintype_for(m, 1, false)
+    T = wsigned(U)
+    ZZmod(T(m), U)
+end
 
 # construction
 isprimemod(Z::Type{<:ZZmod}) = isprime(modulus(Z))
@@ -20,7 +24,7 @@ wsigned(a::T) where T<:Integer = convert(wsigned(T), a)
 
 function ZZmod{m,T}(a::Integer) where {m,T}
     mo = modulus(ZZmod{m,T})
-    ZZmod{m,T}(T(mod(a, T(mo))), NOCHECK)
+    ZZmod{m,T}(T(mod(a, _unsigned(mo))), NOCHECK)
 end
 #ZZmod{m}(a::Integer) where {m} = ZZmod{m,typeof(m)}(oftype(m, a))
 ZZmod(a::T, m::S) where {T<:Integer,S<:Integer} = ZZmod(m, S)(S(a))
@@ -60,8 +64,8 @@ function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
     end
 end
 
-convert(::Type{Z}, a::ZZ) where Z <: ZZmod = Z(a)
-(::Type{Z})(a::ZZ) where Z <: ZZmod = Z(a.val % modulus(Z))
+convert(::Type{Z}, a::ZZ) where Z<:ZZmod = Z(a)
+(::Type{Z})(a::ZZ) where Z<:ZZmod = Z(a.val % modulus(Z))
 (::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
 
 """
@@ -77,6 +81,7 @@ function value(a::ZZmod{X,T}) where {X,T}
     m2 = m - m1
     v < m2 ? S(v) : S(v - m2) - S(m1)
 end
+tonumber(a::ZZmod) = a.val
 
 # get type variable
 function modulus(t::Type{<:ZZmod{m,T}}) where {m,T}
@@ -93,11 +98,13 @@ Base.isless(p::T, q::T) where T<:ZZmod = isless(p.val, q.val)
 function +(a::T, b::T) where T<:ZZmod
     mb = modulus(T) - b.val
     s = a.val < mb ? a.val + b.val : a.val - mb
+    @assert s == add_ZZmod(a.val, b.val, mb)
     T(s, NOCHECK)
 end
 function -(a::T, b::T) where T<:ZZmod
     mb = modulus(T) - b.val
     s = a.val < b.val ? a.val + mb : a.val - b.val
+    @assert s == add_ZZmod(a.val, mb, b.val)
     T(s, NOCHECK)
 end
 -(a::T) where T<:ZZmod = iszero(a.val) ? a : T(modulus(T) - a.val, NOCHECK)
@@ -118,6 +125,7 @@ one(::Type{ZZmod{m}}) where {m} = ZZmod{m}(one(m))
 ==(a::ZZmod{m1}, b::ZZmod{m2}) where {m1,m2} = modulus(a) == modulus(b) && a.val == b.val
 hash(a::ZZmod, h::UInt) = hash(a.val, hash(modulus(a), h))
 dimension(::Type{<:ZZmod}) = 1
+dimension(a::Type{Union{}}) = merror(dimension, (a,))
 
 # implementation of checked multiplication
 @inline function mult_ZZmod(a::T, b::T, m::T) where T<:Integer
@@ -129,6 +137,15 @@ function mult_ZZmod(a::T1, b::T2, c::T) where {T1<:Integer,T2<:Integer,T<:Intege
     a = T(mod(a, c))
     b = T(mod(b, c))
     mult_ZZmod(a, b, c)
+end
+
+@inline function add_ZZmod(a::T, b::T, m::T) where T<:Integer
+    a < m ? a + b : a - m
+end
+function add_ZZmod(a::T1, b::T2, c::T) where {T1<:Integer,T2<:Integer,T<:Integer}
+    a = T(mod(a, c))
+    b = T(mod(b, c))
+    add_ZZmod(a, b, c)
 end
 
 # improved version of invmod
@@ -172,20 +189,20 @@ function Base.show(io::IO, a::ZZmod)
     end
 end
 
-@inline function minlength_for(v::Integer, ::Val{1}, off::Bool)
+@inline function minlength_for(v::Integer, off::Bool)
     ndigits(v - off; base = 2, pad = 0)
 end
-@inline function minlength_for(v::Integer, ::Val{ex}, off::Bool) where ex
+@inline function minlength_for(v::Integer, ex::Integer, off::Bool)
     l2n = log2(v) * ex
     Int(off ? ceil(l2n) : floor(l2n) + 1)
 end
 
 function mintype_for(v::Integer, ex::Integer, off::Bool)
     v isa BigInt && v > typemax(UInt128) && return BigInt
-    len = minlength_for(v, Val(ex), off)
+    len = ex == 1 ? minlength_for(v, off) : minlength_for(v, ex, off)
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         n = sizeof(T) * 8
-        len <= n && return len < n ? signed(T) : T
+        len <= n && return (len < n ? signed(T) : T)
     end
     BigInt
 end

@@ -25,6 +25,7 @@ promote_rule(::Type{A}, ::Type{<:QQ{B}}) where {A<:OtherNumber,B} = promote_type
 promote_rule(::Type{A}, ::Type{<:ZZ{B}}) where {A<:OtherNumber,B} = promote_type(A, B)
 
 # convertions
+convert(::Type{T}, a::S) where {T<:Ring, S<:T} = a
 convert(::Type{T}, a) where T<:Ring = T(a)
 function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     B = basetype(T)

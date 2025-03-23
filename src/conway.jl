@@ -52,7 +52,7 @@ function conway(p::Integer, n::Integer, X::Symbol = :x)
 end
 
 """
-    isconway(::Type{GaloisField})
+    is_conway(::Type{GaloisField})
 
 Return true, iff the modulus of the field is the standard conway polynomial.
 """
@@ -60,6 +60,7 @@ function is_conway(::Type{G}) where {G<:Union{GaloisField,Quotient{<:UnivariateP
     p = modulus(G)
     p == conway(characteristic(G), dimension(G), varname(p))
 end
+is_conway(a::Type{Union{}}) = merror(is_conway, (a,))
 
 """
     quasi_conway(p, m, X::Symbol, nr::Integer=1, factors=nothing)

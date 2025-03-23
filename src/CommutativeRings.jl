@@ -37,7 +37,7 @@ export characteristic, dimension, order
 export ofindex
 export generator, generators
 export homomorphism
-export num_primitives, isprimitive
+export num_primitives, isprimitive, ismonomprimitive
 export elementary_symmetric, newton_symmetric
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
@@ -97,6 +97,7 @@ include("fourier.jl")
 include("fastmultiply.jl")
 include("algebraic.jl")
 include("numberfield.jl")
+include("luebeck.jl")
 
 using .SpecialPowerSeries
 using .Conway

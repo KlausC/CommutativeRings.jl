@@ -35,20 +35,28 @@ function GF(n::Integer, k::Integer = 1; mod = :conway, nr = 0, maxord = 2^20)
 end
 function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
     modpol = mod isa UnivariatePolynomial
-    r == 1 || !modpol || terror("given modulus requires prime base")
-    mm = intpower(p, !modpol ? r : deg(mod)) - 1
+    if modpol
+        B = basetype(mod)
+        if r != 1
+            terror(lazy"given modulus derives dimension from that, r must be 1 but is $r")
+        end
+        r = deg(mod) * dimension(B)
+    end
+    mm = intpower(p, r) - 1
     fact = Primes.factor(mm)
     Q = GFImpl(p, r, fact; nr, mod)
-    ord = order(Q)
-    r = dimension(Q)
     r == 1 && mod === nothing && return Q
-
+    ord = order(Q)
+    q = dimension(subfield(Q))
+    r = dimension(Q) * q
     T = mintype_for(p, r, true)
+    pq = T(p)^q
+
     gen = monom(Q)
     while order(gen) != ord - 1
-        gen, = iterate(Q, gen)
+        gen, = next(gen)
     end
-    g = tonumber(gen, p)
+    g = tonumber(gen, pq)
 
     function gfclass0(fact, p, ord, gen, T)
         c = fill(gen, ord)
@@ -65,14 +73,23 @@ function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
         fact, T[], T[], T[]
     end
 
+    sp = sintern(p)
+    sord = sintern(ord)
+    sg = sintern(g)
+
     gfclass, Id, V = if ord <= maxord
-        gfclass0, (sintern(p), r, sintern(ord), sintern(g)), T
+        gfclass0, (sp, r, sord, sg), T
     else
-        gfclass1, (sintern(p), r, sintern(ord), sintern(g)), Q
+        gfclass1, (sp, r, sord, sg), Q
     end
 
-    new_class(gfclass, GaloisField{Id,V,Q}, fact, p, ord, gen, V)
+    new_class(gfclass, GaloisField{sp,r,Id,V,Q}, fact, pq, ord, gen, V)
 end
+
+function Base.isequal(a::G, b::G) where G<:GaloisField
+    tonumber(a) == tonumber(b)
+end
+Base.hash(a::GaloisField, x::UInt) = hash(tonumber(a), x)
 
 """
     ofindex(num::Integer, G) where G <: GaloisField
@@ -83,7 +100,7 @@ The numbers `ofindex.(0:p-1,G)` correspond to the base field, and `ofindex(p, G)
 to the polynomial `x` in the representation of `Q`.
 """
 function ofindex(num::Integer, G::Type{<:GaloisField})
-    G(tovalue(G, num), NOCHECK)
+    G(internal_val(G, num), NOCHECK)
 end
 
 Base.getindex(::Type{G}, ix::Integer) where G<:GaloisField = ofindex(ix, G)
@@ -94,61 +111,75 @@ Base.collect(::Type{G}) where G<:GaloisField = ofindex.(firstindex(G):lastindex(
 function (::Type{G})(a::G) where G<:GaloisField
     G(a.val, NOCHECK)
 end
-function (::Type{G})(a::H) where {Id,T,Q,G<:GaloisField{Id,T,Q},P,H<:ZZmod{P,T}}
+function (::Type{G})(a::H) where {C,D,Id,T,Q,G<:GaloisField{C,D,Id,T,Q},P,H<:ZZmod{P,T}}
     characteristic(G) == characteristic(H) || terror("characteristic mismatch")
     G(a.val)
 end
-function (::Type{G})(q::Q) where {Id,T,Q<:RingInt,G<:GaloisField{Id,T,Q}}
-    ofindex(tonumber(q, characteristic(Q)), G)
+function (::Type{G})(q::Q) where {C,D,Id,T,Q<:RingInt,G<:GaloisField{C,D,Id,T,Q}}
+    ofindex(tonumber(q, order(subfield(Q))), G)
 end
 
 (::Type{<:Quotient})(g::G) where G<:GaloisField = quotient(g)
 Polynomial(g::G) where G<:GaloisField = value(Quotient(g))
-Quotient(::Type{G}) where {Id,T,Q,G<:GaloisField{Id,T,Q}} = Q
+Quotient(::Type{G}) where {C,D,Id,T,Q,G<:GaloisField{C,D,Id,T,Q}} = Q
+Quotient(a::Type{Union{}}) = merror(Quotient, (a,))
 Polynomial(::Type{G}) where G<:GaloisField = Polynomial(Quotient(G))
+Polynomial(a::Type{Union{}}) = merror(Polynomial, (a,))
 monom(::Type{G}) where G<:GaloisField = G(monom(Quotient(G)))
+monom(a::Type{Union{}}, s...) = merror(monom, (a, s...))
 
-promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{<:Integer}) where {Id,T,Q} = G
-_promote_rule(G::Type{GaloisField{Id,T,Q}}, ::Type{Q}) where {Id,T,Q<:QuotientRing} = G
+promote_rule(G::Type{GaloisField{C,D,Id,T,Q}}, ::Type{<:Integer}) where {C,D,Id,T,Q} = G
 _promote_rule(
-    G::Type{<:GaloisField{Id,T,<:Quotient{<:UnivariatePolynomial{B}}}},
+    G::Type{GaloisField{C,D,Id,T,Q}},
+    ::Type{Q},
+) where {C,D,Id,T,Q<:QuotientRing} = G
+_promote_rule(
+    G::Type{<:GaloisField{C,D,Id,T,<:Quotient{<:UnivariatePolynomial{B}}}},
     ::Type{B},
-) where {Id,T,B} = G
+) where {C,D,Id,T,B} = G
 
-function quotient(g::G) where {Id,T<:Integer,Q<:Quotient,G<:GaloisField{Id,T,Q}}
+function quotient(g::G) where {C,D,Id,T<:Integer,Q<:Quotient,G<:GaloisField{C,D,Id,T,Q}}
     et = gettypevar(G).exptable
-    toquotient(et[g.val+1], Q)
+    quotient(et[g.val+1], Q)
 end
-quotient(g::G) where {Id,T,Q<:Quotient,G<:GaloisField{Id,T,Q}} = g.val
+quotient(g::G) where {C,D,Id,T,Q<:Quotient,G<:GaloisField{C,D,Id,T,Q}} = g.val
 
 
 function isless(a::G, b::G) where G<:GaloisField
     isless(Quotient(a), Quotient(b))
 end
 
-basetype(::Type{GaloisField{Id,T,Q}}) where {Id,T,Q} = Q
+basetype(::Type{GaloisField{C,D,Id,T,Q}}) where {C,D,Id,T,Q} = Q
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
-dimension(G::Type{<:GaloisField}) = dimension(basetype(G))
-order(G::Type{<:GaloisField}) = characteristic(G)^dimension(G)
+characteristic(a::Type{Union{}}) = merror(characteristic, (a,))
+dimension(G::Type{<:GaloisField}) = dimension(basetype(G)) * dimension(subfield(G))
+@generated function order(a::Type{<:GaloisField})
+    function order(::Type{<:Type{<:GaloisField{C,D}}}) where {C,D}
+        ord = intpower(C, D)
+        convert(promote_type(typeof(ord), Int), ord)
+    end
+    order(a)
+end
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
-issimpler(a::G, b::G) where G<:GaloisField = a.val < b.val
+modulus(a::Type{Union{}}) = merror(modulus, (a,))
+issimpler(a::G, b::G) where G<:GaloisField = tonumber(a) < tonumber(b)
 
 # multiplication using lookup tables
-function *(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function *(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     iszero(a) && return a
     iszero(b) && return b
     ord = order(G)
     # beware of overflows
     G(mod(a.val - 2 + b.val, ord - 1) + 1, NOCHECK)
 end
-function *(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function *(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     iszero(a) && return a
     iszero(b) && return b
     G(a.val * b.val, NOCHECK)
 end
 
-function /(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function /(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     iszero(a) && return a
     a.val == b.val && return one(G)
     iszero(b) && division_error()
@@ -156,19 +187,19 @@ function /(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
     # beware of overflows
     G(mod(a.val - 1 + ord - b.val, ord - 1) + 1, NOCHECK)
 end
-function /(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function /(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     iszero(a) && return a
     a.val == b.val && return one(G)
     iszero(b) && division_error()
     G(a.val / b.val, NOCHECK)
 end
-function inv(a::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function inv(a::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     ord = order(G)
     iszero(a) && division_error()
     nlog = mod(ord - a.val, ord - 1) + 1
     G(nlog, NOCHECK)
 end
-function inv(a::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function inv(a::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     iszero(a) && division_error()
     G(inv(a.val), NOCHECK)
 end
@@ -177,7 +208,7 @@ fact_mult_order(::Type{G}) where G<:GaloisField = gettypevar(G).factors
 
 import Base: ^, log
 
-function ^(a::G, x::Integer) where {Id,G<:GaloisField{Id,<:Integer}}
+function ^(a::G, x::Integer) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     ord = mult_order(G)
     if iszero(a)
         return x > 0 ? a : x == 0 ? one(G) : division_error()
@@ -194,23 +225,43 @@ end
 Return the integer `k in 0:order(G)-2` with `g == α ^ k`, where `α` is the generator of `G`
 or `-1` if `g == 0`. For example `log(one(G)) == 0` and `log(generator(G)) == 1`.
 """
-function log(a::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function log(a::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     a.val - 1
 end
-function log(a::G) where {G<:Ring}
+
+log(g::G) where G<:Ring = log(generator(G), g)
+
+function log(g::G, a::G) where {G<:Ring}
     if iszero(a)
         -1
     else
         # calculating the discrete log is an expensive operation in general
         # which requires special algorithmic effort (==> Adleman et. al.)
-        # here only a naive implementation
-        g = generator(G)
-        b = one(a)
-        for e = 0:order(G)-2
-            b == a && return e
+        # here a naive implementation of the "baby-step-giant-step" method, which tries to
+        # balance memory and runtime efficiency.
+
+        n = order(G) - 1
+        m = isqrt(n - 1) + 1 # smallest integer >= sqrt(n)
+        baby = Dict{G,Int}()
+        sizehint!(baby, m)
+        b = one(G)
+        for i = 0:m-1
+            baby[b] = i
+            b == a && return i
             b *= g
         end
-        throw(DataError("log: $g is not a generator for $a"))
+        i = get(baby, a, -1)
+        i >= 0 && return i
+        giant = inv(b) # g^(-m)
+        b = a * giant
+        for j = 1:m-1
+            i = get(baby, b, -1)
+            if i >= 0
+                return j * m + i
+            end
+            b *= giant
+        end
+        throw(DomainError("log: $a is not a power of $g"))
     end
 end
 
@@ -219,8 +270,8 @@ end
 
 Calculate a `x` in the same field with `x ^ 2 == z`.
 
-Throw `DomainError` if no solution exists. With `x`alway `-x` is a solution.
-With characteristic 2, every `z`has a square root`.
+Throw `DomainError` if no solution exists. With `x`always `-x` is a solution.
+With characteristic 2, every `z` has a square root`.
 """
 function Base.sqrt(x::G) where G<:Union{GaloisField,ZZmod}
     iszero(x) && return x
@@ -243,7 +294,7 @@ end
 If `α` is the generator of `G`, for `k >= 0` return the `log(α^k + 1)`, for `k < 0` return `0`.
 In other words: `α ^ log_zech(k, G) == α ^ k + 1` for `k >= 0`.
 """
-function log_zech(k::Integer, ::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
+function log_zech(k::Integer, ::Type{G}) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     ord = order(G)
     zt = gettypevar(G).zechtable
     log_zech(k, ord, zt)
@@ -252,22 +303,23 @@ function log_zech(k::Integer, ord::Integer, zt::AbstractVector)
     k < 0 && return 0
     zt[mod(k, ord - 1)+2] - 1
 end
-function log_zech(k::Integer, ::Type{G}) where {Id,G<:GaloisField{Id,<:Quotient}}
+function log_zech(k::Integer, ::Type{G}) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     g = generator(G)
     log(g^k + 1)
 end
+log_zech(k, a::Type{Union{}}) = merror(log_zech, (k, a))
 
 """
     generator(::Type{<:GaloisField})
 
 Return the generator element of this implementation of Galois field.
 """
-function generator(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
+function generator(::Type{G}) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     id = min(2, order(G) - 1)
     G(id, NOCHECK)
 end
-function generator(::Type{G}) where {Id,G<:GaloisField{Id,<:Quotient}}
-    G(monom(Quotient(G)))
+function generator(::Type{G}) where {C,D,Id,Q<:Quotient,G<:GaloisField{C,D,Id,Q}}
+    G(generator(Q))
 end
 
 """
@@ -275,25 +327,28 @@ end
 
 Return numeric representation of generator (in range `0:order(G)-1`). Ideally `== characteristic(G)`.
 """
-logmonom(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}} = Id[4]
-logmonom(::Type{G}) where {G<:GaloisField} =
-    tonumber(Quotient(generator(G)), characteristic(G))
+logmonom(::Type{G}) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}} = Id[4]
+logmonom(::Type{G}) where {G<:GaloisField} = tonumber(Quotient(generator(G)))
+logmonom(a::Type{Union{}}) = merror(logmonom, (a,))
 
 division_error() = terror("cannot invert zero")
 
 *(a::G, b::Integer) where G<:GaloisField = G(b) * a
 *(b::Integer, a::G) where G<:GaloisField = a * b
 ==(a::G, b::G) where G<:GaloisField = a.val == b.val
-==(::G, ::H) where {G<:GaloisField,H<:GaloisField} = false
+==(a::G, b::H) where {G<:GaloisField,H<:GaloisField} = quotient(a) == quotient(b)
+function ==(::Type{A}, ::Type{B}) where {A<:GaloisField,B<:GaloisField}
+    A === B || A !== Union{} && B != Union{} && Quotient(A) == Quotient(B)
+end
 
-function typedep(::Type{G}) where {Id,G<:GaloisField{Id,<:Integer}}
+function typedep(::Type{G}) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     ord = order(G)
     zechtable = gettypevar(G).zechtable
     e = lognegone(G)
     ord, e, zechtable
 end
 
-function +(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function +(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     iszero(a) && return b
     iszero(b) && return a
     a = a.val
@@ -307,11 +362,11 @@ function +(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
     #@inbounds G(mod1(zechtable[k+2] - 1 + b, ord - 1), NOCHECK)
     G(mod1(zechtable[k+2] - 1 + b, ord - 1), NOCHECK)
 end
-function +(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function +(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     G(a.val + b.val, NOCHECK)
 end
 
-function -(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function -(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     iszero(b) && return a
     iszero(a) && return -b
     a = a.val
@@ -325,11 +380,11 @@ function -(a::G, b::G) where {Id,G<:GaloisField{Id,<:Integer}}
     k = a - b
     G(mod1(zechtable[k+2] - 1 + b, ord - 1), NOCHECK)
 end
-function -(a::G, b::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function -(a::G, b::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     G(a.val - b.val, NOCHECK)
 end
 
-function -(a::G) where {Id,G<:GaloisField{Id,<:Integer}}
+function -(a::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Integer}}
     characteristic(G) == 2 && return a
     iszero(a) && return a
     e = lognegone(G)
@@ -337,7 +392,7 @@ function -(a::G) where {Id,G<:GaloisField{Id,<:Integer}}
     a = a > e ? a - e : a + e
     G(a, NOCHECK)
 end
-function -(a::G) where {Id,G<:GaloisField{Id,<:Quotient}}
+function -(a::G) where {C,D,Id,G<:GaloisField{C,D,Id,<:Quotient}}
     G(-a.val, NOCHECK)
 end
 
@@ -345,7 +400,9 @@ iszero(a::GaloisField) = iszero(a.val)
 isone(a::GaloisField) = isone(a.val)
 isunit(a::GaloisField) = !iszero(a)
 issimple(a::GaloisField) = true
-value(g::GaloisField) = value(toquotient(g))
+value(g::GaloisField) = value(quotient(g))
+subfield(::Type{G}) where G<:GaloisField = subfield(Quotient(G))
+subfield(a::Type{Union{}}) = merror(subfield, (a,))
 
 zero(::Type{G}) where G<:GaloisField = G(0, NOCHECK)
 one(::Type{G}) where G<:GaloisField = G(1, NOCHECK)
@@ -369,50 +426,57 @@ function Base.show(io::IO, g::Type{<:GaloisField})
     end
 end
 
-function tovalue(::Type{G}, num::Integer) where G<:GaloisField
+function internal_val(::Type{G}, num::Integer) where G<:GaloisField
     logtable = gettypevar(G).logtable
     n = length(logtable)
     logtable[mod(num, n)+1]
 end
-function tovalue(::Type{G}, num::Integer) where {Id,V<:Quotient,G<:GaloisField{Id,V}}
+function internal_val(
+    ::Type{G},
+    num::Integer,
+) where {C,D,Id,V<:Quotient,G<:GaloisField{C,D,Id,V}}
     n = order(G)
-    toquotient(mod(num, n), V)
+    quotient(mod(num, n), V)
 end
 
-function tonumber(a::Quotient{<:UnivariatePolynomial}, p::Integer)
-    u = a.val
+"""
+    tonumber(a)
+
+Return an integer, which can represent the polynomial or quotient `a` if the coeffs of `a`
+are not negative and `p` is not less than the maximum of those coeffs.
+
+If `a` is `GaloisField` element, p defaults to the order of the subfield, which is used
+to represent the field.
+"""
+function tonumber(u::UnivariatePolynomial, p::Integer = order(basetype(typeof(u))))
     s = zero(intpower(p, deg(u) + 1))
     for c in reverse(u.coeff)
-        s = s * p + c.val
+        s = s * p + tonumber(c)
     end
     s * intpower(p, ord(u))
 end
-
-function toquotient(g::G) where {Id,T<:Integer,Q,G<:GaloisField{Id,T,Q}}
-    tvar = gettypevar(G)
-    exptable = tvar.exptable
-    toquotient(exptable[g.val+1], Q)
+function tonumber(a::Q, p::Integer = order(subfield(Q))) where Q<:Quotient
+    tonumber(value(a), p)
 end
-function toquotient(g::G) where {Id,T<:Quotient,Q,G<:GaloisField{Id,T,Q}}
-    g.val
+function tonumber(g::G) where G<:GaloisField
+    tonumber(quotient(g), order(subfield(G)))
 end
 
-function toquotient(
-    a::Integer,
-    ::Type{Q},
-) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
-    p = characteristic(Q)
+function quotient(a::Integer, ::Type{Q}) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
+    p = order(subfield(Q))
     r = dimension(Q)
     ord = order(Q)
     Q(tocoeffs(a, p, r, ord, Z))
 end
+quotient(b::Integer, a::Type{Union{}}) = merror(quotient, (b, a))
 function tocoeffs(a::Integer, p::Integer, r::Integer, ord::Integer, Z::Type)
     c = zeros(Z, r)
     0 <= a < ord || terror("index must be in 0:$(ord-1)")
     b = a
     for i = 1:r
         iszero(b) && break
-        b, c[i] = divrem(b, p)
+        b, d = divrem(b, p)
+        c[i] = ofindex(d, Z)
     end
     c
 end
@@ -461,8 +525,16 @@ function GFImpl(
         poly = quasi_conway(p, m, :α; nr, factors)
         return typeof(poly) / poly
 
+    elseif mod isa UnivariatePolynomial{<:GaloisField}
+        G = basetype(mod)
+        characteristic(G) == p || terror("characteristic mismatch")
+        dg = dimension(G)
+        gen = mod
+        # assuming gen is irreducible!
+        return typeof(gen) / gen
+
     elseif mod isa UnivariatePolynomial
-        m == 1 || terror("given mod requires prime base")
+        m == deg(mod) || terror(lazy"given modulus requires degree $m")
         Z = ZZ / p
         P = Z[:β]
         # do not check if x is primitive here
@@ -500,17 +572,25 @@ function gf(a::String, b::Integer)
 end
 
 function Base.show(io::IO, g::G) where G<:GaloisField
-    m = dimension(G)
-    p = characteristic(G)
-    cc = toquotient(g).val
-    st(v) = iszero(v) ? "" : v
     print(io, "G\"")
-    for k = m-1:-1:1
-        print(io, st(cc[k].val), ':')
-    end
-    print(io, cc[0].val)
-    print(io, '"', st(p))
+    _show(io, g)
+    print(io, '"', characteristic(G))
 end
+function _show(io::IO, g::G) where G<:GaloisField
+    m = deg(modulus(G))
+    p = characteristic(G)
+    cc = quotient(g).val
+    for k = m-1:-1:1
+        _showelement(io, cc[k])
+        print(io, ':')
+    end
+    _showlastelement(io, cc[0])
+end
+
+_showelement(io, x::ZZmod) = !iszero(x) && _showlastelement(io, x)
+_showelement(io, g::GaloisField) = _showlastelement(io, g)
+_showlastelement(io, x::ZZmod) = print(io, x.val)
+_showlastelement(io, g::GaloisField) = _show(io, g)
 
 """
     normalmatrix(a::Q[, m])
@@ -700,10 +780,6 @@ function homomorphism(iso::Function, nr::Integer = 0)
     _homomorphism(Q, R, N, M1, nr)
 end
 
-@noinline function terror(s...)
-    throw(ArgumentError(string(s...)))
-end
-
 function homomorphism(::Type{Z}, ::Type{H}, nr::Integer = 0) where {Z<:ZZmod,H<:GaloisField}
     characteristic(Z) == characteristic(H) || terror("different characteristics")
     Hom{Z,H}(x -> H(x))
@@ -767,7 +843,7 @@ function allzeros(p::P, vx::Q) where {P<:UnivariatePolynomial,Q<:Ring}
     =#
 end
 
-function order(x::G) where {Id,V<:Integer,G<:GaloisField{Id,V}}
+function order(x::G) where {C,D,Id,V<:Integer,G<:GaloisField{C,D,Id,V}}
     iszero(x) && return 0
     isone(x) && return 1
     ord = mult_order(G)

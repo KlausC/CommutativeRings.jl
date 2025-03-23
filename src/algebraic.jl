@@ -393,8 +393,8 @@ end
 
 Return the algebraic number at `exp(pi * r * im)`.
 """
-Base.cispi(q::Q) where Q<:QQ = cispi(Q, value(q))
-function Base.cispi(Q::Type{<:QQ}, r::Rational{<:Integer})
+Base.cispi(q::Q) where Q<:QQ = _cispi(Q, value(q))
+function _cispi(Q::Type{<:QQ}, r::Rational{<:Integer})
     r = mod(r + 1, 2) - 1
     r //= 2
     num = numerator(r)

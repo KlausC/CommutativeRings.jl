@@ -457,9 +457,6 @@ function reduce_off_diagonal!(a, u, k, piv, round)
     end
 end
 
-Base.div(a::T, b::T, round::RoundingMode) where T<:ZZ = T(div(value(a), value(b), round))
-Base.div(a::T, b::T, ::RoundingMode) where T<:Ring = div(a, b)
-
 #
 # u, v unimodular, d diagonal with mod(d[i+1,i+1], d[i,i]) == 0
 # u * a * v = d

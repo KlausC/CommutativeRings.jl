@@ -1,10 +1,34 @@
 
+# Utility classes to facilitate (::Type{<:X}) arguments
+# require type to be concrete
+struct CType{T}
+    function CType(::Type{X}) where X
+        if isconcretetype(X)
+            new{X}()
+        else
+            terror(lazy"concrete type needed but got $X")
+        end
+    end
+end
+
+# require type not to be Union{}
+struct NType{T}
+    function NType(::Type{X}) where X
+        if X !== Union{}
+            new{X}()
+        else
+            terror(lazy"nonunion type needed but got $X")
+        end
+    end
+end
+
+
 # RingClass subtypes describe the different categories
 abstract type RingClass end
 struct ZZClass{T<:Integer} <: RingClass end
 abstract type FractionRingClass <: RingClass end
 struct FractionClass{P} <: FractionRingClass end
-struct QQClass{S<:Integer} <: FractionRingClass end
+struct QQClass{S} <: FractionRingClass end
 abstract type QuotientRingClass <: RingClass end
 struct QuotientClass{Id,M} <: QuotientRingClass
     modulus::M
@@ -173,7 +197,7 @@ The quotient ring of `R` modulo `m` of type `I`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
 Typically `m` is replaced by a symbolic `X`, and the actual `m` is given as argument(s)
 to the type constructor like  `new_class(Quotient{ZZ,`X`}, m...)`.
-If the ``X``is omitted, an anonymous symbol is used.
+If the `X` is omitted, an anonymous symbol is used.
 
 The preferred way of construction is via `Zm = Z/m`.
 """
@@ -187,10 +211,10 @@ end
 
 
 """
-struct QQ{S<:Integer} <: FractionRing{S,QQClass{S}}
+struct QQ{S<:Union{Integer,ZZZ}} <: FractionRing{S,QQClass{S}}
     num::S
     den::S
-    QQ{T}(num::Integer, den::Integer, ::NCT) where T = new{T}(num, den)
+    QQ{T}(num::Union{Integer,ZZZ}, den::Union{Integer,ZZZ}, ::NCT) where T = new{T}(num, den)
 end
 
 """
@@ -235,9 +259,9 @@ struct PowerSeries{Y,R,X} <: Ring{PowerSeriesRingClass{X,R}}
     end
 end
 
-struct GaloisField{Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
+struct GaloisField{C,D,Id,T,Q} <: QuotientRing{ZZmod{T},GaloisFieldClass{Id,T,Q}}
     val::T
-    GaloisField{Id,T,Q}(v, ::NCT) where {Id,T,Q} = new{Id,T,Q}(T(v))
+    GaloisField{C,D,Id,T,Q}(v, ::NCT) where {C,D,Id,T,Q} = new{C,D,Id,T,Q}(T(v))
 end
 
 """
@@ -288,7 +312,7 @@ combinations of the powers of A. It has dimension of the degree of the minimal p
 It has a natural field isomorphism with the quotient ring of the minimal polynomial,
 which is used to allow efficient operations.
 """
-struct NumberField{T<:AlgebraicNumber,Id,Q} <: Ring{NumberFieldClass{T,Id}}
+struct NumberField{T<:AlgebraicNumber,Id,Q<:Quotient} <: Ring{NumberFieldClass{T,Id}}
     repr::Q
     NumberField{T,Id}(r::Q, ::NCT) where {T,Id,Q<:Quotient} = new{T,Id,Q}(r)
 end
@@ -298,7 +322,7 @@ end
 
 Union of all scalar and discrete types.
 """
-const RingNumber = Union{Integer,Rational,ZZ,QQ,ZZmod,GaloisField}
+const RingNumber = Union{Integer,Rational,ZZZ,ZZ,QQ,ZZmod,GaloisField}
 
 # Categorial traits specify algebraic properties of ring types
 # (cf. https://en.wikipedia.org/wiki/Integral_domain)

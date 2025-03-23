@@ -1,5 +1,6 @@
 
 # class constructors
+Frac(a::Type{Union{}}, s...) = merror(irreducible, (a, s...))
 Frac(::Type{R}) where R<:Ring = Frac{R}
 Frac(::Type{<:ZZ{R}}) where R<:Integer = QQ{R}
 Frac(::Type{R}) where R<:Integer = QQ{R}
@@ -93,7 +94,7 @@ function Frac(a::T, b::T) where T<:Polynomial
     a /= s
     Frac{typeof(a)}(a, b, NOCHECK)
 end
-Frac(a::T, b::T) where T<:ZZ = QQ(a, b)
+Frac(a::T, b::T) where T<:ZI = QQ(a, b)
 
 //(a::T, b::T) where T<:QQ = a / b
 //(a::T, b::T) where T<:Ring = Frac(a, b)

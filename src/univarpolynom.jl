@@ -60,6 +60,7 @@ Return variable name of univariate polynomial or polynomial type `P` as a symbol
 """
 varname(::Type{<:UnivariatePolynomial{R,X}}) where {R,X} = X
 varname(::T) where T<:Polynomial = varname(T)
+varname(a::Type{Union{}}, s...) = merror(varname, (a, s...))
 
 """
     iscoprime(a, b)

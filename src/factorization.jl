@@ -18,6 +18,7 @@ end
 function num_irreducibles(::Type{G}, r) where G<:Ring
     num_irreducibles(G[:x], r)
 end
+num_irreducibles(a::Type{Union{}}) = throw(MethodError(num_irreducibles, (a,)))
 
 """
     isirreducible(p::F[X])
@@ -42,6 +43,7 @@ import Base.Iterators: Filter, take, drop
 
 Returns an irreducible polynomial with in `P` with degree `n`. Skip first `nr` hits.
 """
+irreducible(a::Type{Union{}}, s...) = merror(irreducible, (a, s...))
 irreducible(::Type{P}, n) where P<:UnivariatePolynomial = first(irreducibles(P, n))
 function irreducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
     first(drop(irreducibles(P, n), nr))
@@ -51,6 +53,7 @@ end
 
 Returns a reducible polynomial with in `P` with degree `n`. Skip first `nr` hits.
 """
+reducible(a::Type{Union{}}, s...) = merror(reducible, (a, s...))
 reducible(::Type{P}, n) where P<:UnivariatePolynomial = first(reducibles(P, n))
 function reducible(::Type{P}, n, nr::Integer) where P<:UnivariatePolynomial
     first(drop(reducibles(P, n), nr))
@@ -68,6 +71,7 @@ reducibles(P, n)
 
 Returns iterator of all reducible monic polynomials in `P` with degree `n`.
 """
+irreducibles(a::Type{Union{}}, s...) = merror(reducibles, (a, s...))
 function reducibles(::Type{P}, n) where P<:UnivariatePolynomial{<:Ring}
     Base.Iterators.Filter(!isirreducible, Monic(P, n))
 end
@@ -228,11 +232,11 @@ function isddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     x = monom(typeof(f), 1)
     i = 1
-    fs = f
     xqi = x
-    while deg(fs) >= 2i
-        xqi = powermod(xqi, q, fs)
-        g = gcd(fs, xqi - x)
+    d = deg(f)
+    while d >= 2i
+        xqi = powermod(xqi, q, f)
+        g = gcd(f, xqi - x)
         deg(g) > 0 && return false
         i += 1
     end

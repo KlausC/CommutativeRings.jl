@@ -13,6 +13,7 @@ lcunit(a::Z) where Z<:ZZ = a < 0 ? -one(a) : one(a)
 issimpler(a::T, b::T) where T<:ZZ = abs(a.val) < abs(b.val)
 iscoprime(a::T, b::T) where T<:ZZ = gcd(a.val, b.val) == 1
 value(a::ZZ) = a.val
+tonumber(a::ZZ) = value(a)
 
 copy(a::ZZ) = typeof(a)(a.val)
 ZZ(a::T) where T<:Integer = ZZ{T}(a)
@@ -57,8 +58,12 @@ Base.isless(p::T, q::T) where T<:ZZ = isless(p.val, q.val)
 *(a::Integer, b::ZZ{T}) where T = ZZ(T(checked_mul(T(a), b.val)))
 ^(a::ZZ{BigInt}, b::Integer) = ZZ(a.val^b)
 divrem(a::T, b::T) where T<:ZZ = T.(divrem(a.val, b.val))
-div(a::T, b::T) where T<:ZZ = T(a.val ÷ b.val)
-rem(a::T, b::T) where T<:ZZ = T(a.val % b.val)
+divrem(a::T, b::T, r::RoundingMode) where T<:ZZ = T.(divrem(a.val, b.val, r))
+divrem(a::T, b::T, r::RoundingMode{:FromZero}) where T<:ZZ = T.(divrem(a.val, b.val, r))
+div(a::T, b::T) where T<:ZZ = T(div(a.val, b.val))
+div(a::T, b::T, r::RoundingMode) where T<:ZZ = T(div(a.val, b.val, r))
+rem(a::T, b::T) where T<:ZZ = T(rem(a.val, b.val))
+mod(a::T, b::T) where T<:ZZ = T(mod(a.val, b.val))
 
 isunit(a::ZZ) = abs(a.val) == 1
 isone(a::ZZ) = isone(a.val)
