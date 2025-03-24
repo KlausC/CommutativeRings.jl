@@ -1,7 +1,7 @@
 """
     MINPRIME constant for default of first prime to try irreducibility
 """
-const MINPRIME = 2147483646 # prevprime(typemax(Int32), 1) - 1
+const MINPRIME =  2147483646 # prevprime(typemax(Int32), 1) - 1
 
 function isirreducible(p::P; p0 = MINPRIME) where {T<:ZI, P<:UnivariatePolynomial{T}}
     (iszero(p) || isunit(p)) && return false
@@ -55,7 +55,7 @@ function factor!(res, q, p0)
     res
 end
 
-function factor(p::P; p0 = 3) where P<:UnivariatePolynomial{<:QQ}
+function factor(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     c, pp = content_primpart(p)
     fz = factor(pp; p0)
     fq = Vector{Pair{P,Int}}(undef, length(fz) + 1)
@@ -215,11 +215,12 @@ end
 # find next prime number > p, for which factorization of u mod p
 # is has degree of u and is square free
 function factormod(u, p::Integer)
+    pfun = p < typemax(Int32) ? x -> nextprime(x+1) : x -> prevprime(x-1)
     X = varname(u)
     un = LC(u)
     v = []
     while isempty(v)
-        p = nextprime(p + 1)
+        p = pfun(p)
         compatible_with(p, un) || continue
         Zp = ZZ / p
         unp = Zp(un)
