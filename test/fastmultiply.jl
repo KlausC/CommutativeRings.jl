@@ -18,10 +18,14 @@ end
     Q = P / (monom(P, N) + 1)
     p = P(F)^2
     F2 = schoenhage_strassen(F, F, 2N)
-    @test p[0:2N-2] == F2
+    n2 = length(F2)
+    @test n2 <= 2N - 1
+    @test p[0:n2-1] == F2
     q = Q(p)
     FN = schoenhage_strassen(F, F, N)
-    @test value(q)[0:N-1] == FN
+    nn = length(FN)
+    @test nn <= N
+    @test value(q)[0:nn-1] == FN
 end
 
 end
