@@ -13,6 +13,7 @@ end
 @testsetif "typevars" begin include("typevars.jl") end
 @testsetif "generic" begin include("generic.jl") end
 @testsetif "ZZ" begin include("zz.jl") end
+@testsetif "ZZZ" begin include("zzflint.jl") end
 @testsetif "QQ" begin include("qq.jl") end
 @testsetif "ZZmod" begin include("zzmod.jl") end
 @testsetif "galoisfields" begin include("galoisfields.jl") end

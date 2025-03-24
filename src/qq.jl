@@ -26,7 +26,7 @@ QQ(a::ZZ{T}) where T = QQ{T}(a)
 QQ(a::T) where T = QQ{T}(a)
 QQ(a::Rational{T}) where T<:Integer = QQ{T}(a)
 
-function QQ{T}(num::Integer, den::Integer) where T<:Integer
+function QQ{T}(num::Union{Integer,ZZZ}, den::Union{Integer,ZZZ}) where T<:Union{Integer,ZZZ}
     iszero(num) &&
         iszero(den) &&
         throw(ArgumentError("invalid rational: zero($T)//zero($T)"))

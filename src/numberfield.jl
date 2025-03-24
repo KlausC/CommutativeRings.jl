@@ -25,10 +25,10 @@ function (::Type{<:NumberField{A,Id,Q}})(q::P) where {A,P,Id,Q}
 end
 
 function Base.show(io::IO, b::N) where N<:NumberField
-    print(io, value(b.repr), " over ", base(N))
+    print(io, "NF ", value(b.repr), " over ", base(N))
 end
-function Base.show(io::IO, b::Type{N}) where N<:NumberField
-    print(io, "NumberField over ", base(N))
+function Base.show(io::IO, ::Type{N}) where N<:NumberField
+    print(io, "NumberField over ", isconcretetype(N) ? base(N) : "?")
 end
 
 # promotion and conversion

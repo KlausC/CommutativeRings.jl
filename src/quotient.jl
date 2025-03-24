@@ -33,7 +33,14 @@ function Quotient{R,I,X,Id}(a::R) where {I,X,R<:Ring,Id}
     Quotient{R,I,X,Id}(v, NOCHECK)
 end
 
-monom(::Type{Q}, args...) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P), args...)
+monom(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}} = Q(monom(P))
+function generator(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}}
+    g = monom(Q)
+    while isfield(Q) && !isprimitive(g)
+        g = next(g)
+    end
+    g
+end
 
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)
@@ -78,12 +85,16 @@ one(::Type{Q}) where {S,Q<:Quotient{S}} = Q(one(S), NOCHECK)
 value(a::QuotientRing) = a.val
 characteristic(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[1]
 dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
-isprimemod(Z::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
+isprimemod(::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
+subfield(::Type{<:Quotient{R}}) where {Z,R<:UnivariatePolynomial{Z}} = Z
 
-function order(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id}
-    r = Id[2]
-    b = order(basetype(R))
-    iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
+@generated function order(a::Type{<:Quotient})
+    function _order(::Type{<:Type{Q}}) where {Q<:Quotient}
+        r = dimension(Q)
+        b = order(subfield(Q))
+        iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
+    end
+    _order(a)
 end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
@@ -127,3 +138,9 @@ gcd(a::G, b::G) where G<:QuotientRing = one(G)
 gcdx(a::G, b::G) where G<:QuotientRing = one(G), zero(G), zero(G)
 pgcd(a::G, b::G) where G<:QuotientRing = gcd(a, b)
 pgcdx(a::G, b::G) where G<:QuotientRing = gcdx(a, b)
+
+function show(io::IO, ::Type{Q}) where {Z,R<:UnivariatePolynomial{Z},Q<:Quotient{R}}
+    print(io, "Quotient{")
+    show(io, R)
+    print(io, ", ", modulus(Q), "}")
+end

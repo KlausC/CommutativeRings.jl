@@ -1,29 +1,30 @@
-module ZZTest
+module TestZZZ
 
-using Test
 using CommutativeRings
+using Test
 
 @testset "construction and promotion" begin
-    @test basetype(ZZ{Int}) == Int
-    @test depth(ZZ{Int8}) == 1
-    @test iscoprime(ZZ(18), ZZ(35))
-    @test isirreducible(ZZ(17))
-    @test !isirreducible(ZZ(18))
-    @test typeof(copy(ZZ(big"2"))) == ZZ{BigInt}
-    a = ZZ(16)
-    @test ZZ{Int}(a) === a
-    @test ZZ{Int8}(100) + ZZ(100) == ZZ(200)
-    @test ZZ(10) + 10 == 20
-    @test ZZ(1) + QQ(1, 2) == QQ(3, 2)
-    @test ZZ(Int8(1)) + QQ(1, 2) == QQ(3, 2)
-    @test typeof(ZZ(1) + QQ(1, 2)) == QQ{Int}
-    @test typeof(ZZ(1) + 1 // 2) == QQ{Int}
-    @test hash(ZZ(big"123")) == hash(123)
+    @test basetype(ZZZ) == BigInt
+    @test depth(ZZZ) == 1
+    @test iscoprime(ZZZ(18), ZZZ(35))
+    @test isirreducible(ZZZ(17))
+    @test !isirreducible(ZZZ(18))
+    @test typeof(copy(ZZZ(big"2"))) == ZZZ
+    a = ZZZ(16)
+    @test convert(ZZZ, a) === a
+    @test ZZZ(a) == a
+    @test ZZZ(100) + ZZZ(100) == ZZZ(200)
+    @test ZZZ(10) + 10 == 20
+    @test ZZZ(1) + QQ(1, 2) == QQ(3, 2)
+    @test ZZZ(Int8(1)) + QQ(1, 2) == QQ(3, 2)
+    @test typeof(ZZZ(1) + QQ(1, 2)) == QQ{BigInt}
+    @test typeof(ZZZ(1) + 1 // 2) == QQ{BigInt}
+    @test hash(ZZZ(big"123")) == hash(123)
 end
 
-@testset "ZZ{$T}" for T in (Int32, Int64, BigInt)
-
-    Z = ZZ{T}
+@testset "ZZZ()" begin
+    T = Int
+    Z = ZZZ
     z = zero(Z)
     @test z == zero(z)
     @test iszero(z)
@@ -35,31 +36,28 @@ end
     n1 = T(19)
     n2 = Base.hastypemax(T) ? typemax(T) : T(big"987654321987654321987654321")
     z1 = Z(n1)
-    z2 = ZZ(n2)
+    z2 = ZZZ(n2)
     @test !isunit(z1)
-    @test z1 + z1 == ZZ(T(2n1))
-    T != BigInt && @test_throws OverflowError z2 + z2
+    @test z1 + z1 == ZZZ(T(2n1))
 
     @test z1 - z1 == z
-    @test z1 - z2 == ZZ(n1 - n2)
-    @test -z2 == ZZ(-n2)
+    @test z1 - z2 == ZZZ(n1 - n2)
+    @test -z2 == ZZZ(-n2)
     @test isunit(-o)
-    T != BigInt && @test_throws OverflowError -z1 - z2
 
-    @test z1 * z1 == ZZ(T(n1 * n1))
-    @test z1 * n1 == ZZ(T(n1 * n1))
-    @test n1 * z1 == ZZ(T(n1 * n1))
-    T != BigInt && @test_throws OverflowError z1 * z2
+    @test z1 * z1 == ZZZ(T(n1 * n1))
+    @test z1 * n1 == ZZZ(T(n1 * n1))
+    @test n1 * z1 == ZZZ(T(n1 * n1))
 
-    @test z1^2 == ZZ(n1^2)
-    T != BigInt && @test_throws OverflowError z1^1000
+    @test z1^2 == ZZZ(n1^2)
+    @test z1^1000 > 0
 
     z3 = 2z1
     z4 = z3 + o
-    @test z3 ÷ z1 == ZZ(T(2))
+    @test z3 ÷ z1 == ZZZ(T(2))
     @test z1 ÷ z3 == z
-    @test z3 / z1 == ZZ(T(2))
-    @test z1 \ z3 == ZZ(T(2))
+    @test z3 / z1 == ZZZ(T(2))
+    @test z1 \ z3 == ZZZ(T(2))
     @test_throws DomainError z4 / z2
 
     @test inv(-o) == -o
@@ -68,26 +66,26 @@ end
     @test gcd(z3, z1) == z1
     @test gcd(z3, z1, z3) == z1
     @test gcdx(z3, z1) == (z1, zero(z3), one(z1))
-    @test gcdx(ZZ(60), ZZ(28), ZZ(6)) == (2, [-1, 2, 1])
+    @test gcdx(ZZZ(60), ZZZ(28), ZZZ(6)) == (2, [-1, 2, 1])
     @test lcm(z3, z1) == z3
-    @test rem(ZZ(12), ZZ(5)) == ZZ(2)
+    @test rem(ZZZ(12), ZZZ(5)) == ZZZ(2)
 
     @test sprint(show, z3) == "$(Int(2n1))"
 
-    @test value(z2) === n2
+    @test value(z2) == n2
 
     @test factor(z3) == [Z(2) => 1, n1 => 1]
     @test eltype(factor(z3)) == Pair{Z,Int}
 end
 
-@testset "conversion from rational type $T" for T in (QQ{Int}, Frac{ZZ{Int}}, Rational{Int})
+@testset "conversion from rational type $T" for T in (QQ{Int}, Frac{ZZZ}, Rational{Int})
     a = T(1 // 2)
     @test_throws InexactError Int(a)
     b = T(12)
     @test Int(b) == 12
 end
-@testset "conversion from fraction type Frac{ZZ[:x]}" begin
-    P = ZZ{Int}[:x]
+@testset "conversion from fraction type Frac{ZZZ[:x]}" begin
+    P = ZZZ[:x]
     x = monom(P)
     @test_throws InexactError P((x^2 + 1) // (2x))
     a = 2x^3 - x + 1
@@ -95,7 +93,7 @@ end
     @test P(b) == a
 end
 
-@testset "div/rem div($Z($a), $b, $m)" for Z in (ZZ,),
+@testset "div/rem div($Z($a), $b, $m)" for Z in (ZZZ,),
     a in Z.((900, 945, 955, -945, -955)),
     b in Z.((100, -100)),
     m in (RoundToZero, RoundDown, RoundUp, RoundNearest, nothing)
@@ -110,7 +108,6 @@ end
         @test div(a, b, m) == div(Int(a), Int(b), m)
         @test rem(a, b, m) == rem(Int(a), Int(b), m)
     end
-
 end
 
-end # module
+end

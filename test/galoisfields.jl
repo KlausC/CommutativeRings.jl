@@ -4,6 +4,7 @@ using CommutativeRings
 using CommutativeRings.Conway
 import CommutativeRings.Conway: has_conway_property, conway_multi
 using Test
+using Base.Iterators
 using Random
 using LinearAlgebra
 
@@ -15,10 +16,10 @@ randmatrix(p::Integer, n::Integer) = rand(rng, 0:p-1, n, n)
 
 @testset "Galois Fields Implementation" begin
 
-    @test GFImpl(7, mod=nothing) <: ZZmod{7}
-    @test GFImpl(7, mod=:conway) <: Quotient{<:UnivariatePolynomial{<:ZZmod{7}}}
+    @test GFImpl(7, mod=nothing) <: ZZmod{Int8(7)}
+    @test GFImpl(7, mod=:conway) <: Quotient{<:UnivariatePolynomial{<:ZZmod{Int8(7)}}}
     @test GFImpl(3) == GFImpl(3, 1)
-    @test GFImpl(5, 3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{5}}}
+    @test GFImpl(5, 3) <: Quotient{<:UnivariatePolynomial{<:ZZmod{Int8(5)}}}
 
     G7 = GFImpl(7)
     @test G7(3)^2 == G7(2)
@@ -51,7 +52,7 @@ end
     @test GF(p) == GF(p, 1; maxord = m)
     @test GF(p, r; maxord = m, mod = mod) <: GaloisField
     G = GF(p, r; maxord = m, mod = mod)
-    @test Quotient(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{p}}}
+    @test Quotient(G) <: Quotient{<:UnivariatePolynomial{<:ZZmod{Int8(p)}}}
     Q = Quotient(G)
     P = Polynomial(G)
     @test Q == basetype(G)
@@ -142,6 +143,15 @@ end
     @test monom(G) == G([0, 1])
 
     @test_throws ArgumentError inv(G(0))
+end
+
+@testset "equality check" begin
+    G = GF(5,3)
+    H = GF(5,3; maxord=0)
+    @test G == H
+    a = G[432]
+    b = H[432]
+    @test a == b
 end
 
 @testset "Galois Field Implementation - Homomorphisms" begin
@@ -267,6 +277,19 @@ end
     @test sqrt(G[13]^2) == G[13]
     @test sqrt(G[14]^2) == -G[14]
     @test all((sqrt.(cG .^ 2) .== cG) .| (sqrt.(cG .^ 2) .== .-cG))
+end
+
+@testset "Field extension GF($p^$r) ^ $d" for (p, r, d) in ((5, 2, 3), (2,3,4))
+    G = GF(p,r)
+    P = G[:x]
+    mod = first(Iterators.Filter(ismonomprimitive, (irreducibles(P, d))))
+    @test isirreducible(mod)
+    GG = GF(p; mod)
+    g = generator(GG)
+    @test monom(GG) == g
+    @test GG[p^r] == g
+    @test order(g) == order(GG) - 1
+    @test Set(g .* collect(GG)) == Set(GG)
 end
 
 end #module

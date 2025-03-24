@@ -107,12 +107,13 @@ Sometimes also called "Moreau's necklace-counting function".
 The necklace polynomial of degree in polynomial ring `R` is obtained by calling
 `necklace(monomial(R), n)`.
 """
-necklace(q::RingInt, n::Integer) = n == 0 ? one(q) : _necklace(q, Int(n))
-@inline function _necklace(q, n::Int)
+necklace(q::Base.BitInteger, n::Integer) = n == 0 ? one(q) : _necklace(q, intpower(q, n), Int(n))
+necklace(q::Union{BigInt,RingInt}, n::Integer) = n == 0 ? one(q) : _necklace(q, q^n, Int(n))
+@inline function _necklace(q, s, n::Int)
+    q = oftype(s, q)
     f = Primes.factor(n)
     p = collect(keys(f))
     m = length(p)
-    s = q^n
     for x = 1:(2^m-1)
         d = n
         μ = 1

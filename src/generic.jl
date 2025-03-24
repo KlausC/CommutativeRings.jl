@@ -77,7 +77,7 @@ adjoint(a::Ring) = a
 @generated function basetypes(a)
     _basetypes(::Type{a}) where a = begin
         b = basetype(a)
-        a == b ? [] : [a; _basetypes(b)]
+        a === b ? DataType[] : [a; _basetypes(b)]
     end
     bt = tuple(_basetypes(a.parameters[1])...)
     :($bt)
@@ -148,6 +148,7 @@ Returns the number of elements of (finite) ring `Z` or `0` if `|Z| == inf`.
 """
 order(::Type) = 0
 order(::Type{Z}) where Z<:ZZmod = uptype(modulus(Z))
+order(a::Type{Union{}}) = merror(order, a)
 
 """
     dimension(::Type)
@@ -171,7 +172,10 @@ characteristic(::Type{<:Number}) = 0
 
 Calculate `a ^ b` in appropriate result type.
 """
-intpower(a::Integer, b::Integer) = uptype(a, mintype_for(a, b, false))^b
+function intpower(a::Integer, b::Integer)
+    T = mintype_for(a, b, false)
+    T((uptype(a, T)^b))::Integer
+end
 
 """
     uptype(a, [T::Type])
@@ -200,8 +204,31 @@ function isprimitive(g::G) where G<:Ring
     iszero(g) && return false
     n = mult_order(G)
     iszero(n) && return false
-    fact = fact_mult_order(G)
+    fact = factor(n)
     _isprimitive(g, n, fact)
+end
+
+"""
+    isprimitive(x, y)
+
+Return iff `x` is a primitive element in quotient field `typeof(y) / y`.
+"""
+function isprimitive(x, y)
+    iszero(x) && return false
+    n = mult_order(y)
+    iszero(n) && return false
+    fact = factor(n)
+    _isprimitive((x, y), n, fact)
+end
+
+"""
+    ismonomprimitive(p::P) where P<:UnivariatePolynomial
+
+Returns true iff `monom(P/p)` is primitive (has maximal multiplicative order).
+"""
+function ismonomprimitive(p::P) where P<:UnivariatePolynomial
+    x = monom(P)
+    isprimitive(x, p)
 end
 
 # if `g` is a tuple `(a, m)` calculate modulo `m`
@@ -215,7 +242,7 @@ end
 function pwr(g::G, x::Integer) where G<:Ring
     g^x
 end
-function pwr((g, m)::Tuple{G,G}, x::Integer) where G<:Ring
+function pwr((g, m)::Tuple{G,G}, x::Integer) where G<:RingInt
     powermod(g, x, m)
 end
 
@@ -224,12 +251,15 @@ end
 
 Return the first primitive element of given iterable ring.
 """
-function generator(::Type{R}) where R<:Ring
+generator(::Type{R}) where R<:Ring = _generator(R, Base.IteratorSize(R))
+
+function _generator(R::Type, ::Base.HasLength)
     for x in R
         isprimitive(x) && return x
     end
     return zero(R)
 end
+generator(a::Type{Union{}}) = merror(generator, (a,))
 
 """
     order(z::Ring)
@@ -242,9 +272,27 @@ function order(x::G) where G<:Ring
     isone(x) && return 1
     ord = mult_order(G)
     iszero(ord) && return 0
-    fact = fact_mult_order(G)
+    fact = factor(ord)
     _order(x, ord, fact)
 end
+
+"""
+    order(x, y)
+
+Returns order of `x` in the quotient field `typeof(y)/y`.
+
+Requires `powermod(x, y, n)` to be defined.
+"""
+function order(x, y)
+    iszero(x) && return 0
+    isone(x) && return 1
+    isone(-x) && return 2
+    ord = mult_order(y)
+    iszero(ord) && return 0
+    fact = factor(ord)
+    _order((x, y), ord, fact)
+end
+
 
 function _order(g, mm::Integer, fact)
     opt = mm
@@ -263,13 +311,11 @@ end
 order of multiplicative subgroup of `R`.
 """
 mult_order(R::Type) = 0
-mult_order(R::Type{<:ZZ}) = 2
+mult_order(R::Type{<:ZI}) = 2
 mult_order(R::Type{<:ZZmod}) = totient(modulus(R))
 mult_order(R::Type{<:GaloisField}) = order(R) - 1
-mult_order(R::Type{<:Polynomial}) = mult_order(basetype(R))
-function mult_order(R::Type{<:Quotient})
-    isirreducible(modulus(R)) ? order(R) - 1 : 0
-end
+mult_order(R::Type{<:Quotient}) = isprimemod(R) ? order(R) - 1 : 0
+mult_order(x::P) where P<:UnivariatePolynomial = intpower(order(basetype(P)), deg(x)) - 1
 
 """
     fact_mult_order(::Type{<:Ring})
@@ -532,6 +578,12 @@ function Base.powermod(x::R, p::Integer, m::R) where R<:Ring
     end
     return y
 end
+
+category_trait(a::Type{Union{}}) = throw(MethodError(category_trait, (a,)))
+
+@noinline terror(s...) =  throw(ArgumentError(string(s...)))
+@noinline merror(f, s...) = throw(MethodError(f, tuple(s...)))
+@noinline merror(f, s::Tuple) = throw(MethodError(f, s))
 
 const SUPERSCRIPTS = Char[
     0x2070,

@@ -20,6 +20,14 @@ ZZZ(a::T) where T<:Base.BitUnsignedSmall = ZZZ(UInt(a))
 ZZZ(a::T) where T<:Base.BitInteger = ZZZ(BigInt(a))
 ZZZ(a::T) where T<:Real = ZZZ(Integer(a))
 
+Base.signed(::Type{<:ZZZ}) = ZZZ
+Base.signed(x::ZZZ) = x
+function Base.divgcd(x::TX, y::TY)::Tuple{TX, TY} where {TX<:ZZZ, TY<:ZZZ}
+    g = gcd(abs(x), abs(y))
+    div(x,g), div(y,g)
+end
+rem(x::Union{Integer,ZZZ}, ::Type{<:ZZZ}) = ZZZ(x)
+
 function ZZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T
     a.den != 1 && throw(InexactError(:ZZZ, ZZZ, a))
     ZZZ(a.num)
@@ -29,7 +37,8 @@ end
 promote_rule(::Type{ZZZ}, ::Type{<:ZZ}) = ZZZ
 promote_rule(::Type{ZZZ}, ::Type{QQ{S}}) where {S} = QQ{promote_type(S, BigInt)}
 promote_rule(::Type{ZZZ}, ::Type{S}) where {S<:Integer} = ZZZ
-promote_rule(::Type{ZZZ}, ::Type{R}) where {R<:Rational} = QQ{promote_type(basetype(R), BigInt)}
+promote_rule(::Type{ZZZ}, ::Type{R}) where {R<:Rational} =
+    QQ{promote_type(basetype(R), BigInt)}
 
 # induced homomorphism
 function (h::Hom{F,R,S})(p::Z) where {F,R,S,Z<:ZZZ}
@@ -48,7 +57,7 @@ Base.to_power_type(x::ZZZ) = x
 
 # operations for ZZ
 
-fmpz(a::Symbol) = (Symbol(:fmpz_, a), libflint)
+fmpz(a...) = (Symbol(:fmpz_, a...), libflint)
 
 for (fJ, fC) in ((:+, :add), (:-, :sub), (:*, :mul), (:&, :and), (:|, :or), (:xor, :xor))
     @eval begin
@@ -59,52 +68,73 @@ for (fJ, fC) in ((:+, :add), (:-, :sub), (:*, :mul), (:&, :and), (:|, :or), (:xo
         end
         function ($fJ)(x::ZZZ, y::Int)
             z = ZZZ(0)
-            ccall($(fmpz(Symbol(fC, "_si"))), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Int), z, x, y)
+            ccall($(fmpz(fC, "_si")), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Int), z, x, y)
             return z
         end
         function ($fJ)(x::ZZZ, y::UInt)
             z = ZZZ(0)
-            ccall($(fmpz(Symbol(fC, "_ui"))), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, x, y)
+            ccall($(fmpz(fC, "_ui")), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, x, y)
             return z
         end
 
         function ($fJ)(y::Int, x::ZZZ)
             z = ZZZ(0)
-            ccall($(fmpz(Symbol(fC, "_si"))), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Int), z, x, y)
+            ccall($(fmpz(fC, "_si")), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Int), z, x, y)
             return $(fC == :sub) ? -z : z
         end
         function ($fJ)(y::UInt, x::ZZZ)
             z = ZZZ(0)
-            ccall($(fmpz(Symbol(fC, "_ui"))), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, x, y)
+            ccall($(fmpz(fC, "_ui")), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, x, y)
             return $(fC == :sub) ? -z : z
         end
     end
 end
 
-function -(a::ZZZ)
-    z = ZZZ(0)
-    ccall((:fmpz_neg, libflint), Nothing, (Ref{ZZZ}, Ref{ZZZ}), z, a)
-    return z
-end
+@eval begin
 
-function abs(a::ZZZ)
-    z = ZZZ(0)
-    ccall((:fmpz_abs, libflint), Nothing, (Ref{ZZZ}, Ref{ZZZ}), z, a)
-    return z
-end
-
-^(a::ZZZ, b::Integer) = pow(a, b)
-^(a::ZZZ, b::ZZZ) = pow(a, b)
-
-function pow(a::ZZZ, b::T) where T<:Union{Integer,ZZZ}
-    z = ZZZ(0)
-    iszero(a) && return z
-    if isunit(a)
-        return !isone(a) && isodd(b) ? abs(a) : copy(a)
+    function Base.iseven(a::ZZZ)
+        ccall($(fmpz(:is_even)), Clong, (Ref{ZZZ},), a) != 0
     end
-    b < 0 && throw(DomainError(a, "cannot divide by non-unit."))
-    ccall((:fmpz_pow_ui, libflint), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, a, b)
-    return z
+    function Base.isodd(a::ZZZ)
+        ccall($(fmpz(:is_odd)), Clong, (Ref{ZZZ},), a) != 0
+    end
+
+    function -(a::ZZZ)
+        z = ZZZ(0)
+        ccall($(fmpz(:neg)), Nothing, (Ref{ZZZ}, Ref{ZZZ}), z, a)
+        return z
+    end
+
+    function abs(a::ZZZ)
+        z = ZZZ(0)
+        ccall($(fmpz(:abs)), Nothing, (Ref{ZZZ}, Ref{ZZZ}), z, a)
+        return z
+    end
+
+    ^(a::ZZZ, b::Integer) = pow(a, b)
+    ^(a::ZZZ, b::ZI) = pow(a, b)
+
+    function pow(a::ZZZ, b::T) where T<:Union{Integer,ZI}
+        z = ZZZ(0)
+        iszero(a) && return z
+        if isunit(a)
+            return !isone(a) && iseven(b) ? abs(a) : copy(a)
+        end
+        b < 0 && throw(DomainError((a, b), lazy"cannot power by non-unit."))
+        fmpz_pow(z, a, b)
+    end
+
+    function fmpz_pow(z::ZZZ, a::ZZZ, b::Union{ZI,Int128,UInt128,BigInt})
+        b = convert(ZZZ, b)
+        ccall($(fmpz(:pow_fmpz)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), z, a, b)
+        return z
+    end
+
+    function fmpz_pow(z::ZZZ, a::ZZZ, b::Integer)
+        b = convert(UInt, b)
+        ccall($(fmpz(:pow_ui)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, a, b)
+        return z
+    end
 end
 
 for (m, f) in ((RoundToZero, :t), (RoundDown, :f), (RoundUp, :c), (RoundNearest, :n))
@@ -112,47 +142,44 @@ for (m, f) in ((RoundToZero, :t), (RoundDown, :f), (RoundUp, :c), (RoundNearest,
         function divrem(a::T, b::T, m::$(typeof(m))) where T<:ZZZ
             q = ZZZ(0)
             r = ZZZ(0)
-            ccall(
-                $(fmpz(Symbol(f, :div_qr))),
-                Nothing,
-                (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}),
-                q,
-                r,
-                a,
-                b,
-            )
+            fun = $(fmpz(f, :div_qr))
+            ccall(fun, Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), q, r, a, b)
+            #@ccall libflint.fmpz_tdiv_qr(q::Ref{ZZZ}, r::Ref{ZZZ}, a::Ref{ZZZ}, b::Ref{ZZZ})::Nothing
             return q, r
         end
+    end
+end
+for (m, f) in ((RoundToZero, :t), (RoundDown, :f), (RoundUp, :c))
+    @eval begin
         function div(a::T, b::T, m::$(typeof(m))) where T<:ZZZ
             q = ZZZ(0)
-            ccall(
-                $(fmpz(Symbol(f, :div_q))),
-                Nothing,
-                (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}),
-                q,
-                a,
-                b,
-            )
+            ccall($(fmpz(f, :div_q)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), q, a, b)
             return q
         end
+    end
+end
+div(a::T, b::T, m::RoundingMode) where T<:ZZZ = divrem(a, b, m)[1]
+
+for (m, f) in ((RoundDown, :f),)
+    @eval begin
         function rem(a::T, b::T, m::$(typeof(m))) where T<:ZZZ
             r = ZZZ(0)
-            ccall(
-                $(fmpz(Symbol(f, :div_r))),
-                Nothing,
-                (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}),
-                r,
-                a,
-                b,
-            )
+            ccall($(fmpz(f, :div_r)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), r, a, b)
             return r
         end
     end
 end
+@eval begin
+    function mod(a::T, b::T) where T<:ZZZ
+        r = ZZZ(0)
+        ccall($(fmpz(:mod)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), r, a, b)
+        return signbit(b) && !iszero(r) ? b + r : r
+    end
+end
+
 
 divrem(a::T, b::T) where T<:ZZZ = divrem(a, b, RoundToZero)
 div(a::T, b::T) where T<:ZZZ = div(a, b, RoundToZero)
-rem(a::T, b::T) where T<:ZZZ = rem(a, b, RoundToZero)
 
 isunit(a::ZZZ) = abs(a.d) == 1
 isone(a::ZZZ) = isone(a.d)
@@ -166,27 +193,28 @@ isirreducible(a::ZZZ) = isirreducible(value(a))
 
 Base.show(io::IO, z::ZZZ) = print(io, value(z))
 
-function (::Type{BigInt})(a::ZZZ)
-    r = BigInt()
-    ccall((:fmpz_get_mpz, libflint), Nothing, (Ref{BigInt}, Ref{ZZZ}), r, a)
-    return r
-end
+@eval begin
+    function (::Type{BigInt})(a::ZZZ)
+        r = BigInt()
+        ccall($(fmpz(:get_mpz)), Nothing, (Ref{BigInt}, Ref{ZZZ}), r, a)
+        return r
+    end
 
-function (::Type{Int})(a::ZZZ)
-    (a > typemax(Int) || a < typemin(Int)) && throw(InexactError(:convert, Int, a))
-    return ccall((:fmpz_get_si, libflint), Int, (Ref{ZZZ},), a)
-end
+    function (::Type{Int})(a::ZZZ)
+        (a > typemax(Int) || a < typemin(Int)) && throw(InexactError(:convert, Int, a))
+        ccall($(fmpz(:get_si)), Int, (Ref{ZZZ},), a)
+    end
 
-function (::Type{UInt})(a::ZZZ)
-    (a > typemax(UInt) || a < 0) && throw(InexactError(:convert, UInt, a))
-    return ccall((:fmpz_get_ui, libflint), UInt, (Ref{ZZZ},), a)
-end
+    function (::Type{UInt})(a::ZZZ)
+        (a > typemax(UInt) || a < 0) && throw(InexactError(:convert, UInt, a))
+        ccall($(fmpz(:get_ui)), UInt, (Ref{ZZZ},), a)
+    end
 
-function (::Type{Float64})(n::ZZZ)
-    # rounds to zero
-    ccall((:fmpz_get_d, libflint), Float64, (Ref{ZZZ},), n)
+    function (::Type{Float64})(n::ZZZ)
+        # rounds to zero
+        ccall($(fmpz(:get_d)), Float64, (Ref{ZZZ},), n)
+    end
 end
-
 (::Type{T})(a::ZZZ) where T<:Union{Int128,UInt128,BigFloat} = T(BigInt(a))
 
 (::Type{T})(a::ZZZ) where T<:Signed = T(Int(a))
@@ -199,16 +227,18 @@ Base.convert(::Type{R}, z::ZZZ) where R<:Real = R(z)
 
 import Base: cmp, ==, <=, >=, <, >
 
-function cmp(x::ZZZ, y::ZZZ)
-    Int(ccall((:fmpz_cmp, libflint), Cint, (Ref{ZZZ}, Ref{ZZZ}), x, y))
-end
+@eval begin
+    function cmp(x::ZZZ, y::ZZZ)
+        Int(ccall($(fmpz(:cmp)), Cint, (Ref{ZZZ}, Ref{ZZZ}), x, y))
+    end
 
-function cmp(x::ZZZ, y::Int)
-    Int(ccall((:fmpz_cmp_si, libflint), Cint, (Ref{ZZZ}, Int), x, y))
-end
+    function cmp(x::ZZZ, y::Int)
+        Int(ccall($(fmpz(:cmp_si)), Cint, (Ref{ZZZ}, Int), x, y))
+    end
 
-function cmp(x::ZZZ, y::UInt)
-    Int(ccall((:fmpz_cmp_ui, libflint), Cint, (Ref{ZZZ}, UInt), x, y))
+    function cmp(x::ZZZ, y::UInt)
+        Int(ccall($(fmpz(:cmp_ui)), Cint, (Ref{ZZZ}, UInt), x, y))
+    end
 end
 
 cmp(x::ZZZ, y::Integer) = cmp(value(x), y)
