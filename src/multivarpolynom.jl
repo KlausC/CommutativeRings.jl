@@ -98,7 +98,8 @@ function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
     P(pind, pc)
 end
 function (P::Type{<:MultivariatePolynomial{R,N,X,T}})(
-    a::U) where {R,N,X,T,S,U<:UnivariatePolynomial{S}}
+    a::U,
+) where {R,N,X,T,S,U<:UnivariatePolynomial{S}}
 
     deg(a) <= 0 && return P(LC(a))
     if promote_type(R, U) == R
@@ -603,14 +604,13 @@ bijective mapping from tuples of non-negative integers to positive integers.
 The induced order of tuples is `degrevlex`.
 """
 function expo2ord(a::AbstractVector{<:Integer})
-    c = similar(a)
     d = length(a)
-    d == 0 && return c + 1
-    ci = s = sum = a[1]
+    d == 0 && return 1
+    T = eltype(a)
+    s = sum = a[1]
     for i = 2:d
         s += a[i]
-        ci = s + i - 1
-        sum += binomial(ci, i)
+        sum += binomial(s + i - 1, T(i))
     end
     sum + 1
 end
@@ -624,6 +624,7 @@ The induced order of tuples is `degrevlex`.
 """
 function ord2expo(n::T, d::Int) where T<:Integer
     c = Vector{T}(undef, d)
+    d == 0 && return c
     n < 1 && throw(ArgumentError("index must be positive but is $n"))
     n -= 1
     for i = d:-1:1
@@ -647,10 +648,11 @@ Calculate the greatest integer `c` such that `binomial(c, d) <= n`
 """
 function cbin(n::T, d::Int) where T<:Integer
     d <= 0 && throw(ArgumentError("tuple size > 0 required, but is $d"))
+    n, d = promote(n, d)
     d == 1 && return n, n
     n == 0 && return d - 1, n
     n == 1 && return d, n
-    c = T(floor((n * sqrt(2pi * d))^(1 / d) * d / ℯ + d / 2))
+    c = oftype(n, floor(^(float(n) * factorial(d), 1 / d) + (d - 1) / 2))
     if c <= d
         c = d
         b = T(1)
@@ -662,12 +664,14 @@ function cbin(n::T, d::Int) where T<:Integer
     while b <= n
         bp = b
         c += 1
-        b = b * c ÷ (c - d)
+        bt = div(widemul(b, c), c - d)
+        b = bt % T
+        b != bt && return c - 1, bp
     end
     b >= n > bp && return c - 1, bp
     while b > n
         bp = b
-        b = b * (c - d) ÷ c
+        b -= b * d ÷ c
         c -= 1
     end
     return c, b

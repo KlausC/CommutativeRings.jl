@@ -74,10 +74,11 @@ generatorset(::Type{P}) where P<:Quotient{<:Polynomial} = generatorset(basetype(
 
 adjoint(a::Ring) = a
 
-@generated function basetypes(a)
+@generated function basetypes(a::DataType)
+    _basetypes(::Type{Union{}}) = DataType[]
     _basetypes(::Type{a}) where a = begin
         b = basetype(a)
-        a === b ? DataType[] : [a; _basetypes(b)]
+        [a; _basetypes(b)]
     end
     bt = tuple(_basetypes(a.parameters[1])...)
     :($bt)
