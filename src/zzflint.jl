@@ -152,8 +152,7 @@ for (m, f) in ((RoundToZero, :t), (RoundDown, :f), (RoundUp, :c), (RoundNearest,
         function divrem(a::T, b::T, m::$(typeof(m))) where T<:ZZZ
             q = ZZZ(0)
             r = ZZZ(0)
-            fun = $(fmpz(f, :div_qr))
-            ccall(fun, Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), q, r, a, b)
+            ccall($(fmpz(f, :div_qr)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), q, r, a, b)
             #@ccall libflint.fmpz_tdiv_qr(q::Ref{ZZZ}, r::Ref{ZZZ}, a::Ref{ZZZ}, b::Ref{ZZZ})::Nothing
             return q, r
         end
