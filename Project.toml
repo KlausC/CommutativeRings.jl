@@ -1,7 +1,7 @@
 name = "CommutativeRings"
 uuid = "a6d4fa9c-9e0b-4795-89f3-f481b7b5e384"
 license = "MIT"
-version = "0.7"
+version = "0.7.0"
 authors = ["Klaus Crusius <KlausC@users.noreply.github.com>"]
 repo = "https://github.com/KlausC/CommutativeRings.jl"
 
