@@ -110,4 +110,34 @@ end
     end
 end
 
+@testset "powers $t($a) ^ $b" for (a, b, c) in (
+        (0, 0, 1),
+        (0, 10, 0),
+        (1, -1, 1),
+        (-1, 1, -1),
+        (-1, -1, -1),
+        (-1, typemax(UInt128), -1),
+        (-1, typemax(UInt128) - 1, 1),
+    ),
+    t in (ZZZ,)
+
+    aa = ZZZ(a)
+    bb = t(b)
+    @test aa^bb == c
+end
+
+@testset "powers ZZZ($a) ^ $t($b)" for (a, b, c) in (
+        (0, -1, DomainError),
+        (-2, -1, DomainError),
+        (2, typemax(UInt128), OverflowError),
+        (-2, typemax(UInt128), OverflowError),
+    ),
+    t in (ZZZ,)
+
+    aa = ZZZ(a)
+    bb = t(b)
+    @test_throws c aa^bb
+end
+
+
 end

@@ -22,9 +22,9 @@ ZZZ(a::T) where T<:Real = ZZZ(Integer(a))
 
 Base.signed(::Type{<:ZZZ}) = ZZZ
 Base.signed(x::ZZZ) = x
-function Base.divgcd(x::TX, y::TY)::Tuple{TX, TY} where {TX<:ZZZ, TY<:ZZZ}
+function Base.divgcd(x::TX, y::TY)::Tuple{TX,TY} where {TX<:ZZZ,TY<:ZZZ}
     g = gcd(abs(x), abs(y))
-    div(x,g), div(y,g)
+    div(x, g), div(y, g)
 end
 rem(x::Union{Integer,ZZZ}, ::Type{<:ZZZ}) = ZZZ(x)
 
@@ -115,24 +115,34 @@ end
     ^(a::ZZZ, b::ZI) = pow(a, b)
 
     function pow(a::ZZZ, b::T) where T<:Union{Integer,ZI}
-        z = ZZZ(0)
-        iszero(a) && return z
+        @noinline throw0(a, b) =
+            throw(DomainError((a, b), lazy"cannot power non-unit with negative exponent."))
+        @noinline throw1(y) =
+            throw(OverflowError("exponent $y is too large and computation will overflow"))
+
         if isunit(a)
             return !isone(a) && iseven(b) ? abs(a) : copy(a)
         end
-        b < 0 && throw(DomainError((a, b), lazy"cannot power by non-unit."))
-        fmpz_pow(z, a, b)
-    end
+        b < 0 && throw0(a, b)
 
-    function fmpz_pow(z::ZZZ, a::ZZZ, b::Union{ZI,Int128,UInt128,BigInt})
-        b = convert(ZZZ, b)
-        ccall($(fmpz(:pow_fmpz)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Ref{ZZZ}), z, a, b)
-        return z
+        z = ZZZ(0)
+        iszero(a) && return iszero(b) ? oneunit(a) : z
+        if b > typemax(Culong)
+            #At this point, x is not 1, 0 or -1 and it is not possible to use
+            #gmpz_pow_ui to compute the answer. Note that the magnitude of the
+            #answer is:
+            #- at least 2^(2^32-1) ≈ 10^(1.3e9) (if Culong === UInt32).
+            #- at least 2^(2^64-1) ≈ 10^(5.5e18) (if Culong === UInt64).
+            #
+            #Assume that the answer will definitely overflow.
+            throw1(b)
+        end
+        fmpz_pow(z, a, convert(Culong, b))
     end
 
     function fmpz_pow(z::ZZZ, a::ZZZ, b::Integer)
-        b = convert(UInt, b)
-        ccall($(fmpz(:pow_ui)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, UInt), z, a, b)
+        b = convert(Culong, b)
+        ccall($(fmpz(:pow_ui)), Nothing, (Ref{ZZZ}, Ref{ZZZ}, Culong), z, a, b)
         return z
     end
 end
