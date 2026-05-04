@@ -15,6 +15,7 @@ iscoprime(a::T, b::T) where T<:ZZZ = gcd(a, b) == one(T)
 value(a::ZZZ) = BigInt(a)
 
 copy(a::ZZZ) = ZZZ(a)
+ZZZ(a::T) where T<:Bool = ZZZ(Int(a))
 ZZZ(a::T) where T<:Base.BitSignedSmall = ZZZ(Int(a))
 ZZZ(a::T) where T<:Base.BitUnsignedSmall = ZZZ(UInt(a))
 ZZZ(a::T) where T<:Base.BitInteger = ZZZ(BigInt(a))
