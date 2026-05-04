@@ -195,9 +195,9 @@ function pgcdx(a::T, b::T) where {S,T<:UnivariatePolynomial{S}}
     cc, a, b = normgcd(a, b)
     ψ = -E
     β = iseven(d) ? E : -E
-    EE = one(T)
-    ZZ = zero(T)
-    s1, s2, t1, t2 = EE, ZZ, ZZ, EE
+    One = one(T)
+    Zero = zero(T)
+    s1, s2, t1, t2 = One, Zero, Zero, One
     while true
         γ = LC(b)
         γd = γ^(d + 1)

@@ -97,7 +97,7 @@ end
     @test approx(c) ≈ op(approx(a), approx(b))
 end
 
-@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (0, 11, ZZ(11))
+@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (0, 11, ZZ(11), ZZZ(11))
     a = big(a)
     b = AlgebraicNumber(x^3 + x + 1)
     c = op(a, b)

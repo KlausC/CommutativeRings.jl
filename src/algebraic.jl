@@ -3,7 +3,7 @@ import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, isapp
 import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi
 
 # construction
-basetype(::Type{<:AlgebraicNumber}) = QQ{BigInt}
+basetype(::Type{<:AlgebraicNumber}) = QQ{ZZZ}
 category_trait(::Type{A}) where A<:AlgebraicNumber = category_trait(basetype(A))
 
 function AlgebraicNumber(
@@ -21,10 +21,10 @@ function AlgebraicNumber(
     ::Val{:irreducible},
 )
     r = cr_roots(p)
-    a, id = closeroot(p, big(value(a)), r)
+    a, id = closeroot(p, big(fvalue(a)), r)
     AlgebraicNumber(p, r, id, a, NOCHECK)
 end
-function AlgebraicNumber(a::Union{Integer,Rational{<:Integer},ZZ,QQ})
+function AlgebraicNumber(a::Union{Integer,Rational{<:Integer},ZI,QQ})
     Q = basetype(AlgebraicNumber)
     x = monom(Q[:x])
     qa = Q(a)
@@ -62,7 +62,7 @@ Base.convert(::Type{T}, a::Ring) where T<:AlgebraicNumber = T(a)
 Base.convert(::Type{T}, a::AlgebraicNumber) where T<:AlgebraicNumber = a
 
 promote_rule(::Type{<:A}, ::Type{<:QQ}) where A<:AlgebraicNumber = A
-promote_rule(::Type{<:A}, ::Type{<:ZZ}) where A<:AlgebraicNumber = A
+promote_rule(::Type{<:A}, ::Type{<:ZI}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Integer}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Rational}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Complex}) where A<:AlgebraicNumber = A
@@ -101,9 +101,9 @@ Base.iszero(a::AlgebraicNumber) = deg(a) == 1 && minimal_polynomial(a).first == 
 isone(a::AlgebraicNumber) = deg(a) == 1 && isone(-minimal_polynomial(a)[0])
 isunit(a::AlgebraicNumber) = !iszero(a)
 
-approx(a::Union{Integer,Rational,ZZ,QQ}) = float(value(a))
+approx(a::Union{Integer,Rational,ZI,QQ}) = float(fvalue(a))
 
-function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
+@inline function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
     p = minimal_polynomial(a)
     x = monom(typeof(p))
     q = compress(p(-x) * p, 2)
@@ -112,10 +112,10 @@ function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
     end
     AlgebraicNumber(q, approx(a)^2)
 end
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{1}) = a
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{3}) = pow(a, 3)
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-1}) = inv(a)
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-2}) = inv(a^2)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{1}) = a
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{3}) = pow(a, 3)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-1}) = inv(a)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-2}) = inv(a^2)
 
 ^(a::AlgebraicNumber, n::Integer) = pow(a, n)
 function ^(a::AlgebraicNumber, q::Rational{<:Integer})
@@ -179,7 +179,7 @@ function *(a::T, b::T) where T<:AlgebraicNumber
 end
 
 *(a::T, aa::RingNumber) where T<:AlgebraicNumber =
-    AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * value(aa))
+    AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * fvalue(aa))
 *(aa::RingNumber, a::T) where T<:AlgebraicNumber = a * aa
 *(p::P, a::R) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
 *(a::R, p::P) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
@@ -258,7 +258,7 @@ function findbest(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
         p = bestpoly(pss, a)
     end
     r = cr_roots(p)
-    b, id = closeroot(p, big(value(a)), r)
+    b, id = closeroot(p, big(fvalue(a)), r)
     p, b, r, id
 end
 
@@ -276,7 +276,8 @@ function bestpoly(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
 end
 
 
-value(a::Number) = float(a)
+fvalue(a::Number) = float(a)
+fvalue(a::Ring) = value(a)
 
 # find root of `p`, which is closest to `a`.
 function closeroot(p::UnivariatePolynomial, a::Number, r::AbstractVector{<:Number})
@@ -393,7 +394,7 @@ end
 
 Return the algebraic number at `exp(pi * r * im)`.
 """
-Base.cispi(q::Q) where Q<:QQ = _cispi(Q, value(q))
+Base.cispi(q::Q) where Q<:QQ = _cispi(Q, fvalue(q))
 function _cispi(Q::Type{<:QQ}, r::Rational{<:Integer})
     r = mod(r + 1, 2) - 1
     r //= 2
@@ -412,7 +413,7 @@ function Base.sincospi(q::QQ)
     b = inv(e)
     c = (a + b) / 2
     s = ((a - b) / 2)^2
-    fs, fc = sincospi(big(value(q)))
+    fs, fc = sincospi(big(fvalue(q)))
     as = sqrt(AlgebraicNumber(-s, fs^2))
     ac = AlgebraicNumber(c, fc)
     as, ac
@@ -423,7 +424,7 @@ function Base.sinpi(q::QQ)
     a = monom(N)
     b = inv(a)
     s = (a - b) / 2
-    fs = sinpi(big(value(q))) * im
+    fs = sinpi(big(fvalue(q))) * im
     as = AlgebraicNumber(s, fs)
     AlgebraicNumber(_squaremulim(minimal_polynomial(as)), approx(as) / im)
 end
@@ -433,7 +434,7 @@ function Base.cospi(q::QQ)
     a = monom(N)
     b = inv(a)
     c = (a + b) / 2
-    fc = cospi(big(value(q)))
+    fc = cospi(big(fvalue(q)))
     ac = AlgebraicNumber(c, fc)
     ac
 end
@@ -443,7 +444,7 @@ function Base.tanpi(q::QQ)
     a = monom(N)
     b = inv(a)
     c = (a - b) / (a + b)
-    fc = tanpi(big(value(q))) * im
+    fc = tanpi(big(fvalue(q))) * im
     ac = AlgebraicNumber(c, fc)
     AlgebraicNumber(_squaremulim(minimal_polynomial(ac)), approx(ac) / im)
 end
@@ -594,7 +595,7 @@ Is an alternative to `det(x - companion(p, q))` which is faster sometimes.
 """
 function com2(p::UnivariatePolynomial{T}, q) where T
     n = deg(p)
-    S = typeof(value(p[0]))
+    S = typeof(fvalue(p[0]))
     M = zeros(S, n, n)
     s = q^0
     for i = 0:n-1

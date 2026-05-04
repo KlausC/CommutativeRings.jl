@@ -2,7 +2,7 @@
 # class constructors
 ZZ(::Type{T}) where T<:Integer = ZZ{T}
 
-Base.big(::Type{<:ZZ}) = ZZ{BigInt}
+Base.big(::Type{<:ZI}) = ZZZ
 
 # construction
 category_trait(::Type{<:ZZ}) = EuclidianDomainTrait

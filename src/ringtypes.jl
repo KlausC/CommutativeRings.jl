@@ -196,10 +196,10 @@ end
 The quotient ring of `R` modulo `m` of type `I`, also written as `R / m`.
 `m` may be an ideal of `R` or a (list of) element(s) of `R` generating the ideal.
 Typically `m` is replaced by a symbolic `X`, and the actual `m` is given as argument(s)
-to the type constructor like  `new_class(Quotient{ZZ,`X`}, m...)`.
+to the type constructor like  `new_class(Quotient{ZZ,:X}, m...)`.
 If the `X` is omitted, an anonymous symbol is used.
 
-The preferred way of construction is via `Zm = Z/m`.
+The preferred way of construction is via `Zm = ZZ/m`.
 """
 struct Quotient{R<:Ring,I,X,Id} <: QuotientRing{R,QuotientClass{X,I}}
     val::R
@@ -322,7 +322,7 @@ end
 
 Union of all scalar and discrete types.
 """
-const RingNumber = Union{Integer,Rational,ZZZ,ZZ,QQ,ZZmod,GaloisField}
+const RingNumber = Union{Integer,Rational,ZI,QQ,ZZmod,GaloisField}
 
 # Categorial traits specify algebraic properties of ring types
 # (cf. https://en.wikipedia.org/wiki/Integral_domain)

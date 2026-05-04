@@ -28,13 +28,13 @@ function Base.divgcd(x::TX, y::TY)::Tuple{TX,TY} where {TX<:ZZZ,TY<:ZZZ}
 end
 rem(x::Union{Integer,ZZZ}, ::Type{<:ZZZ}) = ZZZ(x)
 
-function ZZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T
+function ZZZ(a::Union{QQ,Frac{<:ZI}})
     a.den != 1 && throw(InexactError(:ZZZ, ZZZ, a))
     ZZZ(a.num)
 end
 
 # promotion and conversion
-promote_rule(::Type{ZZZ}, ::Type{<:ZZ}) = ZZZ
+promote_rule(::Type{ZZZ}, ::Type{<:ZI}) = ZZZ
 promote_rule(::Type{ZZZ}, ::Type{QQ{S}}) where {S} = QQ{promote_type(S, BigInt)}
 promote_rule(::Type{ZZZ}, ::Type{S}) where {S<:Integer} = ZZZ
 promote_rule(::Type{ZZZ}, ::Type{R}) where {R<:Rational} =
@@ -55,7 +55,7 @@ end
 Base.isless(p::T, q::T) where T<:ZZZ = p < q
 Base.to_power_type(x::ZZZ) = x
 
-# operations for ZZ
+# operations for ZZZ
 
 fmpz(a...) = (Symbol(:fmpz_, a...), libflint)
 
