@@ -81,7 +81,7 @@ end
 ==(a::T, b::T) where T<:QQ = Rational(a) == Rational(b)
 /(a::T, b::T) where T<:QQ = iszero(b) ? throw(DivideError()) : QQ(Rational(a) / Rational(b))
 -(a::T) where T<:QQ{<:Integer} = T(checked_neg(a.num), a.den)
--(a::T) where T = T(-a.num, a.den)
+-(a::T) where T<:QQ{<:Ring} = T(-a.num, a.den)
 divrem(a::T, b::T) where T<:QQ = (a / b, zero(T))
 div(a::T, b::T) where T<:QQ = a / b
 rem(a::T, b::T) where T<:QQ = zero(T)
