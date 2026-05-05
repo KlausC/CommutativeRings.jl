@@ -1,6 +1,7 @@
 
 import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, isapprox, hash
 import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi
+import Base.MathConstants: φ
 
 # construction
 basetype(::Type{<:AlgebraicNumber}) = QQ{ZZZ}
@@ -30,6 +31,18 @@ function AlgebraicNumber(a::Union{Integer,Rational{<:Integer},ZI,QQ})
     qa = Q(a)
     AlgebraicNumber(x - qa, [Float64(qa)], 1, qa, NOCHECK)
 end
+
+SMALL_INT = 999
+function AlgebraicNumber(a::AbstractFloat)
+    b = rationalize(a)
+    bn = abs(numerator(b))
+    bd = denominator(b)
+    if !(bn <= 1 || bd <= 1 || bn <= SMALL_INT && bd <= SMALL_INT)
+        R = typeof(b)
+        throw(InexactError(R.name.name, R, a))
+    end
+    AlgebraicNumber(b)
+end
 function AlgebraicNumber(a::Complex)
     if isreal(a)
         return AlgebraicNumber(real(a))
@@ -45,6 +58,23 @@ function AlgebraicNumber(a::Complex)
         ca = conj(ca)
     end
     AlgebraicNumber(x^2 - 2 * ra * x + ia^2 + ra^2, [ca, conj(ca)], id, a, NOCHECK)
+end
+function AlgebraicNumber(a::Complex{<:AbstractFloat})
+    r, i = reim(a)
+    if iszero(i)
+        AlgebraicNumber(r)
+    else
+        AlgebraicNumber(r) + AlgebraicNumber(i) * AlgebraicNumber(im)
+    end
+end
+function AlgebraicNumber(s::Symbol)
+    n = eval(s)
+    n in (im, Base.MathConstants.φ) || throw(ArgumentError("symbol `$s` not supported"))
+    AlgebraicNumber(n)
+end
+# note: `φ`` is typed `\varphi`
+function AlgebraicNumber(::typeof(Base.MathConstants.φ))
+    AlgebraicNumber(:((sqrt(5) + 1) / 2))
 end
 
 function AlgebraicNumber(p::UnivariatePolynomial, a = -Inf)
@@ -65,6 +95,7 @@ promote_rule(::Type{<:A}, ::Type{<:QQ}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:ZI}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Integer}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Rational}) where A<:AlgebraicNumber = A
+promote_rule(::Type{<:A}, ::Type{<:AbstractFloat}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Complex}) where A<:AlgebraicNumber = A
 
 copy(a::AlgebraicNumber) = typeof(a)(minimal_polynomial(a), approx(a))
@@ -461,7 +492,6 @@ function _squaremulim(p::UnivariatePolynomial)
     c
 end
 
-
 """
     rationalconst(expr)
 
@@ -469,6 +499,7 @@ Return the value of a rational constant or a rational function of rational const
 if that can be expressed as `Rational`. Otherwise return `nothing`.
 """
 rationalconst(x::Integer) = big(x)
+rationalconst(x::AbstractFloat) = isinteger(x) ? Integer(x) : nothing
 rationalconst(::Any) = nothing
 
 function rationalconst(expr::Expr)
@@ -480,10 +511,15 @@ function rationalconst(expr::Expr)
         if fun == :(^)
             p = rationalconst(args[2])
             isnothing(p) && return p
-            q = rationalconst(args[3])
-            isnothing(q) && return q
-            denominator(q) != 1 && return nothing
-            return p^numerator(q)
+            e = rationalconst(args[3])
+            isnothing(e) && return e
+            en = numerator(e)
+            ed = denominator(e)
+            ed == 1 && return p^en
+            sn = Integer(trunc(numerator(p)^(1 / ed)))
+            sd = Integer(trunc(denominator(p)^(1 / ed)))
+            q = sn // sd
+            return q^ed == p ? q^en : nothing
         elseif fun == :inv
             p = rationalconst(args[2])
             isnothing(p) && return p
@@ -495,9 +531,16 @@ function rationalconst(expr::Expr)
             sd = isqrt(denominator(p))
             q = sn // sd
             return q^2 == p ? q : nothing
+        elseif fun == :cbrt
+            p = rationalconst(args[2])
+            isnothing(p) && return p
+            sn = Integer(trunc(cbrt(numerator(p))))
+            sd = Integer(trunc(cbrt(denominator(p))))
+            q = sn // sd
+            return q^3 == p ? q : nothing
         end
         if fun ∉ (:(+), :(-), :(*), :(//))
-            return false
+            return nothing
         end
         n = length(args)
         eargs = similar(args)
@@ -519,8 +562,12 @@ end
 Return true iff the expression describes an `AlgebraicNumber`.
 """
 
+const ALLOWED_SYMBOLS = (:im, :φ)
+
 isalgebraic(::AlgebraicNumber) = true
 isalgebraic(::Union{Rational,Integer}) = true
+isalgebraic(x::AbstractFloat) = isinteger(x)
+isalgebraic(s::Symbol) = s ∈ ALLOWED_SYMBOLS
 isalgebraic(::Any) = false
 
 function isalgebraic(expr::Expr)
@@ -533,7 +580,7 @@ function isalgebraic(expr::Expr)
             isalgebraic(args[2]) || return false
             q = rationalconst(args[3])
             return !isnothing(q)
-        elseif fun ∉ (:(+), :(-), :(*), :(//), :inv, :sqrt)
+        elseif fun ∉ (:(+), :(-), :(*), :(//), :inv, :sqrt, :cbrt)
             return false
         end
         n = length(args)
@@ -546,7 +593,14 @@ function isalgebraic(expr::Expr)
     end
 end
 
-AlgebraicNumber(expr::Expr) = AlgebraicNumber(to_algebraic_or_rational(expr))
+function AlgebraicNumber(expr::Expr, pre::Union{Nothing,Number} = nothing)
+    approx = pre === nothing ? eval(expr) : float(pre)
+    A = AlgebraicNumber(to_algebraic_or_rational(expr))
+    r = A.roots
+    p = A.minpol
+    a, id = closeroot(p, big(fvalue(approx)), r)
+    AlgebraicNumber(p, r, id, a, NOCHECK)
+end
 
 function to_algebraic_or_rational(expr::Expr)
     x = rationalconst(expr)
@@ -561,7 +615,7 @@ function to_algebraic_or_rational(expr::Expr)
             q = rationalconst(args[3])
             denominator(q) != 1 && (a = AlgebraicNumber(a))
             return a^q
-        elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :sqrt)
+        elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :sqrt, :cbrt)
             n = length(args)
             eargs = Vector{Any}(undef, n - 1)
             for j = 2:n
@@ -574,7 +628,10 @@ function to_algebraic_or_rational(expr::Expr)
         throw(ArgumentError("no call, but $head"))
     end
 end
-to_algebraic_or_rational(a::Integer) = a
+to_algebraic_or_rational(a::Number) = a
+function to_algebraic_or_rational(s::Symbol)
+    s in ALLOWED_SYMBOLS ? AlgebraicNumber(s) : throw(ArgumentError("unexpected symbol $s"))
+end
 
 evaluate(::Val{:(+)}, args) = +(args...)
 evaluate(::Val{:(-)}, args) = -(args...)
@@ -583,6 +640,7 @@ evaluate(::Val{:(/)}, args) = /(args...)
 evaluate(::Val{:(//)}, args) = /(args...)
 evaluate(::Val{:(inv)}, args) = inv(args...)
 evaluate(::Val{:(sqrt)}, args) = sqrt(AlgebraicNumber(args[1]))
+evaluate(::Val{:(cbrt)}, args) = AlgebraicNumber(args[1])^(1 // 3)
 
 """
     com2(p, q)

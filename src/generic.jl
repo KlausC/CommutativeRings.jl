@@ -28,8 +28,8 @@ for op in (
 end
 for op in (:+, :-, :*, :/, :\, :isapprox)
     @eval begin
-        ($op)(a::Union{QQ,ZI}, b::OtherNumber) = ($op)(promote(a, b)...)
-        ($op)(a::OtherNumber, b::Union{QQ,ZI}) = ($op)(promote(a, b)...)
+        ($op)(a::Union{QQ,ZI,AlgebraicNumber}, b::OtherNumber) = ($op)(promote(a, b)...)
+        ($op)(a::OtherNumber, b::Union{QQ,ZI,AlgebraicNumber}) = ($op)(promote(a, b)...)
     end
 end
 
