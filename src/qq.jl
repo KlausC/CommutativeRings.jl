@@ -25,7 +25,7 @@ QQ{T}(a::Rational{<:Integer}) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 
 QQ(a::QQ{T}) where T = a
 QQ(a::T) where T<:ZZ = QQ{basetype(T)}(a)
-QQ(a::ZZZ) where T<:ZZ = QQ{ZZZ}(a)
+QQ(a::T) where T<:ZZZ = QQ{ZZZ}(a)
 QQ(a::T) where T = QQ{T}(a)
 QQ(a::Rational{T}) where T<:Integer = QQ{T}(a)
 
