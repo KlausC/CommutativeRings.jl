@@ -284,7 +284,7 @@ of a degree of the product of the degrees of the operands have to be factored in
 case.
 """
 struct AlgebraicNumber <: Ring{AlgebraicNumberClass}
-    minpol::UnivariatePolynomial{QQ{BigInt},:x}
+    minpol::UnivariatePolynomial{QQ{ZZZ},:x}
     roots::Vector{ComplexF64}
     rootid::Int
     approx::Complex{BigFloat}

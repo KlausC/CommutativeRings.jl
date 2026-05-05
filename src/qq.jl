@@ -24,7 +24,8 @@ QQ{T}(a::Integer) where T = QQ{T}(T(a), one(T), NOCHECK)
 QQ{T}(a::Rational{<:Integer}) where T = QQ{T}(T(a.num), T(a.den), NOCHECK)
 
 QQ(a::QQ{T}) where T = a
-QQ(a::T) where T<:ZI = QQ{basetype(T)}(a)
+QQ(a::T) where T<:ZZ = QQ{basetype(T)}(a)
+QQ(a::ZZZ) where T<:ZZ = QQ{ZZZ}(a)
 QQ(a::T) where T = QQ{T}(a)
 QQ(a::Rational{T}) where T<:Integer = QQ{T}(a)
 
@@ -75,17 +76,17 @@ end
 # operations for QQ
 for op in (:+, :-, :*)
     @eval begin
-        ($op)(a::QQ{T}, b::QQ{T}) where T = QQ(($op)(Rational(a), Rational(b)))
+        ($op)(a::T, b::T) where T<:QQ = T(($op)(value(a), value(b)))
     end
 end
-==(a::T, b::T) where T<:QQ = Rational(a) == Rational(b)
-/(a::T, b::T) where T<:QQ = iszero(b) ? throw(DivideError()) : QQ(Rational(a) / Rational(b))
+==(a::T, b::T) where T<:QQ = value(a) == value(b)
+/(a::T, b::T) where T<:QQ = iszero(b) ? throw(DivideError()) : T(value(a) / value(b))
 -(a::T) where T<:QQ{<:Integer} = T(checked_neg(a.num), a.den)
 -(a::T) where T<:QQ{<:Ring} = T(-a.num, a.den)
 divrem(a::T, b::T) where T<:QQ = (a / b, zero(T))
 div(a::T, b::T) where T<:QQ = a / b
-rem(a::T, b::T) where T<:QQ = zero(T)
-isless(a::T, b::T) where T<:QQ = isless(Rational(a), Rational(b))
+rem(::T, ::T) where T<:QQ = zero(T)
+isless(a::T, b::T) where T<:QQ = isless(value(a), value(b))
 
 isunit(a::QQ) = !iszero(a.num)
 isone(a::QQ) = a.num == a.den
@@ -93,7 +94,7 @@ iszero(a::QQ) = iszero(a.num)
 zero(::Type{QQ{T}}) where T = QQ{T}(zero(T), one(T), NOCHECK)
 one(::Type{QQ{T}}) where T = QQ{T}(one(T), one(T), NOCHECK)
 abs(a::QQ{T}) where T = QQ{T}(abs(a.num), abs(a.den), NOCHECK)
-hash(a::QQ, h::UInt) = hash(Rational(a), h)
+hash(a::QQ, h::UInt) = hash(value(a), h)
 
 function show(io::IO, a::QQ)
     if isone(a.den)
