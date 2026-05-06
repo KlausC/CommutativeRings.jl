@@ -306,7 +306,6 @@ function bestpoly(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
     ps[i]
 end
 
-
 fvalue(a::Number) = float(a)
 fvalue(a::Ring) = value(a)
 
@@ -318,8 +317,8 @@ function closeroot(p::UnivariatePolynomial, a::Number, r::AbstractVector{<:Numbe
     id, a = nextroot(a, r)
     da = p(a) / dp(a)
     epsb = abs(a) * sqrt(eps(real(typeof(a))))
-    i = 100
-    for _ = 1:i
+    i = 10
+    while true
         a -= da
         i -= 1
         i = abs(da) < epsb ? min(1, i) : i
@@ -342,17 +341,29 @@ function cr_roots(p::UnivariatePolynomial)
     end
 end
 
-function nextroot(a, r::AbstractVector)
-    _, i = findmin(r) do v
-        if isfinite(a)
-            abs(a - v)
-        elseif a == Inf
-            -real(v)
-        else
-            real(v)
-        end
+fnormed(a::Real, b::Real) = abs(a) > b ? sign(a) * b : a
+function fnormed(a::C, b::Real) where {T,C<:Complex{T}}
+    if isfinite(a)
+        abs(a) > b ? sign(a) * b : a
+    else
+        t = typemax(T)
+        sign(C(clamp.(reim(a)..., -t, t))) * b
     end
-    i, Complex{float(real(typeof(a)))}(r[i]), r
+end
+
+"""
+    nextroot(a, r::Vector)
+
+Find the number in `r`, which is closest to `a`. If `abs(a)`is greater than
+ten times the `maximum(abs.(r))` its size is reduced to that value.
+"""
+function nextroot(a::T, r::AbstractVector) where T<:Number
+    mx = 10.0 * maximum(abs, r)
+    b = fnormed(a, mx)
+    _, i = findmin(r) do v
+        abs(b - v)
+    end
+    i, Complex{float(real(T))}(r[i])
 end
 
 function Base.conj(a::AlgebraicNumber)

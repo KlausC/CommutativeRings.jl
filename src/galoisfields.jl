@@ -46,7 +46,7 @@ function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
     fact = Primes.factor(mm)
     Q = GFImpl(p, r, fact; nr, mod)
     r == 1 && mod === nothing && return Q
-    ord = order(Q)
+    ord = order(p, r)
     q = dimension(subfield(Q))
     r = dimension(Q) * q
     T = mintype_for(p, r, true)
@@ -153,8 +153,9 @@ basetype(::Type{GaloisField{C,D,Id,T,Q}}) where {C,D,Id,T,Q} = Q
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
 characteristic(a::Type{Union{}}) = merror(characteristic, (a,))
 dimension(G::Type{<:GaloisField}) = dimension(basetype(G)) * dimension(subfield(G))
-function order(::Type{<:GaloisField{C,D}}) where {C,D}
-    ord = intpower(C, D)
+order(::Type{<:GaloisField{C,D}}) where {C,D} = order(C, D)
+function order(c::Integer, d::Integer)
+    ord = intpower(c, d)
     convert(promote_type(typeof(ord), Int), ord)
 end
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
