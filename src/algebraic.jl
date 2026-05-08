@@ -124,6 +124,10 @@ end
 minimal_polynomial(a::AlgebraicNumber) = a.minpol
 approx(a::AlgebraicNumber) = a.approx
 deg(a::AlgebraicNumber) = deg(minimal_polynomial(a))
+function approx(a::AlgebraicNumber, id::Integer)
+    fap = a.roots[id]
+    closeroot(minimal_polynomial(a), big(fap), a.roots)
+end
 Base.zero(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([0, 1]), 0)
 Base.one(::Type{T}) where T<:AlgebraicNumber =
@@ -309,7 +313,7 @@ end
 fvalue(a::Number) = float(a)
 fvalue(a::Ring) = value(a)
 
-# find root of `p`, which is closest to `a`.
+# find root of `p`, which is closest to `a`, perform root iterations for full accuracy.
 function closeroot(p::UnivariatePolynomial, a::Number, r::AbstractVector{<:Number})
     p = primpart(p) # converts to ZZ[:x] - faster than QQ[:x]
 
@@ -698,3 +702,85 @@ field_matrix(a::AlgebraicNumber) = companion(minimal_polynomial(a))
 norm(a::AlgebraicNumber) = minimal_polynomial(a)[0] * (-1)^deg(a)
 tr(a::AlgebraicNumber) = -minimal_polynomial(a)[deg(a)-1]
 discriminant(a::AlgebraicNumber) = discriminant(minimal_polynomial(a))
+
+"""
+    Map a vector of indices, all ranging from 0:bounds[i]-1, to a linear index
+    based at 0
+"""
+function lindex(v::Vector{Int}, b::NTuple{N,<:Integer}) where N
+    n = length(v)
+    n <= N || throw(ArgumentError("index vector too long"))
+    li = v[n]
+    for i = n-1:-1:1
+        li = li * b[i] + v[i]
+    end
+    li
+end
+"""
+    Map a linear index to a vector of indices.
+"""
+function mindex(li::Integer, b::NTuple{N,<:Integer}) where N
+    v = Vector{Int}(undef, N)
+    for i = 1:N
+        li, v[i] = fldmod(li, b[i])
+    end
+    v
+end
+
+# generate a Matrix, which represents the A.N. with the canonical rational base.
+function matrixtower(A::AbstractVector{B}) where B<:AlgebraicNumber
+    n = length(A) - 1
+    if !isone(A[end])
+        A ./= A[end]
+    end
+    bounds = tuple(deg.(A)...)
+    N = prod(bounds)
+    M = zeros(ZZZ, N*n, N*n)
+    for k = 0:n-1
+        buildtower!(M, k, n, bounds, A)
+    end
+    for i=1:N*(n-1)
+        M[i+N, i] = 1
+    end
+    M
+end
+
+function buildtower!(M::AbstractMatrix, k::Integer, n::Integer, bounds::NTuple, A::AbstractVector)
+    N = prod(bounds)
+    a = minimal_polynomial(A[k+1])
+    for li = 0:N-1
+        di = N*k+1
+        dj = N*(n-1)+1
+        iv = mindex(li, bounds)
+        if iv[k+1] + 1 < bounds[k+1]
+            iv[k+1] += 1
+            lj = lindex(iv, bounds)
+            iv[k+1] -= 1
+            M[lj+di,li+dj] = -1
+        else
+            for j = 0:bounds[k+1]-1
+                iv[k+1] = j
+                lj = lindex(iv, bounds)
+                M[lj+di,li+dj] += a[j]
+            end
+            iv[k+1] = bounds[k+1] - 1
+        end
+    end
+    M
+end
+
+# constructive way of proving algebraic completeness of AlgebraicNumbers
+# Attention: the degree of the minimal polynomial explodes to the
+# product of the degrees of the defining A.N. and the degree of pa itself.
+function AlgebraicNumber(pa::UnivariatePolynomial{<:AlgebraicNumber})
+    AlgebraicNumber(pa[:])
+end
+
+import Polynomials
+
+function AlgebraicNumber(A::AbstractVector{<:AlgebraicNumber})
+    fapprox(a::AlgebraicNumber) = a.roots[a.rootid]
+    rpoly = Polynomials.Polynomial(fapprox.(A))
+    rr = Polynomials.roots(rpoly)[1]
+    AlgebraicNumber(characteristic_polynomial(matrixtower(A)), rr)
+end
