@@ -7,12 +7,7 @@ function promote_rule(::Type{T}, ::Type{S}) where {T<:Ring,S<:RingInt}
     (S <: T || S <: B) ? T : promote_type(B, S) == B ? T : Base.Bottom
 end
 _xpromote_rule(a::Type, b::Type) = promote_type(a, b)
-#=
-@generated function Base.promote_rule(a::Type{<:Ring}, b::Type{<:RingInt})
-    bt = _xpromote_rule(a.parameters[1], b.parameters[1])
-    :($bt)
-end
-=#
+
 function promote_rule(::Type{R}, ::Type{S}) where {R<:Ring,S<:Rational}
     promote_rule(R, promote_type(basetype(R), S))
 end
@@ -22,7 +17,7 @@ end
 
 # abstract float or complex involved
 promote_rule(::Type{A}, ::Type{<:QQ{B}}) where {A<:OtherNumber,B} = promote_type(A, B)
-promote_rule(::Type{A}, ::Type{<:ZZ{B}}) where {A<:OtherNumber,B} = promote_type(A, B)
+promote_rule(::Type{A}, B::Type{<:ZI}) where {A<:OtherNumber} = promote_type(A, basetype(B))
 
 # convertions
 convert(::Type{T}, a::S) where {T<:Ring, S<:T} = a
@@ -38,7 +33,7 @@ function convert(::Type{T}, a::S) where {T<:Ring,S<:Ring}
     end
 end
 
-function convert(::Type{A}, a::Union{ZZ,QQ}) where {A<:Number}
+function convert(::Type{A}, a::Union{ZI,QQ}) where {A<:Number}
     convert(A, value(a))
 end
 

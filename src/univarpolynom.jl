@@ -550,12 +550,12 @@ end
     primpart(p::Polynomial)
 
 The primitive part of the polynomial `p`, equals [`p / content(p)`](@ref).
-If the basetype is `QQ`, returned polynomial has basetype `ZZ`.
+If the basetype is `QQ`, returned polynomial has basetype of ZZ or ZZZ.
 """
 primpart(p::Polynomial) = p / content(p)
 function primpart(p::UnivariatePolynomial{Q,X}) where {Q<:Union{QQ,Frac},X}
-    Z = basetype(Q)
-    (Z[X])(Z.(numerator.((p / content(p)).coeff)), ord(p))
+    B = basetype(Q)
+    (B[X])(B.(numerator.((p / content(p)).coeff)), ord(p))
 end
 
 """
@@ -567,10 +567,10 @@ function content_primpart(p::Polynomial)
     c = content(p)
     c, p / c
 end
-function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
+function content_primpart(p::P) where {T,X,Q<:QQ{T},P<:UnivariatePolynomial{Q,X}}
     c = content(p)
-    Z = ZZ{T}
-    pp = Z[X]([Z(numerator(x / c)) for x in p.coeff], ord(p))
+    B = basetype(Q)
+    pp = B[X]([B(numerator(x / c)) for x in p.coeff], ord(p))
     c, pp
 end
 
@@ -828,6 +828,19 @@ function companion(p::UnivariatePolynomial{S}, q::UnivariatePolynomial{T}) where
             end
         end
     end
+    A
+end
+
+# Here the comanion of a polynomial given by its vector
+function companion(::Type{S}, v::AbstractVector) where S
+    n = length(v) - 1
+    A = zeros(S, n, n)
+    u = -inv(v[n+1])
+    for i = 1:n-1
+        A[i+1,i] = oneunit(S)
+        A[i,n] = v[i] * u
+    end
+    A[n,n] = v[n] * u
     A
 end
 

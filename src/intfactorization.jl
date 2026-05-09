@@ -101,7 +101,7 @@ function yun(u::P) where P<:UnivariatePolynomial
 end
 
 function yun(u::P) where P<:UnivariatePolynomial{<:QQ}
-    c, q = content_primpart(u) # q is ZZ!
+    c, q = content_primpart(u) # q is ZZ or ZZZ!
     y = yun(q)
     c *= LC(q)
     z = [P(y[1])*c; [P(y[i])/LC(y[i]) for i in 2:length(y)]]
@@ -141,8 +141,8 @@ function zassenhaus(u; p0)
     zassenhaus2(u, Val(false), p0)
 end
 
-function zassenhaus2(u::UnivariatePolynomial{<:ZZ{<:Integer}}, val::Val{BO}, p0) where BO
-    Z = ZZ{BigInt}[varname(u)]
+function zassenhaus2(u::UnivariatePolynomial{B}, val::Val{BO}, p0) where {BO,B<:ZI}
+    Z = big(B)[varname(u)]
     u = convert(Z, u)
     zassenhaus2(u, val, p0)
 end
@@ -244,7 +244,7 @@ end
 """
     factor(u::UnivariatePolynomial, a::Integer; p0 = MINPRIME)
 
-factorize polynomial `u(x^a)` over `ZZ`.
+factorize polynomial `u(x^a)` over `ZZZ`.
 """
 function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
     #println("factor1($u, $a)")
@@ -627,7 +627,7 @@ function remove_subset!(vv::AbstractVector, d)
 end
 
 """
-    smallfactors(vv::Vector{Polynomial{ZZ/p}}, u::Polynomial{ZZ{Integer}})::w
+    smallfactors(vv::Vector{Polynomial{ZZ/p}}, u::Polynomial{ZZZ})::w
 
 Assuming `vv` is an array of `r` factors of integer polynomial `u` modulo `p`,
 return an iterator over products of factors from `vv`.
@@ -639,7 +639,7 @@ function smallfactors(
     vv,
     u::P,
     mask = typemax(Int),
-) where P<:UnivariatePolynomial{<:ZZ{<:Integer}}
+) where P<:UnivariatePolynomial{<:ZI}
     r = length(vv)
     mask &= (1 << r - 1)
     rm = count_ones(mask)
@@ -795,7 +795,7 @@ function reduction(p::P) where P<:UnivariatePolynomial
     P(p.coeff, 0), kbest, best, nex
 end
 
-function ffactor(p::P) where P<:UnivariatePolynomial{<:ZZ}
+function ffactor(p::P) where P<:UnivariatePolynomial{<:ZI}
     #println("ffactor($p)")
     q, nord, n, nex = reduction(p)
     n == 1 && return factor(p)

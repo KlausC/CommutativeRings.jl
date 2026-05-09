@@ -14,7 +14,7 @@ function Ideal(m::R) where R<:Ring
         Ideal{R}([m])
     end
 end
-Ideal(m::T) where T<:Integer = Ideal(ZZ{T}(m))
+Ideal(m::T) where T<:Integer = Ideal(ZZZ(m))
 Ideal(mm::RingInt...) = Ideal(collect(Base.promote_typeof(mm...), mm))
 Ideal(mm::AbstractVector{<:RingInt}) = Ideal(gcd(mm))
 Ideal(mm::AbstractVector{R}) where R<:MultivariatePolynomial = Ideal{R}(groebnerbase(mm))
@@ -38,8 +38,8 @@ function issubset(id1::Ideal{R}, id2::Ideal{R}) where R<:Polynomial
 end
 
 ==(id1::Ideal{R}, id2::Ideal{S}) where {R<:Ring,S<:Ring} = id1.base == id2.base
-==(id::Ideal{R}, ::Type{R}) where R<:Ring = isone(id)
-==(::Type{R}, id::Ideal{R}) where R<:Ring = isone(id)
+==(id::Ideal{R}, ::Type{S}) where {R,S<:Ring} = isone(id) && (R == S || S<:ZZ && R<:ZZZ)
+==(::Type{S}, id::Ideal{R}) where {R,S<:Ring} = id == S
 
 function +(id1::Ideal{R}, id2::Ideal{R}) where R<:MultivariatePolynomial
     Ideal(vcat(id1.base, id2.base))

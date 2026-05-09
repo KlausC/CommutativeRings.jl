@@ -37,7 +37,7 @@ Base.convert(::Type{T}, a::Ring) where T<:NumberField = T(a)
 Base.convert(::Type{T}, a::NumberField) where T<:NumberField = a
 
 promote_rule(::Type{N}, ::Type{<:QQ}) where N<:NumberField = N
-promote_rule(::Type{N}, ::Type{<:ZZ}) where N<:NumberField = N
+promote_rule(::Type{N}, ::Type{<:ZI}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Integer}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Rational}) where N<:NumberField = N
 

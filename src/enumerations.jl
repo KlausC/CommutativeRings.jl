@@ -156,7 +156,7 @@ len(T::Type{<:GaloisField}) = order(T)
 ofindex(a::Integer, u::Type{Union{}}) = throw(MethodError(ofindex, (a, u)))
 ofindex(a::Integer, T::Type{<:Unsigned}) = T(a)
 ofindex(a::Integer, T::Type{<:Signed}) = iseven(a) ? -(T(a) >> 1) : T(a + 1) >> 1
-ofindex(a::Integer, T::Type{ZZ{S}}) where S = T(ofindex(a, S))
+ofindex(a::Integer, T::Type{<:ZI}) = T(ofindex(a, basetype(T)))
 ofindex(a::Integer, T::Type{<:ZZmod{m,S}}) where {m,S} = T(ofindex(a, unsigned(S)))
 function ofindex(a::Integer, T::Type{<:QuotientRing{S}}) where {S<:UnivariatePolynomial}
     d = deg(modulus(T))

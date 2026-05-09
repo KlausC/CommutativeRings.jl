@@ -177,7 +177,7 @@ end
 
 function minimal_polynomial(a::Number, n::Integer; e=1e-5, c=1e9)
     m = rational_relationship([a^i for i = 0:n]; e, c)
-    p = ZZ{Int}[:x](m)
+    p = ZZZ[:x](m)
     p / lcunit(p)
 end
 

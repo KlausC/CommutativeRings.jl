@@ -1,6 +1,8 @@
 module AlgebraicNumbers
 
 using CommutativeRings
+import CommutativeRings: SMALL_INT
+
 using Test
 
 P = QQ{BigInt}[:x]
@@ -15,6 +17,14 @@ tol = eps(BigFloat) * 100
     a = AlgebraicNumber(p, s)
     @test minimal_polynomial(a) == p
     @test approx(a) ≈ r
+    @test 1 / AlgebraicNumber(0) == AlgebraicNumber(1//0)
+
+    @test_throws DivideError AlgebraicNumber(0) / AlgebraicNumber(0)
+    @test_throws DivideError AlgebraicNumber(1//0) / AlgebraicNumber(1//0)
+    @test inv(AlgebraicNumber(1//0)) == 0
+    @test isfinite(AlgebraicNumber(0))
+    @test !isfinite(AlgebraicNumber(1//0))
+    @test AlgebraicNumber(1//0) / AlgebraicNumber(0) == AlgebraicNumber(Inf)
 end
 
 @testset "Algebraic identities" begin
@@ -97,7 +107,9 @@ end
     @test approx(c) ≈ op(approx(a), approx(b))
 end
 
-@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /), a in (0, 11, ZZ(11))
+@testset "Algebraic $op($a,A) arithmetic" for op in (+, -, *, /),
+    a in (0, 11, ZZ(11), ZZZ(11))
+
     a = big(a)
     b = AlgebraicNumber(x^3 + x + 1)
     c = op(a, b)
@@ -145,10 +157,20 @@ end
     @test AlgebraicNumber(expr2) == AlgebraicNumber(x^2 + 2, im)
 
     exprq = :(sqrt((11 / 12)^2))
-    @test AlgebraicNumber(exprq) == AlgebraicNumber(x - 11//12)
+    @test AlgebraicNumber(exprq) == AlgebraicNumber(x - 11 // 12)
 
     expr5 = :(sqrt(5) + 1)
     @test AlgebraicNumber(expr5) / 4 == cospi(QQ(1 // 5))
+
+    expr10 = :(sqrt(5 / 8 + sqrt(-5 / 16 + 25 / 64)))
+    @test AlgebraicNumber(expr10) == cospi(QQ(1 // 10))
+
+    expr17 = :(
+        1 - sqrt(17) +
+        sqrt(34 - sqrt(68)) +
+        sqrt(68 + sqrt(2448) + sqrt(2720 + sqrt(6284288)))
+    )
+    @test AlgebraicNumber(expr17) / 16 == cospi(QQ(1 // 17))
 
     expr217 = :(
         (
@@ -159,16 +181,42 @@ end
     )
     @test AlgebraicNumber(expr217) == cospi(QQ(2 // 17)) * 2
 
-    expr17 = :(
-        1 - sqrt(17) +
-        sqrt(34 - sqrt(68)) +
-        sqrt(68 + sqrt(2448) + sqrt(2720 + sqrt(6284288)))
-    )
-    @test AlgebraicNumber(expr17) / 16 == cospi(QQ(1 // 17))
-
     a = AlgebraicNumber(:((3^(1 // 3) - 6^(1 // 3) + 12^(1 // 3)) / 3))
     b = AlgebraicNumber(:((2^(1 // 3) - 1)^(1 // 3)))
     @test a == b
+end
+
+using Base.MathConstants
+@testset "arithmetic with float and complex constants and symbols" begin
+    @test AlgebraicNumber((SMALL_INT - 2) / (SMALL_INT - 1)) ==
+          AlgebraicNumber((SMALL_INT - 2) // (SMALL_INT - 1))
+    @test AlgebraicNumber((SMALL_INT + 1) + 0.0) == AlgebraicNumber(SMALL_INT + 1)
+    @test_throws InexactError AlgebraicNumber(1 / (SMALL_INT))
+    @test_throws InexactError AlgebraicNumber((SMALL_INT + 2) / (SMALL_INT + 1))
+    @test AlgebraicNumber(1 / 3) == AlgebraicNumber(1 // 3)
+    @test AlgebraicNumber(:(sqrt(2))) * 2.5 == AlgebraicNumber(:(5 / sqrt(2)))
+    a = AlgebraicNumber(im)
+    mp = minimal_polynomial(a)
+    x = monom(typeof(mp))
+    @test a == AlgebraicNumber(:im)
+    @test minimal_polynomial(a + 7 / 5) == mp(x - 7 // 5)
+    @test AlgebraicNumber(:(1 + im)) == AlgebraicNumber(im) + 1
+    @test_throws ArgumentError AlgebraicNumber(:(2.5 * im))
+    @test AlgebraicNumber(:(5.0 * im)) == AlgebraicNumber(im) * 5
+    @test AlgebraicNumber(:(sqrt(2) + 3^(3 / 4) * im)) ==
+          AlgebraicNumber(:(sqrt(2))) + AlgebraicNumber(:(sqrt(sqrt(3^3)))) * im
+    @test_throws Exception AlgebraicNumber(π)
+    @test_throws ArgumentError AlgebraicNumber(:π)
+    @test minimal_polynomial(AlgebraicNumber(:φ)) == x^2 - x - 1
+    @test minimal_polynomial(AlgebraicNumber(:(φ^-1))) == x^2 + x - 1
+    @test minimal_polynomial(AlgebraicNumber(:(φ^2))) == x^2 - 3x + 1
+end
+
+@testset "arithmetic with φ^[$n,$(n+1),$(-n),$(-n-1)]" for n in rand(1:1000, 1)
+    fib2(n) = fibonacci(n) * 2 + fibonacci(n - 3)
+    for m in (n, n + 1, -n, -n - 1)
+        @test minimal_polynomial(AlgebraicNumber(:(φ^$n))) == x^2 - fib2(n) * x + (-1)^n
+    end
 end
 
 @testset "exactness of pure imaginary roots" begin
@@ -187,6 +235,7 @@ end
 @testset "cardano's formula $(x^3+a*x^2+b*x+c)" for (a, b, c) in (
     (1, -8, -6),
     (6, 9, 8),
+    (0, 0, 2),
     rand(-10:10, 3),
 )
     a, b, c = QQ.((a, b, c))
@@ -196,7 +245,7 @@ end
 
     da = sqrt(AlgebraicNumber((q / 2)^2 + (p / 3)^3))
     ua = (da - q / 2)^(1 // 3)
-    va = (-p / 3) / ua # (-da - q / 2)^(1 // 3)
+    va = p != 0 ? (-p / 3) / ua : (-da - q / 2)^(1 // 3)
     e3 = cispi(QQ(2 // 3))
     @test ua * va == -p / 3
 

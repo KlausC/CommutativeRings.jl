@@ -15,6 +15,7 @@ iscoprime(a::T, b::T) where T<:ZZZ = gcd(a, b) == one(T)
 value(a::ZZZ) = BigInt(a)
 
 copy(a::ZZZ) = ZZZ(a)
+ZZZ(a::T) where T<:Bool = ZZZ(Int(a))
 ZZZ(a::T) where T<:Base.BitSignedSmall = ZZZ(Int(a))
 ZZZ(a::T) where T<:Base.BitUnsignedSmall = ZZZ(UInt(a))
 ZZZ(a::T) where T<:Base.BitInteger = ZZZ(BigInt(a))
@@ -28,13 +29,13 @@ function Base.divgcd(x::TX, y::TY)::Tuple{TX,TY} where {TX<:ZZZ,TY<:ZZZ}
 end
 rem(x::Union{Integer,ZZZ}, ::Type{<:ZZZ}) = ZZZ(x)
 
-function ZZZ(a::Union{QQ{T},Frac{ZZ{T}}}) where T
+function ZZZ(a::Union{QQ,Frac{<:ZI}})
     a.den != 1 && throw(InexactError(:ZZZ, ZZZ, a))
     ZZZ(a.num)
 end
 
 # promotion and conversion
-promote_rule(::Type{ZZZ}, ::Type{<:ZZ}) = ZZZ
+promote_rule(::Type{ZZZ}, ::Type{<:ZI}) = ZZZ
 promote_rule(::Type{ZZZ}, ::Type{QQ{S}}) where {S} = QQ{promote_type(S, BigInt)}
 promote_rule(::Type{ZZZ}, ::Type{S}) where {S<:Integer} = ZZZ
 promote_rule(::Type{ZZZ}, ::Type{R}) where {R<:Rational} =
@@ -55,7 +56,7 @@ end
 Base.isless(p::T, q::T) where T<:ZZZ = p < q
 Base.to_power_type(x::ZZZ) = x
 
-# operations for ZZ
+# operations for ZZZ
 
 fmpz(a...) = (Symbol(:fmpz_, a...), libflint)
 
@@ -186,9 +187,10 @@ end
     end
 end
 
+throw_D() = throw(DivideError())
 
-divrem(a::T, b::T) where T<:ZZZ = divrem(a, b, RoundToZero)
-div(a::T, b::T) where T<:ZZZ = div(a, b, RoundToZero)
+divrem(a::T, b::T) where T<:ZZZ = !iszero(b) ? divrem(a, b, RoundToZero) : throw_D()
+div(a::T, b::T) where T<:ZZZ = !iszero(b) ? div(a, b, RoundToZero) : throw_D()
 
 isunit(a::ZZZ) = abs(a.d) == 1
 isone(a::ZZZ) = isone(a.d)
