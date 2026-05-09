@@ -88,13 +88,10 @@ dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
 isprimemod(::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
 subfield(::Type{<:Quotient{R}}) where {Z,R<:UnivariatePolynomial{Z}} = Z
 
-@generated function order(a::Type{<:Quotient})
-    function _order(::Type{<:Type{Q}}) where {Q<:Quotient}
-        r = dimension(Q)
-        b = order(subfield(Q))
-        iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
-    end
-    _order(a)
+function order(::Type{Q}) where {Q<:Quotient}
+    r = dimension(Q)
+    b = order(subfield(Q))
+    iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
 end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)

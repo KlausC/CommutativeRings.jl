@@ -80,7 +80,7 @@ for op in (:+, :-, :*)
     end
 end
 ==(a::T, b::T) where T<:QQ = value(a) == value(b)
-/(a::T, b::T) where T<:QQ = iszero(b) ? throw(DivideError()) : T(value(a) / value(b))
+/(a::T, b::T) where T<:QQ = T(value(a) / value(b))
 -(a::T) where T<:QQ{<:Integer} = T(checked_neg(a.num), a.den)
 -(a::T) where T<:QQ{<:Ring} = T(-a.num, a.den)
 divrem(a::T, b::T) where T<:QQ = (a / b, zero(T))

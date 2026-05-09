@@ -46,7 +46,7 @@ function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
     fact = Primes.factor(mm)
     Q = GFImpl(p, r, fact; nr, mod)
     r == 1 && mod === nothing && return Q
-    ord = order(p, r)
+    ord = order(Q)
     q = dimension(subfield(Q))
     r = dimension(Q) * q
     T = mintype_for(p, r, true)
@@ -54,7 +54,11 @@ function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
 
     gen = monom(Q)
     while order(gen) != ord - 1
-        gen, = next(gen)
+        nx = next(gen)
+        if nx === nothing
+            terror("no generator with maximal order found")
+        end
+        gen, = nx
     end
     g = tonumber(gen, pq)
 

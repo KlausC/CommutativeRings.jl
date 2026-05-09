@@ -187,9 +187,10 @@ end
     end
 end
 
+throw_D() = throw(DivideError())
 
-divrem(a::T, b::T) where T<:ZZZ = divrem(a, b, RoundToZero)
-div(a::T, b::T) where T<:ZZZ = div(a, b, RoundToZero)
+divrem(a::T, b::T) where T<:ZZZ = !iszero(b) ? divrem(a, b, RoundToZero) : throw_D()
+div(a::T, b::T) where T<:ZZZ = !iszero(b) ? div(a, b, RoundToZero) : throw_D()
 
 isunit(a::ZZZ) = abs(a.d) == 1
 isone(a::ZZZ) = isone(a.d)

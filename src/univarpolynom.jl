@@ -831,6 +831,19 @@ function companion(p::UnivariatePolynomial{S}, q::UnivariatePolynomial{T}) where
     A
 end
 
+# Here the comanion of a polynomial given by its vector
+function companion(::Type{S}, v::AbstractVector) where S
+    n = length(v) - 1
+    A = zeros(S, n, n)
+    u = -inv(v[n+1])
+    for i = 1:n-1
+        A[i+1,i] = oneunit(S)
+        A[i,n] = v[i] * u
+    end
+    A[n,n] = v[n] * u
+    A
+end
+
 ### Display functions
 
 import Base: show
