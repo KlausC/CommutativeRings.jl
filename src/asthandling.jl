@@ -175,31 +175,80 @@ function traversereplacing(s::Symbol, repls::AbstractDict, context::AbstractDict
 end
 function traversereplacing(expr::Expr, repls::AbstractDict, context::AbstractDict)
     expr = matchandbindfirst(expr, repls, context)
+    mexpr !== nothing && return mexpr
     _traversereplacing(Val(expr.head), expr.args, repls, context)
     expr
 end
-
-_traversereplacing(::Val, args, repls, context) = nothing # throw unsupported?
+_traversereplacing(head::Val, args, repls, context) = throw_unsupproted(head)
 function _traversereplacing(::Val{:call}, args::Vector, repls, context::AbstractDict)
     for i in axes(args, 1)
         args[i] = traversereplacing(args[i], repls, context)
     end
 end
 
+"""
+    matchandbindfirst(any, repl, context)
+
+Try all patterns in repl for match with any.
+The first matching is used to create a replacement AST for any using the contents of any and
+the value part associated with the pattern.
+If no match is found, `nothing` is returned
+"""
 function matchandbindfirst(any, repl::AbstractDict, context::AbstractDict)
     for (k, v) in repl
-        res = matchandbind(any, k, v, repl, context)
+        res = matchandbind(any, k, v, context)
         res !== nothing && return res
     end
     return nothing
 end
 
-function matchandbind(a::Any, pattern, value, repl, context)
-    a
+"""
+    matchandbind
+
+Traverse the pattern AST and try to construct replacement for any.
+If no match is found, return `nothing` and discard all changes in context made during
+this process.
+Certain special terms in patterns `:($x::Any)` accept all types of input and are stored
+available for use during generation process, where the term`:( >:$x)` stands for the
+placeholder.
+"""
+matchandbind(a::Any, pattern:Any, value, context) = nothing
+function matchandbind(s::Symbol, pattern::Symbol, value, context)
+    s == pattern ? replacementfor(value, context) : s
 end
-function matchandbind(s::Symbol, pattern, value, repl, context)
-    s == pattern ? replacementfor(value, context) : nothing
+function matchandbind(expr::Expr, pattern::Expr, value, context)
+    matchandbind(Val(pattern.head), expr, pattern, value, context)
 end
+
+matchandbind(::Val, expr, pattern, value, context) = nothing
+function matchandbind(::Val{:call}, any, pattern, value, context)
+    pargs = pattern.args
+    if pargs[1] == :(::)
+        x = pargs[2]
+        t = length(pargs) >= 2 ? pargs[2] : :Any
+        if acceptable(t, any)
+            bind!(context, x, t, any)
+            return replacementfor(value, context)
+        end
+    else
+        matchandbind1(::Val{call}, any, pattern, value, context)
+    end
+end
+function matchandbind1(::Val{:call}, expr::Expr, pattern, value, context)
+    pargs = pattern.args
+    eargs = expr.args
+    if expr.head === :call && length(pargs) == length(eargs)
+        nargs = Vector{Any}(undef, length(pargs))
+        for i in axes(nargs, 1)
+            v = matchandbindfirst(eargs[i], repl, context) #??? soll doch pargs[i] als pattern benutzen - was ist dann value[i]
+            v === nothing && return nothing
+        end
+    end
+
+
+end
+
+
 function replacementfor(value, context)
     value
 end
