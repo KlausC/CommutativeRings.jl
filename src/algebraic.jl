@@ -1,6 +1,6 @@
 
 import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, isapprox, hash
-import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi
+import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi, complex, Complex
 import Base.MathConstants: φ
 
 # construction
@@ -46,8 +46,8 @@ function AlgebraicNumber(a::AbstractFloat)
     end
     AlgebraicNumber(b)
 end
-function AlgebraicNumber(a::Complex)
-    if isreal(a)
+function AlgebraicNumber(a::Complex{<:Integer})
+     if iszero(imag(a))
         return AlgebraicNumber(real(a))
     end
     Q = basetype(AlgebraicNumber)
@@ -205,6 +205,8 @@ isreal(a::AlgebraicNumber) = isreal(approx(a))
 real(a::AlgebraicNumber) = isreal(a) ? a : (a + conj(a)) / 2
 imag(a::AlgebraicNumber) = isreal(a) ? zero(a) : (conj(a) - a) * AlgebraicNumber(im) / 2
 abs(a::AlgebraicNumber) = !isreal(a) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
+Complex(a::AlgebraicNumber) = a
+complex(a::AlgebraicNumber) = a
 
 function *(a::T, b::T) where T<:AlgebraicNumber
     if iszero(a)
@@ -223,8 +225,7 @@ function *(a::T, b::T) where T<:AlgebraicNumber
     end
 end
 
-*(a::T, aa::RingNumber) where T<:AlgebraicNumber =
-    AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * fvalue(aa))
+*(a::T, aa::RingNumber) where T<:AlgebraicNumber = AlgebraicNumber(lincomb(a, aa), approx(a) * fvalue(aa))
 *(aa::RingNumber, a::T) where T<:AlgebraicNumber = a * aa
 *(p::P, a::R) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
 *(a::R, p::P) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
@@ -234,24 +235,34 @@ end
 /(aa::T, a::RingNumber) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
 
 +(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, 1),
+    lincomb(a, b, 1, 1),
     approx(a) + approx(b),
 )
 -(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, -1),
+    lincomb(a, b, 1, -1),
     approx(a) - approx(b),
 )
 -(a::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(a), -1, 0),
+    lincomb(a, -1)
     -approx(a),
 )
 
 function multiply(a::T, b::T) where T<:AlgebraicNumber
-    ca = companion(minimal_polynomial(a))
-    cb = companion(minimal_polynomial(b))
+    ma = minimal_polynomial(a)
+    mb = minimal_polynomial(b)
+    multiply(ma, mb)
+end
+function multiply(a::T, b::T) where T<:UnivariatePolynomial
+    ca = companion(a)
+    cb = companion(b)
     characteristic_polynomial(kron(ca, cb))
 end
 
+function lincomb(a::T, b::T, aa, bb) where T<:AlgebraicNumber
+    ma = minimal_polynomial(a)
+    mb = minimal_polynomial(b)
+    lincomb(ma, mb, aa, bb)
+end
 function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
     if iszero(bb)
         lincomb(a, aa)
@@ -270,6 +281,10 @@ function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
     end
 end
 
+function lincomb(a::T, aa) where T<:AlgebraicNumber
+    ma = minimal_polynomial(a)
+    lincomb(ma, aa)
+end
 function lincomb(p::T, aa) where T<:UnivariatePolynomial
     if isone(aa)
         p

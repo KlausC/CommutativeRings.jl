@@ -86,7 +86,7 @@ function isalgebraic(expr::Expr)
             isalgebraic(args[2]) || return false
             q = rationalconst(args[3])
             return !isnothing(q)
-        elseif fun ∉ (:(+), :(-), :(*), :(//), :inv, :sqrtx, :cbrt)
+        elseif fun ∉ (:(+), :(-), :(*), :(//), :inv, :Complex)
             return false
         end
         n = length(args)
@@ -99,22 +99,14 @@ function isalgebraic(expr::Expr)
     end
 end
 
-replacesqrt!(s::Symbol) = s === :sqrt ? :sqrtx : s
-replacesqrt!(a::Any) = a
-function replacesqrt!(expr::Expr)
-    if expr.head == :call
-        args = expr.args
-        for i in axes(args, 1)
-            args[i] = replacesqrt!(args[i])
-        end
-    end
-    expr
+function preprocess!(expr::Any)
+     traversereplacing(expr, [:(sqrt(x::Any)) => :(Complex(>:x)^(1//2)), :(cbrt(x::Any)) => :(Complex(>:x)^(1//3))], Dict())
 end
 
 sqrtx(x::Number) = sqrt(complex(x))
 
 function AlgebraicNumber(expr::Expr, pre::Union{Nothing,Number} = nothing)
-    replacesqrt!(expr)
+    expr = preprocess!(expr)
     approx = pre === nothing ? eval(expr) : float(pre)
     A = AlgebraicNumber(to_algebraic_or_rational(expr))
     r = A.roots
@@ -136,7 +128,7 @@ function to_algebraic_or_rational(expr::Expr)
             q = rationalconst(args[3])
             denominator(q) != 1 && (a = AlgebraicNumber(a))
             return a^q
-        elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :sqrtx, :cbrt)
+        elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :Complex)
             n = length(args)
             eargs = Vector{Any}(undef, n - 1)
             for j = 2:n
@@ -160,107 +152,125 @@ evaluate(::Val{:(*)}, args) = *(args...)
 evaluate(::Val{:(/)}, args) = /(args...)
 evaluate(::Val{:(//)}, args) = /(args...)
 evaluate(::Val{:(inv)}, args) = inv(args...)
-evaluate(::Val{:(sqrtx)}, args) = sqrt(AlgebraicNumber(args[1]))
-evaluate(::Val{:(cbrt)}, args) = AlgebraicNumber(args[1])^(1 // 3)
+evaluate(::Val{:(Complex)}, args) = AlgebraicNumber(args[1])
 
+const CALL = Val{:call}
+const GET = Val{:(::)}
+const PUT = Val{:(>:)}
+
+const ANY = Val{:Any}
+const NUMBER = Val{:Number}
+const SYMBOL = Val{:Symbol}
+const EXPR = Val{:Expr}
+
+const Rules = AbstractVector{<:Pair}
+const TERMINAL = Union{Symbol,String,Int,UInt,AbstractFloat}
 
 """
     traversereplacing(what, replacement, context)
 
 Traverse AST what performing list of replacements. Context is a dict to be passed through
 """
-traversereplacing(a::Any, repls::AbstractDict, context::AbstractDict) = a
-function traversereplacing(s::Symbol, repls::AbstractDict, context::AbstractDict)
+traversereplacing(a::TERMINAL, repls::Rules, context) = a
+function traversereplacing(s::Symbol, repls::Rules, context)
     matchandbindfirst(s, repls, context)
 end
-function traversereplacing(expr::Expr, repls::AbstractDict, context::AbstractDict)
-    expr = matchandbindfirst(expr, repls, context)
-    mexpr !== nothing && return mexpr
-    _traversereplacing(Val(expr.head), expr.args, repls, context)
+function traversereplacing(expr::Expr, repls::Rules, context)
+    mexpr = matchandbindfirst(expr, repls, context)
+    mexpr !== expr && return traversereplacing(mexpr, repls, context)
+    for i in axes(expr.args, 1)
+        expr.args[i] = traversereplacing(expr.args[i], repls, context)
+    end
     expr
 end
-_traversereplacing(head::Val, args, repls, context) = throw_unsupproted(head)
-function _traversereplacing(::Val{:call}, args::Vector, repls, context::AbstractDict)
-    for i in axes(args, 1)
-        args[i] = traversereplacing(args[i], repls, context)
-    end
-end
 
 """
-    matchandbindfirst(any, repl, context)
+    matchandbindfirst(term, repl, context)
 
-Try all patterns in repl for match with any.
-The first matching is used to create a replacement AST for any using the contents of any and
+Try all patterns in repl for match with term.
+The first matching is used to create a replacement AST for any using the contents of term and
 the value part associated with the pattern.
-If no match is found, `nothing` is returned
+If no match is found, term is returned
 """
-function matchandbindfirst(any, repl::AbstractDict, context::AbstractDict)
+function matchandbindfirst(term, repl::Rules, context)
     for (k, v) in repl
-        res = matchandbind(any, k, v, context)
-        res !== nothing && return res
+        res = matchandbind(term, k, context)
+        res && return replacement(v, context)
     end
-    return nothing
+    return term
 end
 
 """
     matchandbind
 
 Traverse the pattern AST and try to construct replacement for any.
-If no match is found, return `nothing` and discard all changes in context made during
+If no match is found, return `false` and discard all changes in context made during
 this process.
-Certain special terms in patterns `:($x::Any)` accept all types of input and are stored
-available for use during generation process, where the term`:( >:$x)` stands for the
+Certain special terms in patterns `:(x::Any)` accept all types of input and are stored
+available for use during generation process, where the term`:( >:x)` stands for the
 placeholder.
 """
-matchandbind(a::Any, pattern:Any, value, context) = nothing
-function matchandbind(s::Symbol, pattern::Symbol, value, context)
-    s == pattern ? replacementfor(value, context) : s
+matchandbind(a::Any, pattern::Any, context) = false
+function matchandbind(s::Symbol, pattern::Symbol, context)
+    s === pattern
 end
-function matchandbind(expr::Expr, pattern::Expr, value, context)
-    matchandbind(Val(pattern.head), expr, pattern, value, context)
+function matchandbind(ast::Any, pattern::Expr, context)
+    _matchandbind(Val(pattern.head), ast, pattern, context)
 end
 
-matchandbind(::Val, expr, pattern, value, context) = nothing
-function matchandbind(::Val{:call}, any, pattern, value, context)
+_matchandbind(::Val, ast, pattern::Expr, context) = false
+
+function _matchandbind(::GET, ast, pattern::Expr, context)
     pargs = pattern.args
-    if pargs[1] == :(::)
-        x = pargs[2]
-        t = length(pargs) >= 2 ? pargs[2] : :Any
-        if acceptable(t, any)
-            bind!(context, x, t, any)
-            return replacementfor(value, context)
-        end
+    x = pargs[1]
+    t = length(pargs) >= 2 ? pargs[2] : :Any
+    if acceptable(Val(t), ast)
+        bind!(context, x, ast)
+        return true
     else
-        matchandbind1(::Val{call}, any, pattern, value, context)
+        return false
     end
 end
-function matchandbind1(::Val{:call}, expr::Expr, pattern, value, context)
+function _matchandbind(::CALL, expr::Expr, pattern::Expr, context)
     pargs = pattern.args
     eargs = expr.args
-    if expr.head === :call && length(pargs) == length(eargs)
-        nargs = Vector{Any}(undef, length(pargs))
-        for i in axes(nargs, 1)
-            v = matchandbindfirst(eargs[i], repl, context) #??? soll doch pargs[i] als pattern benutzen - was ist dann value[i]
-            v === nothing && return nothing
+    if Val{expr.head} <: CALL && length(pargs) == length(eargs)
+        for (ea, pa) in zip(eargs, pargs)
+            v = matchandbind(ea, pa, context)
+            v || return v
         end
+        return true
     end
-
-
+    return false
 end
 
+acceptable(::ANY, ::Any) = true
+acceptable(::NUMBER, y::Any) = y isa Number
+acceptable(::SYMBOL, y::Any) = y isa Symbol
+acceptable(::EXPR, y::Any) = y isa Expr
 
-function replacementfor(value, context)
+bind!(context::AbstractDict, x, any) = (context[x] = any)
+
+function replacement(value, context)
     value
 end
-function replacementfor(rexpr::Expr, context)
-    replacement(Val(rexpr.head), rexpr, context)
+function replacement(rexpr::Expr, context)
+    _replacement(Val(rexpr.head), rexpr, context)
 end
 
-replacement(::Val, rexpr, context) = rexpr
-function replacement(::Val{>:}, rexpr, context)
+_replacement(::Val, rexpr, context) = rexpr
+function _replacement(::PUT, rexpr, context)
     length(rexpr.args) == 1 || throw_repl_error(rexpr)
     x = first(rexpr.args)
     get(context, x, missing)
+end
+function _replacement(::CALL, rexpr, context)
+    rargs = rexpr.args
+    nargs = Vector(undef, length(rargs))
+    for i in axes(rargs, 1)
+        nargs[i] = replacement(rargs[i], context)
+    end
+    Expr(rexpr.head, nargs...)
 end
 
 @noinline throw_repl_error(x) = throw(ArgumentError("Syntax error in replacement $x"))
