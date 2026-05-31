@@ -53,7 +53,6 @@ end
 struct AlgebraicNumberClass <: FractionRingClass end
 
 struct NumberFieldClass{T,Id} <: QuotientRingClass
-    generator::T
 end
 
 const NCT = Val{:nocheck}
@@ -312,7 +311,7 @@ combinations of the powers of A. It has dimension of the degree of the minimal p
 It has a natural field isomorphism with the quotient ring of the minimal polynomial,
 which is used to allow efficient operations.
 """
-struct NumberField{T<:AlgebraicNumber,Id,Q<:Quotient} <: Ring{NumberFieldClass{T,Id}}
+struct NumberField{T,Id,Q<:Quotient} <: QuotientRing{T,NumberFieldClass{T,Id}}
     repr::Q
     NumberField{T,Id}(r::Q, ::NCT) where {T,Id,Q<:Quotient} = new{T,Id,Q}(r)
 end

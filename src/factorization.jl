@@ -1,7 +1,10 @@
 
+ 
+
 using Primes
 import Primes.factor
-import Random: rand, SamplerType, AbstractRNG
+import Random: rand
+using Random: SamplerType, AbstractRNG
 export factor
 
 """
@@ -31,7 +34,7 @@ function isirreducible(
 ) where F<:QuotientRing
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
-    iszero(p.coeff[1]) && return false
+    iszero(p[0]) && return false
     pp = gcd(p, derive(p))
     deg(pp) > 0 && return false
     isddf(p)
@@ -80,7 +83,7 @@ end
     factor(p::F[:x])
 
 Factorize polynomial in `F[X]` where `F` is a field
-(`ZZ/p` or `GF(p,m)` with `p` prime number).
+(`ZZ/p`, `GF(p,m)`, or finite extension of `QQ` with `p` prime number).
 """
 function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     res = Pair{P,Int}[]
@@ -97,15 +100,24 @@ function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     end
     pp = sff(p)
     for (q, k) in pp
-        qq = ddf(q)
-        for (r, l) in qq
-            rr = edf(r, l)
-            for s in rr
-                push!(res, s => k)
-            end
+        ff = factor2(q, k, Val(characteristic(basetype(P))))
+        for f in ff
+            push!(res, f => k)
         end
     end
     sort!(res)
+end
+
+# assuming q has finite characteristic
+function factor2(q::P, k::Int, ::Val) where P<:UnivariatePolynomial{<:QuotientRing}
+    qq = ddf(q)
+    for (r, l) in qq
+        rr = edf(r, l)
+        for s in rr
+            push!(res, s => k)
+        end
+    end
+    res
 end
 
 """
@@ -318,4 +330,83 @@ function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
         res *= first(p)^p.second
     end
     res
+end
+
+function vector2quotient(v::AbstractVector{C}, ::Type{Q}) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+    n = length(v)
+    n == dimension(Q) || throw(DimensionMismatch())
+    Q(v)
+end
+function vector2quotient(v::AbstractVector{C}, ::Type{Q}) where {X,C,B,Q<:Quotient{<:UnivariatePolynomial{B,X}}}
+    n = length(v)
+    m = dimension(Q)
+    d, r = divrem(n, m)
+    (r != 0 || n != qdimension(Q)) && throw(DimensionMismatch())
+    if n == m
+        return Q(convert(AbstractVector{B}, v))
+    end
+    c = Vector{B}(undef, m)
+    for i = 0:m-1
+        vi = view(v, i*d+1:(i+1)*d)
+        c[i+1] = vector2quotient(vi, B)
+    end
+    Q(c)
+end
+
+function quotient2vector(q::Q) where {B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+    v = Vector{B}(undef, qdimension(Q))
+    quotient2vector!(v, q)
+end
+
+function quotient2vector!(v::AbstractVector{C}, q::Q) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+    nn = length(v)
+    n = qdimension(Q)
+    nn != n && resize!(v, n)
+    m = dimension(Q)
+    d, r = divrem(n, m)
+    (r != 0 ) && throw(DimensionMismatch())
+    if n == m
+        copyto!(v, coeffs(q.val))
+        return v
+    end
+    for i = 0:m-1
+        vi = view(v, i*d+1:(i+1)*d)
+        quotient2vector!(vi, q[i])
+    end
+    v
+end
+
+qdimension(::Q) where Q = qdimension(Q)
+qdimension(Q::Type{<:Quotient{<:UnivariatePolynomial{B}}}) where B = qdimension(B) * dimension(Q)
+qdimension(::Type) = 1
+
+# assuming q has finite characteristic 00
+function factor2(q::P, ::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+    n = qdimension
+    Q = P / q
+    while true
+        qalpha = rand(-1:0:1, n)
+        alpha = Q(qalpha)
+        mv = zeros(QQ{ZZZ}[], n)
+        mv[1] = 1
+        w = Q(1)
+        for _ = 1:n-1
+            w *= alpha
+            append!(mv, quotient2vector(w))
+        end
+        M = reshape!(mv, n, n)
+        det(M) != 0 && break
+    end
+    w *= alpha
+    b = quotient2vector(w)
+    R = QQ{ZZZ}[:y]
+    qq = monom(R, n) - R(M \ b)
+    f = factor(qq)
+    length(f) == 1 && return [q]
+    qx = quotient2vector(monom(Q))
+    res = P[]
+    for (qf, k) in f
+        @assert(k == 1)
+        xk = mod()
+    end
 end

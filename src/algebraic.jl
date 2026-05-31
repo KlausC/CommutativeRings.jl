@@ -18,6 +18,7 @@ function AlgebraicNumber(
     p, a, r, id = findbest(ps, a)
     AlgebraicNumber(p, r, id, a, NOCHECK)
 end
+
 function AlgebraicNumber(
     p::UnivariatePolynomial{<:basetype(AlgebraicNumber)},
     a::Number,
@@ -253,9 +254,12 @@ function multiply(a::T, b::T) where T<:AlgebraicNumber
     multiply(ma, mb)
 end
 function multiply(a::T, b::T) where T<:UnivariatePolynomial
+    characteristic_polynomial(multiply_matrix(a, b))
+end
+function multiply_matrix(a::T, b::T) where T<:UnivariatePolynomial
     ca = companion(a)
     cb = companion(b)
-    characteristic_polynomial(kron(ca, cb))
+    kron(ca, cb)
 end
 
 function lincomb(a::T, b::T, aa, bb) where T<:AlgebraicNumber
@@ -340,6 +344,28 @@ function findbest(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
     b, id = closeroot(bestp, big(fvalue(a)), bestr)
     bestp, b, bestr, id
 end
+"""
+Given the factorization of a polynomial, find the unique factor f, which has the property
+of mod(f(gen), minimal_polynomial(a) = 0, where gen is the generator of the field of a.  
+"""
+function findbestirreducible(ps::AbstractVector{<:UnivariatePolynomial}, op, operands::AbstractVector{A}) where A<:AlgebraicNumber
+    n = length(operands)
+    names = [Symbol("a_", i) for i in 1:n]
+    Q = basetype(A)
+    M = Q[names...]
+    gs = generators(M)
+    opgen = op(gs...)
+    mp = [minimal_polynomial(o)(g) for (o,g) in zip(operands, gs)]
+    for pp in ps
+        p = pp(opgen)
+        for m in mp
+            p = mod(p, m)
+        end
+        iszero(p) && return pp
+    end
+    throw(ArgumentError("no irreducible factor found, this should not happen"))
+end
+
 
 fvalue(a::Number) = float(a)
 fvalue(a::Ring) = value(a)

@@ -190,7 +190,11 @@ UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 
 # make new copy
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff), ord(p))
-
+# change ariable name(s)
+function evaluate(p::UnivariatePolynomial{S,X}, a::Symbol) where {S,X}
+    P = UnivariatePolynomial{S,a}
+    P(copy(p.coeff), ord(p))
+end
 """
     mult_by_monom(p, k)
 
@@ -696,7 +700,7 @@ Evaluate polynomial by replacing variable `:x` by `y`. `y` may be an object whic
 can be converted to `basetype(p)` or another polynomial.
 Convenient method ot evaluate is is `p(y)`.
 """
-function evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
+function evaluate(p::Polynomial, x)
     _evaluate(p, x)
 end
 function evaluate(

@@ -41,6 +41,12 @@ function generator(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}}
     end
     g
 end
+function Base.getindex(q::Q, i::Int) where {P<:Polynomial,Q<:Quotient{P}}
+    q.val[i]
+end
+function Base.getindex(q::Q, ::Colon) where {P<:Polynomial,Q<:Quotient{P}}
+    [q[i] for i = 0:deg(modulus(Q))-1]
+end
 
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)
