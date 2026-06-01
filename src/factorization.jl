@@ -1,5 +1,5 @@
 
- 
+
 
 using Primes
 import Primes.factor
@@ -100,7 +100,7 @@ function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     end
     pp = sff(p)
     for (q, k) in pp
-        ff = factor2(q, k, Val(characteristic(basetype(P))))
+        ff = factor2(q, Val(characteristic(basetype(P))))
         for f in ff
             push!(res, f => k)
         end
@@ -109,13 +109,12 @@ function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
 end
 
 # assuming q has finite characteristic
-function factor2(q::P, k::Int, ::Val) where P<:UnivariatePolynomial{<:QuotientRing}
+function factor2(q::P, ::Val) where P<:UnivariatePolynomial{<:QuotientRing}
     qq = ddf(q)
+    res = P[]
     for (r, l) in qq
         rr = edf(r, l)
-        for s in rr
-            push!(res, s => k)
-        end
+        append!(res, rr)
     end
     res
 end
@@ -320,24 +319,30 @@ function Base.rand(
 end
 
 function Base.isless(p::T, q::T) where T<:Pair{<:Ring,<:Integer}
-    first(p) < first(q) || first(p) == first(q) && second(p) == second(q)
+    first(p) < first(q) || first(p) == first(q) && last(p) == last(q)
 end
 
 import Base: prod
 function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
     res = one(T)
     for p in ff
-        res *= first(p)^p.second
+        res *= first(p)^last(p)
     end
     res
 end
 
-function vector2quotient(v::AbstractVector{C}, ::Type{Q}) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+function vector2quotient(
+    v::AbstractVector{C},
+    ::Type{Q},
+) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
     n = length(v)
     n == dimension(Q) || throw(DimensionMismatch())
     Q(v)
 end
-function vector2quotient(v::AbstractVector{C}, ::Type{Q}) where {X,C,B,Q<:Quotient{<:UnivariatePolynomial{B,X}}}
+function vector2quotient(
+    v::AbstractVector{C},
+    ::Type{Q},
+) where {X,C,B,Q<:Quotient{<:UnivariatePolynomial{B,X}}}
     n = length(v)
     m = dimension(Q)
     d, r = divrem(n, m)
@@ -353,20 +358,23 @@ function vector2quotient(v::AbstractVector{C}, ::Type{Q}) where {X,C,B,Q<:Quotie
     Q(c)
 end
 
-function quotient2vector(q::Q) where {B,Q<:Quotient{<:UnivariatePolynomial{B}}}
-    v = Vector{B}(undef, qdimension(Q))
+function quotient2vector(q::Q, ::Type{Z}) where {Z,Q<:Quotient{<:UnivariatePolynomial}}
+    v = Vector{Z}(undef, qdimension(Q))
     quotient2vector!(v, q)
 end
 
-function quotient2vector!(v::AbstractVector{C}, q::Q) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+function quotient2vector!(
+    v::AbstractVector{C},
+    q::Q,
+) where {C,Q<:Quotient{<:UnivariatePolynomial}}
     nn = length(v)
     n = qdimension(Q)
     nn != n && resize!(v, n)
     m = dimension(Q)
     d, r = divrem(n, m)
-    (r != 0 ) && throw(DimensionMismatch())
+    (r != 0) && throw(DimensionMismatch())
     if n == m
-        copyto!(v, coeffs(q.val))
+        copyto!(v, q[:])
         return v
     end
     for i = 0:m-1
@@ -377,36 +385,69 @@ function quotient2vector!(v::AbstractVector{C}, q::Q) where {C,B,Q<:Quotient{<:U
 end
 
 qdimension(::Q) where Q = qdimension(Q)
-qdimension(Q::Type{<:Quotient{<:UnivariatePolynomial{B}}}) where B = qdimension(B) * dimension(Q)
+qdimension(Q::Type{<:Quotient{<:UnivariatePolynomial{B}}}) where B =
+    qdimension(B) * dimension(Q)
 qdimension(::Type) = 1
 
-# assuming q has finite characteristic 00
+# assuming q has characteristic 0
 function factor2(q::P, ::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
-    n = qdimension
+    QQQ = QQ{ZZZ}
     Q = P / q
+    n = qdimension(Q)
+    m = n ÷ dimension(Q)
+    qalpha = zeros(QQQ, n)
+    qalpha[m+1] = 1
+    qalpha[m] = 1
+    alpha = vector2quotient(qalpha, Q)
+    M = QQQ[;;]
     while true
-        qalpha = rand(-1:0:1, n)
-        alpha = Q(qalpha)
-        mv = zeros(QQ{ZZZ}[], n)
+        mv = zeros(QQQ, n)
         mv[1] = 1
         w = Q(1)
         for _ = 1:n-1
             w *= alpha
-            append!(mv, quotient2vector(w))
+            append!(mv, quotient2vector(w, QQQ))
         end
-        M = reshape!(mv, n, n)
+
+        M = reshape(mv, n, n)
         det(M) != 0 && break
+        alpha = vector2quotient(rand(-1:1, n), Q)
+        println("new alpha: ", alpha)
     end
     w *= alpha
-    b = quotient2vector(w)
-    R = QQ{ZZZ}[:y]
+    b = quotient2vector(w, QQQ)
+    R = QQQ[:y]
     qq = monom(R, n) - R(M \ b)
     f = factor(qq)
     length(f) == 1 && return [q]
-    qx = quotient2vector(monom(Q))
+    qx = R(M \ quotient2vector(monom(Q), QQQ))
     res = P[]
     for (qf, k) in f
         @assert(k == 1)
-        xk = mod()
+        Ri = R / qf
+        xi = Ri(qx)
+        mx = minimal_polynomial(xi)
+        push!(res, mx)
+    end
+    unique!(res)
+end
+
+function minimal_polynomial(x::Q) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
+    n = dimension(Q)
+    M = zeros(Z, n, n+1)
+    M[1,1] = 1
+    xk = x
+    pr = collect(1:n)
+    for k = 1:n
+        b = quotient2vector(xk, Z)
+        lu_incremental!(M, pr, k + 1, b)
+        if k >= n || iszero(b[k+1])
+            c = UpperTriangular(view(M, 1:k, 1:k)) \ b[1:k]
+            return monom(P, k) - P(c)
+        end
+        for i = 1:n
+            M[i,k+1] = b[i]
+        end
+        xk *= x
     end
 end
