@@ -24,7 +24,7 @@ function isirreducible(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
 end
 
 function factor(p::P, a::Integer=1; p0 = MINPRIME) where {T<:ZI,P<:UnivariatePolynomial{T}}
-    #println("factor($p)")
+    #println("factor($p, $a)")
     X = varname(P)
     c = content(p)
     Z = wide_type(T)[X]
@@ -35,8 +35,10 @@ function factor(p::P, a::Integer=1; p0 = MINPRIME) where {T<:ZI,P<:UnivariatePol
     isone(c) || push!(res, Z(c) => 1)
     iszero(e) || push!(res, x => e)
     if a > 1 || k > 1
+        #println("factor_exp_from_factor($q, $(k * a))")
         append!(res, factor_exp(q, k * a, p0))
     else
+        #println("factor!_from_else($q)")
         factor!(res, q, p0)
     end
     res
@@ -75,7 +77,7 @@ function factor(p::P; p0 = MINPRIME) where P<:UnivariatePolynomial{<:QQ}
     else
         fq[1] = c => 1
     end
-    fq
+    sort!(fq)
 end
 
 """
@@ -252,6 +254,7 @@ function factor_exp(u::P, a::Integer, p0) where P<:UnivariatePolynomial
     res = PP[]
 
     for ab in sort(collect(factors(a))) # TODO open question, if fewer factors sufficient
+        #println("factor!_from_factor_exp($u, $ab)")
         r = factor!(PP[], u(monom(P, ab)), p0)
         ab == a && return r
         if length(r) > 1

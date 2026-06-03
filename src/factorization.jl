@@ -30,12 +30,19 @@ Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `f
 """
 function isirreducible(
     p::UnivariatePolynomial{F},
-    ::Type{<:EuclidianDomainTrait},
-) where F<:QuotientRing
+    ::Type{T},
+) where {T<:EuclidianDomainTrait,F<:QuotientRing}
+    _isirreducible(p, T, Val(characteristic(F)))
+end
+function _isirreducible(
+    p::UnivariatePolynomial{F},
+    ::Type{T},
+    ::Val, # Val{N} whith N > 0
+) where {T<:EuclidianDomainTrait,F<:QuotientRing}
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
     iszero(p[0]) && return false
-    pp = gcd(p, derive(p))
+    pp = gcd(p, derive(p)) # check if p is squarefree
     deg(pp) > 0 && return false
     isddf(p)
 end
@@ -240,6 +247,10 @@ function ddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
 end
 
 function isddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
+    _isddf(f, Val(characteristic(Z)))
+end
+
+function _isddf(f::P, ::Val) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     x = monom(typeof(f), 1)
     i = 1
@@ -389,17 +400,88 @@ qdimension(Q::Type{<:Quotient{<:UnivariatePolynomial{B}}}) where B =
     qdimension(B) * dimension(Q)
 qdimension(::Type) = 1
 
+function factor2(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+    d = deg(q)
+    d <= 1 && return [q]
+    if isbasetype(q)
+        bq = tobasetype(q)
+        f = factor(bq)
+        res = P[]
+        for (qf, k) in f
+            @assert k == 1
+            ff = factor(qf)
+            for (qff, _) in ff
+                append!(res, factor2c(P(qff[:]), V))
+            end
+        end
+        return res
+    else
+        return factor2c(q, V)
+    end
+end
+
+"""
+    isbasetype(q)
+
+All coefficients `c` of polynomial `q` can be represented as `basetype(basetype(c))`
+"""
+function isbasetype(q::P) where P<:UnivariatePolynomial{<:QuotientRing}
+    for c in q.coeff
+        deg(Polynomial(c)) >= 1 && return false
+    end
+    return true
+end
+function tobasetype(q::P) where {X,Q<:QuotientRing,P<:UnivariatePolynomial{Q,X}}
+    B = basetype(basetype(Q))[X]
+    B([c[0] for c in q[:]])
+end
+
 # assuming q has characteristic 0
-function factor2(q::P, ::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+function factor2c(q::P, ::Val{0}) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
+    deg(q) <= 1 && return [q]
+    qq, alpha, M = find_q_generator(q)
+    Q = typeof(alpha)
+    R = typeof(qq)
+    f = factor(qq)
+    length(f) == 1 && return [q]
+    res = P[]
+    for (qf, k) in f
+        @assert(k == 1)
+        vi = M * (R / qq)(qf)[:]
+        qi = Polynomial(vector2quotient(vi, Q))
+        mx = gcd(qi / LC(qi), q)
+        push!(res, mx)
+    end
+    unique!(res)
+end
+
+function _isddfc(q::P, ::Val{0}) where {Q<:QuotientRing,P<:UnivariatePolynomial{Q}}
+    qq, = find_q_generator(q)
+    isirreducible(qq)
+end
+
+
+function _isddf(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+    d = deg(q)
+    d <= 1 && return false
+    if isbasetype(q)
+        bq = tobasetype(q)
+        !isirreducible(bq) && return false
+    end
+    return _isddfc(q, V)
+end
+
+function find_q_generator(q::P) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
+    m = qdimension(B)
+    n = m * deg(q)
     QQQ = QQ{ZZZ}
-    Q = P / q
-    n = qdimension(Q)
-    m = n ÷ dimension(Q)
     qalpha = zeros(QQQ, n)
     qalpha[m+1] = 1
     qalpha[m] = 1
+    Q = Quotient(P, q, false)
     alpha = vector2quotient(qalpha, Q)
-    M = QQQ[;;]
+    M = nothing # QQQ[;;]
+    w = nothing
     while true
         mv = zeros(QQQ, n)
         mv[1] = 1
@@ -408,34 +490,22 @@ function factor2(q::P, ::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
             w *= alpha
             append!(mv, quotient2vector(w, QQQ))
         end
-
         M = reshape(mv, n, n)
         det(M) != 0 && break
         alpha = vector2quotient(rand(-1:1, n), Q)
-        println("new alpha: ", alpha)
     end
     w *= alpha
     b = quotient2vector(w, QQQ)
     R = QQQ[:y]
     qq = monom(R, n) - R(M \ b)
-    f = factor(qq)
-    length(f) == 1 && return [q]
-    qx = R(M \ quotient2vector(monom(Q), QQQ))
-    res = P[]
-    for (qf, k) in f
-        @assert(k == 1)
-        Ri = R / qf
-        xi = Ri(qx)
-        mx = minimal_polynomial(xi)
-        push!(res, mx)
-    end
-    unique!(res)
+    qq, alpha, M
 end
 
+# currently unused
 function minimal_polynomial(x::Q) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     n = dimension(Q)
-    M = zeros(Z, n, n+1)
-    M[1,1] = 1
+    M = zeros(Z, n, n + 1)
+    M[1, 1] = 1
     xk = x
     pr = collect(1:n)
     for k = 1:n
@@ -446,7 +516,7 @@ function minimal_polynomial(x::Q) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotien
             return monom(P, k) - P(c)
         end
         for i = 1:n
-            M[i,k+1] = b[i]
+            M[i, k+1] = b[i]
         end
         xk *= x
     end

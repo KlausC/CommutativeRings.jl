@@ -123,10 +123,12 @@ hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 function Base.show(io::IO, a::Quotient)
     v = a.val
     m = modulus(a)
-    if m isa UnivariatePolynomial && deg(m) == 2 && iszero(m.coeff[2]) && isone(m.coeff[3])
+    if m isa UnivariatePolynomial &&
+         deg(m) == 2 && iszero(m[1]) &&
+         isone(m[2]) && m[0] isa Union{QQ,ZI}
 
         x = string(varnames(m)[1])
-        y = string('\u23b7', -m.coeff[1])
+        y = string('\u23b7', -m[0]) # sqrt glyph ⎷
         vs = replace(sprint(show, v), x => y)
         print(io, vs)
     else
