@@ -395,10 +395,7 @@ function quotient2vector!(
     v
 end
 
-qdimension(::Q) where Q = qdimension(Q)
-qdimension(Q::Type{<:Quotient{<:UnivariatePolynomial{B}}}) where B =
-    qdimension(B) * dimension(Q)
-qdimension(::Type) = 1
+qdimension(T::Type) = dimension_type(T, QQ)[1]
 
 function factor2(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
     d = deg(q)
@@ -439,7 +436,7 @@ end
 # assuming q has characteristic 0
 function factor2c(q::P, ::Val{0}) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
     deg(q) <= 1 && return [q]
-    qq, alpha, M = find_q_generator(q)
+    qq, alpha = find_q_generator(q)
     Q = typeof(alpha)
     R = typeof(qq)
     f = factor(qq)
@@ -447,8 +444,9 @@ function factor2c(q::P, ::Val{0}) where {B<:QuotientRing,P<:UnivariatePolynomial
     res = P[]
     for (qf, k) in f
         @assert(k == 1)
-        vi = M * (R / qq)(qf)[:]
-        qi = Polynomial(vector2quotient(vi, Q))
+        #vi = M * (R / qq)(qf)[:]
+        #qi = Polynomial(Q(vi, eltype(vi)))
+        qi = Polynomial(qf(alpha))
         mx = gcd(qi / LC(qi), q)
         push!(res, mx)
     end
@@ -478,38 +476,30 @@ function find_q_generator(q::P) where {B<:QuotientRing,P<:UnivariatePolynomial{B
     qalpha = zeros(QQQ, n)
     qalpha[m+1] = 1
     qalpha[m] = 1
-    Q = Quotient(P, q, false)
-    alpha = vector2quotient(qalpha, Q)
-    M = nothing # QQQ[;;]
-    w = nothing
+    Q = Quotient(P, q, false) # don't use `P / q` to avoid calling `isirreducible(q)`
+    alpha = Q(qalpha, QQQ)
     while true
-        mv = zeros(QQQ, n)
-        mv[1] = 1
-        w = Q(1)
-        for _ = 1:n-1
-            w *= alpha
-            append!(mv, quotient2vector(w, QQQ))
-        end
-        M = reshape(mv, n, n)
-        det(M) != 0 && break
-        alpha = vector2quotient(rand(-1:1, n), Q)
+        ma = minimal_polynomial(alpha, QQQ)
+        deg(ma) >= n && return ma, alpha
+        qalpha = rand(-1:1, n)
+        alpha = Q(qalpha, QQQ)
     end
-    w *= alpha
-    b = quotient2vector(w, QQQ)
-    R = QQQ[:y]
-    qq = monom(R, n) - R(M \ b)
-    qq, alpha, M
 end
 
-# currently unused
-function minimal_polynomial(x::Q) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
-    n = dimension(Q)
+"""
+    minimal_polynomial(x::Quotient{<:Polynomial}, ::Type{QQ})
+
+Return minimal degree polynomial `m ∈ QQ[:x]` such that `m(x) == 0`.
+"""
+function minimal_polynomial(x::T, ::Type{Q}) where {Q,T<:QU}
+    n, Z = dimension_type(T, Q)
+    P = Z[:x]
     M = zeros(Z, n, n + 1)
     M[1, 1] = 1
     xk = x
     pr = collect(1:n)
     for k = 1:n
-        b = quotient2vector(xk, Z)
+        b = coeffs(xk, Z)
         lu_incremental!(M, pr, k + 1, b)
         if k >= n || iszero(b[k+1])
             c = UpperTriangular(view(M, 1:k, 1:k)) \ b[1:k]
@@ -521,3 +511,83 @@ function minimal_polynomial(x::Q) where {Z,P<:UnivariatePolynomial{Z},Q<:Quotien
         xk *= x
     end
 end
+
+
+const QU{B} = Quotient{<:UnivariatePolynomial{B}}
+const UQU{B} = Union{UnivariatePolynomial{B},QU{B}}
+
+isextensiontype(::Type{T}, ::Type{Q}) where {T,Q} = T <: Q
+function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
+    T <: Q ? true : isextensiontype(B, Q)
+end
+function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q}
+    isextensiontype(B, Q)
+end
+
+dimension_type(::Type{T}, ::Type{Q}) where {Q,T<:Q} = 1, T
+function dimension_type(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
+    if T <: Q
+        (1, T)
+    else
+        d, t = dimension_type(B, Q)
+        d * dimension(T), t
+    end
+end
+function dimension_type(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q}
+    d, t = dimension_type(B, Q)
+    d * dimension(T), t
+end
+
+function coeffs(p::UnivariatePolynomial{B}, ::Type{Q}, m::Integer = deg(p) + 1) where {B,Q}
+    isextensiontype(B, Q) ||
+        throw(ArgumentError("B = $B) must be extension type of Q = $Q"))
+    d, T = dimension_type(B, Q)
+    v = zeros(T, m * d)
+    _coeffs!(v, p, T, m)
+    v
+end
+function coeffs(p::QU{B}, ::Type{Q}) where {B,Q}
+    isextensiontype(B, Q) ||
+        throw(ArgumentError("B = $B) must be extension type of Q = $Q"))
+    d, T = dimension_type(B, Q)
+    m = dimension(typeof(p))
+    v = zeros(T, m * d)
+    _coeffs!(v, p, T, m)
+    v
+end
+coeffs(p::QU{B}, ::Type{<:QU{B}}) where B = [p]
+
+function _coeffs!(v::AbstractVector, p::UQU{Q}, ::Type{Q}, m::Integer) where Q
+    n = min(m, length(v))
+    for i = 1:n
+        v[i] = p[i-1]
+    end
+    nothing
+end
+function _coeffs!(v::AbstractVector, p::UQU{B}, ::Type{Q}, m::Integer) where {B,Q}
+    d, _ = dimension_type(B, Q)
+    n = dimension(B)
+    for i = 0:m-1
+        _coeffs!(view(v, i*d+1:(i+1)*d), p[i], Q, n)
+    end
+end
+
+(::Type{T})(v::AbstractVector{Q}, ::Type{V}) where {Q,V<:Ring,T<:QU} = T(V.(v), V)
+function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Q,T<:QU{B}}
+    T(Polynomial(T)(v))
+end
+function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B,T<:QU{B}}
+    nn = length(v)
+    m = dimension(T)
+    d, _ = dimension_type(B, Q)
+    m, r = fldmod(nn, d)
+    w = Vector{B}(undef, m + (r > 0))
+    for i = 0:m-1
+        w[i+1] = B(view(v, d*i+1:d*(i+1)))
+    end
+    if r > 0
+        w[m+1] = vcat(view(v, d*m+1:nn), zeros(Q, d - r))
+    end
+    T(w)
+end
+(::Type{T})(v::AbstractVector{T}, ::Type{T}) where {B,T<:QU{B}} = v[1]

@@ -36,7 +36,7 @@ function getindex(u::UnivariatePolynomial{T}, i::Integer) where T
     f <= i <= deg(u) ? u.coeff[i+1-f] : zero(T)
 end
 getindex(u::UnivariatePolynomial, v::AbstractVector{<:Integer}) = [u[i] for i in v]
-getindex(u::UnivariatePolynomial, ::Colon) = getindex(u, 0:deg(u))
+getindex(u::UnivariatePolynomial, ::Colon) = coeffs(u)
 
 """
     deg(p::Polynomial)
@@ -600,7 +600,7 @@ function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
     if n == 0
         hash(zero(S), h)
-    elseif n == 1 && deg(p) == 1
+    elseif deg(p) == 0
         hash(CC(p), h)
     else
         hash(ord(p), hash(X, hash(p.coeff, h)))
