@@ -120,19 +120,29 @@ end
 ==(a::Quotient{S,I,X}, b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
-function Base.show(io::IO, a::Quotient)
-    v = a.val
+function Base.show(io::IO, a::Q) where Q <:Quotient
+    v = value(a)
     m = modulus(a)
     if m isa UnivariatePolynomial &&
-         deg(m) == 2 && iszero(m[1]) &&
-         isone(m[2]) && m[0] isa Union{QQ,ZI}
+       deg(m) == 2 &&
+       iszero(m[1]) &&
+       isone(m[2]) &&
+       m[0] isa Union{QQ,ZI}
 
         x = string(varnames(m)[1])
-        y = string('\u23b7', -m[0]) # sqrt glyph ⎷
+        imag = m[0] > 0 ? "im" : ""
+
+        y = isone(m[0]) ? imag : string('\u23b7', abs(m[0]), imag) # sqrt glyph ⎷
         vs = replace(sprint(show, v), x => y)
         print(io, vs)
     else
-        print(io, v, " mod(", m, ")")
+        show(io, v)
+        if !get(io, :suppressmod, false)
+            io = IOContext(io, :suppressmod => true)
+            print(io, " mod(")
+            show(io, m)
+            print(io, ")")
+        end
     end
 end
 

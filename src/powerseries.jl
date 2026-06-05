@@ -289,7 +289,8 @@ end
 function Base.show(io::IO, s::PowerSeries{Y,R,X}) where {Y,R,X}
     haso = precision(s) != InfPrecision
     if !iszero(s.poly) || !haso
-        _show(io, s.poly, Val(false))
+        io = IOContext(io, :order => false)
+        show(io, s.poly)
         if haso
             print(io, " + ")
         end

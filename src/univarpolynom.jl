@@ -598,10 +598,8 @@ end
 
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    if n == 0
-        hash(zero(S), h)
-    elseif deg(p) == 0
-        hash(CC(p), h)
+    if n <= 1 && deg(p) <= 0
+        hash(p[0], h)
     else
         hash(ord(p), hash(X, hash(p.coeff, h)))
     end
@@ -841,10 +839,10 @@ function companion(::Type{S}, v::AbstractVector) where S
     A = zeros(S, n, n)
     u = -inv(v[n+1])
     for i = 1:n-1
-        A[i+1,i] = oneunit(S)
-        A[i,n] = v[i] * u
+        A[i+1, i] = oneunit(S)
+        A[i, n] = v[i] * u
     end
-    A[n,n] = v[n] * u
+    A[n, n] = v[n] * u
     A
 end
 
@@ -892,7 +890,7 @@ function Base.eltype(::Type{<:DeepIterPolynomial{P,N}}) where {P<:Polynomial,N}
 end
 deep_eltype(P::Type, ::Int) = P
 function deep_eltype(::Type{P}, n::Int) where P<:Polynomial
-    n == 0 ? P : deep_eltype(basetype(P), n-1)
+    n == 0 ? P : deep_eltype(basetype(P), n - 1)
 end
 
 const ITER_START = -1
@@ -903,7 +901,7 @@ end
 function Base.iterate(x::DeepIterPolynomial{P,N}, st) where {P,N}
     p = x.p
     if N <= 0
-        return length(st) != 0 ?  nothing : ((x.p, Int[]), Int[0])
+        return length(st) != 0 ? nothing : ((x.p, Int[]), Int[0])
     end
     stp, strest... = st
     while true
@@ -928,15 +926,17 @@ function Base.iterate(x::DeepIterPolynomial{P,N}, st) where {P,N}
     nothing
 end
 
-show(io::IO, p::Polynomial) = _show(io, p, Val(true))
-
-function _show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
+function show(io::IO, p::P) where P<:Polynomial
     T = basetype(P)
     c = p.coeff
     N = length(p.coeff) - 1
-    N < 0 && return show(io, zero(T))
+    suppressmod = get(io, :suppressmod, false)
+    zmod = suppressmod ? "" : sprint(show, zero(T))
+    N < 0 && return print(io, zmod)
+    ord = get(io, :order, true) ? (N:-1:0) : (0:N)
+
+    io = IOContext(io, :suppressmod => true, :order => true)
     start = true
-    ord = Z ? (N:-1:0) : (0:N)
     for n in ord
         el = c[n+1]
         iszero(el) && (!start || !Z) && continue
@@ -963,6 +963,10 @@ function _show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
         end
         showvar(io, p, n)
         start = false
+    end
+    rmod = findfirst(" mod", zmod)
+    if rmod !== nothing
+        print(io, zmod[first(rmod):end])
     end
 end
 

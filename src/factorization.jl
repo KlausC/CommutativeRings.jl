@@ -486,6 +486,9 @@ function find_q_generator(q::P) where {B<:QuotientRing,P<:UnivariatePolynomial{B
     end
 end
 
+const QU{B} = Quotient{<:UnivariatePolynomial{B}}
+const UQU{B} = Union{UnivariatePolynomial{B},QU{B}}
+
 """
     minimal_polynomial(x::Quotient{<:Polynomial}, ::Type{QQ})
 
@@ -511,10 +514,6 @@ function minimal_polynomial(x::T, ::Type{Q}) where {Q,T<:QU}
         xk *= x
     end
 end
-
-
-const QU{B} = Quotient{<:UnivariatePolynomial{B}}
-const UQU{B} = Union{UnivariatePolynomial{B},QU{B}}
 
 isextensiontype(::Type{T}, ::Type{Q}) where {T,Q} = T <: Q
 function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
