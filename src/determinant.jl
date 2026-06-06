@@ -167,22 +167,47 @@ function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{
 end
 
 """
-    crt(x, y, p, q)
+    crt(x, y, p, q) ->crt-value, lcm(p, q), gcd(p, q)
 
 Chinese remainder theorem.
-Given `x, y, p, q` with `gcd(p, q) == 1`,
+The type of the arguments must allow operations div, rem, mod, gcdx
+Given `x, y, p, q` with `gcd(p, q) == g`,
 return `0 <= z < lcm(p, q)` with 'mod(z - x, p) == 0` and `mod(z - y, q) == 0`.
-The result type is widened to avoid overflows.
+For Integers, the result type is widened to avoid overflows.
 """
-function crt(x, y, p, q)
-    g, c = _crt2(widen(x), widen(y), p, q)
-    mod(c, div(widen(p) * widen(q), g))
+function crt(x::T, y::T, p::T, q::T) where T<:Union{Integer,Ring}
+    g, u = gcdx(p, q)
+    # mod(y * u * p + x * v * q, lcm(p, q), ...
+    x = mod(x, p)
+    y = mod(y, q)
+    yx, r = divrem(y - x, g)
+    iszero(r) || throw(ArgumentError("y - x must be multiple of gcd(p, q)"))
+    qg = div(q, g)
+    mod(_widemul(yx, u), qg) * p + x, _widemul(qg, p), g
 end
-_crt(x, y, p, q) = _crt2(x, y, p, q)[2]
-function _crt2(x, y, p, q)
-    g, u, v = gcdx(p, q)
-    g, y * u * p + x * v * q
+
+_widemul(x::T, y::T) where T<:Integer = widemul(x, y)
+_widemul(x::T, y::T) where T<:Ring = x * y
+
+"""
+    crt(xx::Vector, pp::Vector) -> crt-value of vector data, lcm(pp)
+"""
+function crt(xx::AbstractVector{T}, pp::AbstractVector{T}) where T
+    n = length(xx)
+    (n > 0 && n == length(pp)) || throw(ArgumentError("input vectors have different sizes"))
+    g = pp[1]
+    if n == 1
+        mod(xx[1], g), g
+    else
+        x = xx[1]
+        p = pp[1]
+        for i in 2:n
+            x, p, g = crt(x, xx[i], p, pp[i])
+        end
+        x, p
+    end
 end
+
 """
     v = splitmod(a, m)
 
