@@ -191,21 +191,27 @@ _widemul(x::T, y::T) where T<:Ring = x * y
 
 """
     crt(xx::Vector, pp::Vector) -> crt-value of vector data, lcm(pp)
+
+Note:
+    If p[i] are pairwise disjoint polynomials and p = prod(p[i]), then there is a
+    Algebra Isomorphism between Q[x] / p and the direct sum of the Q[x]/p[i] via
+
+    y -> [mod(y, p[i]), i = ...] in the trivial direction and
+
+    crt([y[i], i = ..], [p[i], i = ...]) -> mod(y, p) in the reverse direction.
+
+    There should be test cases that prove the inversity of the mappings and the
+    compatibility with the ring-operations +, -, *, /.
 """
 function crt(xx::AbstractVector{T}, pp::AbstractVector{T}) where T
     n = length(xx)
     (n > 0 && n == length(pp)) || throw(ArgumentError("input vectors have different sizes"))
-    g = pp[1]
-    if n == 1
-        mod(xx[1], g), g
-    else
-        x = xx[1]
-        p = pp[1]
-        for i in 2:n
-            x, p, g = crt(x, xx[i], p, pp[i])
-        end
-        x, p
+    p = pp[1]
+    x = n == 1 ? mod(xx[1], p) : xx[1]
+    for i = 2:n
+        x, p = crt(x, xx[i], p, pp[i])
     end
+    x, p
 end
 
 """
