@@ -58,16 +58,23 @@ end
     @test order(Q) == order(G)^3
 end
 
-@testset "show" begin
-    P = ZZ{Int}[:x]
-    x = monom(P)
-    Q = P / (x^2 + 17)
+@testset "show Quotient" begin
+    X = QQ{Int}
+    x = monom(X[:x])
+    Q = typeof(x) / (x^2 + 17)
     @test sprint(show, Q(1)) == "1"
-    @test sprint(show, Q(x)) == "\u23b7-17"
-    @test sprint(show, Q(-2x + 10)) == "-2*\u23b7-17 + 10"
-    @test sprint(show, -Q(2x + 10)) == "-2*\u23b7-17 - 10"
-    R = P / (x^3 + 1)
-    @test sprint(show, R(x^2 + x + 1)) == "x^2 + x + 1 mod(x^3 + 1)"
+    @test sprint(show, Q(x)) == "\u23b7" * "17𝓲"
+    @test sprint(show, Q(-2x + 10)) == "-2*\u23b717𝓲 + 10"
+    @test sprint(show, -Q(2x + 10)) == "-2*\u23b717𝓲 - 10"
+    R = typeof(x) / (x^3 + 2)
+    @test "$R" == "Quotient{$(basetype(R)), x^3 + 2}"
+    @test "$(R(x^2 + x + 1))" == "x^2 + x + 1 mod(x^3 + 2)"
+    y = monom(R[:y])
+    Z = typeof(y) / (y^2 + 1)
+    @test "$Z" == "Quotient{$(basetype(Z)), y^2 + 1}"
+    @test "$(modulus(Z))" == "y^2 + 1 mod(x^3 + 2)"
+    z = monom(Z[:z])
+    @test "$(z^2 + y - x)" == "z^2 + y - x mod(x^3 + 2) mod(y^2 + 1)"
 end
 
 end # module

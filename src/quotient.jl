@@ -120,7 +120,7 @@ end
 ==(a::Quotient{S,I,X}, b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
-function Base.show(io::IO, a::Q) where Q <:Quotient
+function Base.show(io::IO, a::Q) where Q<:Quotient
     v = value(a)
     m = modulus(a)
     if m isa UnivariatePolynomial &&
@@ -130,9 +130,9 @@ function Base.show(io::IO, a::Q) where Q <:Quotient
        m[0] isa Union{QQ,ZI}
 
         x = string(varnames(m)[1])
-        imag = m[0] > 0 ? "im" : ""
-
-        y = isone(m[0]) ? imag : string('\u23b7', abs(m[0]), imag) # sqrt glyph ⎷
+        imag = m[0] > 0 ? "𝓲" : "" # \bscri bold script i for imaginary unit
+        absm = m[0] > 0 ? m[0] : -m[0]
+        y = isone(m[0]) ? imag : string('\u23b7', absm, imag) # sqrt glyph ⎷
         vs = replace(sprint(show, v), x => y)
         print(io, vs)
     else
@@ -157,5 +157,6 @@ pgcdx(a::G, b::G) where G<:QuotientRing = gcdx(a, b)
 function show(io::IO, ::Type{Q}) where {Z,R<:UnivariatePolynomial{Z},Q<:Quotient{R}}
     print(io, "Quotient{")
     show(io, R)
+    io = IOContext(io, :suppressmod => true)
     print(io, ", ", modulus(Q), "}")
 end

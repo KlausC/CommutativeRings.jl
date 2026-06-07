@@ -395,8 +395,6 @@ function quotient2vector!(
     v
 end
 
-qdimension(T::Type) = dimension_type(T, QQ)[1]
-
 function factor2(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
     d = deg(q)
     d <= 1 && return [q]
@@ -418,7 +416,7 @@ function factor2(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
 end
 
 """
-    isbasetype(q)
+    isbasetype(q::Polynomial{<:QuotientRing})
 
 All coefficients `c` of polynomial `q` can be represented as `basetype(basetype(c))`
 """
@@ -428,6 +426,11 @@ function isbasetype(q::P) where P<:UnivariatePolynomial{<:QuotientRing}
     end
     return true
 end
+"""
+    tobasetype(q::Polynomial{<:QuotientRing})
+
+Assuming `isbasetype(q)` return a polynomial, coefficients in `basetype(basetype(c))`
+"""
 function tobasetype(q::P) where {X,Q<:QuotientRing,P<:UnivariatePolynomial{Q,X}}
     B = basetype(basetype(Q))[X]
     B([c[0] for c in q[:]])
@@ -470,9 +473,8 @@ function _isddf(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
 end
 
 function find_q_generator(q::P) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
-    m = qdimension(B)
+    m, QQQ = dimension_type(B, QQ)
     n = m * deg(q)
-    QQQ = QQ{ZZZ}
     qalpha = zeros(QQQ, n)
     qalpha[m+1] = 1
     qalpha[m] = 1
@@ -523,6 +525,11 @@ function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q}
     isextensiontype(B, Q)
 end
 
+
+qdimension(T::Type) = dimension_type(T, QQ)[1]
+qtype(T::Type) = dimension_type(T, QQ)[2]
+qtype(::Type{<:Polynomial{B}}) where B = dimension_type(B, QQ)[2]
+
 dimension_type(::Type{T}, ::Type{Q}) where {Q,T<:Q} = 1, T
 function dimension_type(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
     if T <: Q
@@ -571,11 +578,13 @@ function _coeffs!(v::AbstractVector, p::UQU{B}, ::Type{Q}, m::Integer) where {B,
     end
 end
 
-(::Type{T})(v::AbstractVector{Q}, ::Type{V}) where {Q,V<:Ring,T<:QU} = T(V.(v), V)
+function(::Type{T})(v::AbstractVector{Q}, ::Type{V}) where {Q,V<:Ring,T<:QU}
+    V(zero(Q)) isa Q ? T(v, Q) : T(V.(v), V)
+end
 function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Q,T<:QU{B}}
     T(Polynomial(T)(v))
 end
-function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B,T<:QU{B}}
+function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Quotient,T<:QU{B}}
     nn = length(v)
     m = dimension(T)
     d, _ = dimension_type(B, Q)

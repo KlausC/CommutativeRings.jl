@@ -39,6 +39,7 @@ export generator, generators
 export homomorphism
 export num_primitives, isprimitive, ismonomprimitive
 export elementary_symmetric, newton_symmetric
+export crt
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend

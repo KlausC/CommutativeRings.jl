@@ -99,7 +99,9 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
                 isone(w) && return dv
                 ZW = Quotient(w, Z)
                 dw = det!(ZW.(a))
-                return _crt(D(value(dv)), D(value(dw)), v, w) * s
+                dvd = value(dv)
+                dwd = value(dw)
+                return crt(dvd, dwd, v, w)[1] * s
             end
         end
         bkk = one(D)
@@ -175,9 +177,10 @@ Given `x, y, p, q` with `gcd(p, q) == g`,
 return `0 <= z < lcm(p, q)` with 'mod(z - x, p) == 0` and `mod(z - y, q) == 0`.
 For Integers, the result type is widened to avoid overflows.
 """
+crt(x, y, p, q) = crt(promote(x, y, p, q)...)
 function crt(x::T, y::T, p::T, q::T) where T<:Union{Integer,Ring}
     g, u = gcdx(p, q)
-    # mod(y * u * p + x * v * q, lcm(p, q), ...
+    # mod(y * u * p + x * v * q, lcm(p, q)), ...
     x = mod(x, p)
     y = mod(y, q)
     yx, r = divrem(y - x, g)

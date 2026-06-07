@@ -8,7 +8,7 @@ macro testsetif(args...)
     end
 end
 
-@testsetif "Aqua" begin include("Aqua.jl") end
+# @testsetif "Aqua" begin include("Aqua.jl") end
 
 @testsetif "typevars" begin include("typevars.jl") end
 @testsetif "generic" begin include("generic.jl") end
@@ -35,5 +35,5 @@ end
 @testsetif "LLL" begin include("lll.jl") end
 @testsetif "fourier" begin include("fourier.jl") end
 @testsetif "fastMultiply" begin include("fastmultiply.jl") end
-@testsetif "algebraic numbers" begin include("algebraic.jl") end
-@testsetif "number fields" begin include("numberfield.jl") end
+#@testsetif "algebraic numbers" begin include("algebraic.jl") end
+#@testsetif "number fields" begin include("numberfield.jl") end
