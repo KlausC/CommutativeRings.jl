@@ -241,7 +241,7 @@ end
     AlgebraicNumber(lincomb(a, b, 1, 1), approx(a) + approx(b))
 -(a::T, b::T) where T<:AlgebraicNumber =
     AlgebraicNumber(lincomb(a, b, 1, -1), approx(a) - approx(b))
--(a::T) where T<:AlgebraicNumber = AlgebraicNumber(lincomb(a, -1) - approx(a))
+-(a::T) where T<:AlgebraicNumber = AlgebraicNumber(lincomb(a, -1), -approx(a))
 
 function multiply(a::T, b::T) where T<:AlgebraicNumber
     ma = minimal_polynomial(a)
@@ -436,7 +436,7 @@ end
 function cr_roots(p::UnivariatePolynomial)
     F = Float64
     if deg(p) <= 1
-        return [F(p[0])]
+        return [F(-p[0])]
     end
     rts = cr_roots(p.coeff, F)
     prepend!(rts, zeros(F, ord(p)))
@@ -788,17 +788,17 @@ end
 
 Shperical distance between two complex numbers.
 """
-function sdist(a::Number, b::Number, c::Number=1.0)
+function sdist(a::Number, b::Number, c::Number = 1.0)
     as, az = smap(a, c)
     bs, bz = smap(b, c)
-    sqrt(abs2(as-bs) + (az - bz)^2)
+    sqrt(abs2(as - bs) + (az - bz)^2)
 end
 
 function smap(a::Number, c::Number)
     a = a / c
     ar = abs(a)
-    as = 2 * inf_sign(a) / (ar + 1/ar)
-    az = isfinite(ar) ? (ar^2 - 1) / ( ar^2 + 1) : one(ar)
+    as = 2 * inf_sign(a) / (ar + 1 / ar)
+    az = isfinite(ar) ? (ar^2 - 1) / (ar^2 + 1) : one(ar)
     as, az
 end
 

@@ -12,16 +12,12 @@ or with `monomial(NF(A))`.
 function NF(a::A) where A<:AlgebraicNumber
     p = minimal_polynomial(a)
     Q = Quotient(typeof(p), p) # no check for irreducibility - compared to T / p
-    new_class(NumberField{basetype(A),sintern(a),Q})
+    new_class(NumberField{A,sintern(a),Q}, a)
 end
-function NF(p::P, gen::Symbol = :a) where P<:UnivariatePolynomial
-    p = p(gen)
-    Q = typeof(p) / p # check for irreducibility
-    new_class(NumberField{basetype(P),sintern(p),Q})
-end
+
 # Constructors
-category_trait(::Type{T}) where T<:NumberField = category_trait(basetype(T))
-basetype(::Type{<:NumberField{A,Id,Q}}) where {A,Id,Q} = Q
+category_trait(::Type{<:NumberField{A}}) where A = category_trait(basetype(A))
+basetype(::Type{<:NumberField{A}}) where A = basetype(A)
 
 function (::Type{<:NumberField{A,Id,Q}})(q::P) where {A,P,Id,Q}
     v = Q(q)
@@ -41,13 +37,13 @@ Base.convert(::Type{T}, a::Ring) where T<:NumberField = T(a)
 Base.convert(::Type{T}, a::NumberField) where T<:NumberField = a
 
 promote_rule(::Type{N}, ::Type{<:QQ}) where N<:NumberField = N
-promote_rule(::Type{N}, ::Type{<:ZI}) where N<:NumberField = N
+promote_rule(::Type{N}, ::Type{<:ZZ}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Integer}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Rational}) where N<:NumberField = N
 
 # return the base algebraic number of this number field
-@inline base(::Type{<:NumberField{T,Id,Q}}) where {T,Id,Q} = modulus(Q)
-@inline base(b::NumberField) = modulus(b.repr)
+@inline base(t::Type{<:NumberField}) = gettypevar(t).generator
+@inline base(b::NumberField) = base(typeof(b))
 
 approx(nf::N) where N<:NumberField = value(nf.repr)(approx(base(N)))
 
@@ -95,7 +91,7 @@ generator(::Type{N}) where N<:NumberField = monom(N)
 
 minimal_polynomial(b::NumberField) = minimal_polynomial(AlgebraicNumber(b))
 
-minimal_polynomial(::Type{N}) where N<:NumberField = base(N)
+minimal_polynomial(::Type{N}) where N<:NumberField = minimal_polynomial(base(N))
 
 """
     field_matrix(b::NumberField)

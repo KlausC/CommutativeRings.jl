@@ -598,4 +598,4 @@ function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Quotient
     end
     T(w)
 end
-(::Type{T})(v::AbstractVector{T}, ::Type{T}) where {B,T<:QU{B}} = v[1]
+#(::Type{T})(v::AbstractVector{T}, ::Type{T}) where {B,T<:QU{B}} = v[1]
