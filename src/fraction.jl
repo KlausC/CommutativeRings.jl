@@ -2,7 +2,7 @@
 # class constructors
 Frac(a::Type{Union{}}, s...) = merror(irreducible, (a, s...))
 Frac(::Type{R}) where R<:Ring = Frac{R}
-Frac(::Type{<:ZZ{R}}) where R<:Integer = QQ{R}
+Frac(::Type{T}) where T<:ZI = QQ{basetype(T)}
 Frac(::Type{R}) where R<:Integer = QQ{R}
 
 # construction
@@ -49,8 +49,8 @@ Frac{T}(a::Integer) where T = Frac{T}(T(a), one(T), NOCHECK)
 Frac{T}(a::Rational{<:Integer}) where T = Frac{T}(T(a.num), T(a.den), NOCHECK)
 Frac{T}(a::Ring) where T = Frac{T}(T(a), one(T), NOCHECK)
 Frac(a::T) where T<:Ring = Frac{T}(a)
-Frac(a::T) where T<:Integer = Frac{ZZ{T}}(a)
-Frac(a::Rational{T}) where T<:Integer = Frac(ZZ{T})(a)
+Frac(a::T) where T<:Integer = Frac{ZZZ}(a)
+Frac(a::Rational{T}) where T<:Integer = Frac(ZZZ)(a)
 Frac{T}(a::Integer, b::Integer) where T = Frac(T(a), T(b))
 function Frac(a::T, b::T) where T<:UnivariatePolynomial
     sh = ord(a) - ord(b)
@@ -104,7 +104,7 @@ Frac{T}(a, b) where T = Frac(T(a), T(b))
 promote_rule(::Type{Frac{T}}, ::Type{Frac{S}}) where {S,T} = Frac{promote_type(S, T)}
 function promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Ring,T}
     R = promote_type(S, T)
-    R <: Union{Polynomial, ZZ} ? Frac{R} : R
+    R <: Union{Polynomial, ZI} ? Frac{R} : R
 end
 promote_rule(::Type{Frac{T}}, ::Type{S}) where {S<:Integer,T} = Frac{promote_type(S, T)}
 promote_rule(::Type{Frac{T}}, ::Type{Rational{S}}) where {S<:Integer,T} =
@@ -167,7 +167,7 @@ evaluate(p::Frac, a) = fracdiv(evaluate(p.num, a), evaluate(p.den, a))
 fracdiv(a, b) = fracdiv(promote(a, b)...)
 fracdiv(a::T, b::T) where T = a * inv(b)
 fracdiv(a::T, b::T) where T<:Integer = a // b
-fracdiv(a::T, b::T) where T<:ZZ = a // b
+fracdiv(a::T, b::T) where T<:ZI = a // b
 fracdiv(a::T, b::T) where T<:OtherFloat = a / b
 
 derive(p::Frac) = (derive(p.num) * p.den - p.num * derive(p.den)) // p.den // p.den
@@ -286,7 +286,7 @@ function enparen(s::String)
 end
 
 # conversions from fractions
-(::Type{S})(a::T) where {S<:Union{Integer,ZZ},T<:Union{QQ,Frac}} = fractless(S, a)
+(::Type{S})(a::T) where {S<:Union{Integer,ZI},T<:Union{QQ,Frac}} = fractless(S, a)
 (::Type{S})(a::Frac{T}) where {S<:UnivariatePolynomial,T<:Polynomial} = fractless(S, a)
 UnivariatePolynomial(a::Frac{T}) where {T<:Polynomial} = fractless(UnivariatePolynomial, a)
 

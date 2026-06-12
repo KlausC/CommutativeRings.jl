@@ -25,7 +25,7 @@ import CommutativeRings.mult_by_monom
     @test F(pq2) == pq
     @test F(13) == F(13, 1)
     @test F(ZZ(11)) == F(ZZ(22), ZZ(2))
-    @test basetype(Frac(Int8(11))) == ZZ{Int8}
+    @test basetype(Frac(Int8(11))) <: ZI
 
     @test convert(F, pq) === pq
     @test convert(F, pq2) == pq2

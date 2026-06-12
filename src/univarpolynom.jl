@@ -36,7 +36,7 @@ function getindex(u::UnivariatePolynomial{T}, i::Integer) where T
     f <= i <= deg(u) ? u.coeff[i+1-f] : zero(T)
 end
 getindex(u::UnivariatePolynomial, v::AbstractVector{<:Integer}) = [u[i] for i in v]
-getindex(u::UnivariatePolynomial, ::Colon) = getindex(u, 0:deg(u))
+getindex(u::UnivariatePolynomial, ::Colon) = coeffs(u)
 
 """
     deg(p::Polynomial)
@@ -190,7 +190,11 @@ UnivariatePolynomial(r::R) where {R<:Ring} = UnivariatePolynomial{R,:x}([r])
 
 # make new copy
 copy(p::UnivariatePolynomial) = typeof(p)(copy(p.coeff), ord(p))
-
+# change ariable name(s)
+function evaluate(p::UnivariatePolynomial{S,X}, a::Symbol) where {S,X}
+    P = UnivariatePolynomial{S,a}
+    P(copy(p.coeff), ord(p))
+end
 """
     mult_by_monom(p, k)
 
@@ -550,12 +554,12 @@ end
     primpart(p::Polynomial)
 
 The primitive part of the polynomial `p`, equals [`p / content(p)`](@ref).
-If the basetype is `QQ`, returned polynomial has basetype `ZZ`.
+If the basetype is `QQ`, returned polynomial has basetype of ZZ or ZZZ.
 """
 primpart(p::Polynomial) = p / content(p)
 function primpart(p::UnivariatePolynomial{Q,X}) where {Q<:Union{QQ,Frac},X}
-    Z = basetype(Q)
-    (Z[X])(Z.(numerator.((p / content(p)).coeff)), ord(p))
+    B = basetype(Q)
+    (B[X])(B.(numerator.((p / content(p)).coeff)), ord(p))
 end
 
 """
@@ -567,10 +571,10 @@ function content_primpart(p::Polynomial)
     c = content(p)
     c, p / c
 end
-function content_primpart(p::P) where {T,X,P<:UnivariatePolynomial{QQ{T},X}}
+function content_primpart(p::P) where {T,X,Q<:QQ{T},P<:UnivariatePolynomial{Q,X}}
     c = content(p)
-    Z = ZZ{T}
-    pp = Z[X]([Z(numerator(x / c)) for x in p.coeff], ord(p))
+    B = basetype(Q)
+    pp = B[X]([B(numerator(x / c)) for x in p.coeff], ord(p))
     c, pp
 end
 
@@ -594,10 +598,8 @@ end
 
 function hash(p::UnivariatePolynomial{S,X}, h::UInt) where {X,S}
     n = length(p.coeff)
-    if n == 0
-        hash(zero(S), h)
-    elseif n == 1 && deg(p) == 1
-        hash(CC(p), h)
+    if n <= 1 && deg(p) <= 0
+        hash(p[0], h)
     else
         hash(ord(p), hash(X, hash(p.coeff, h)))
     end
@@ -696,7 +698,7 @@ Evaluate polynomial by replacing variable `:x` by `y`. `y` may be an object whic
 can be converted to `basetype(p)` or another polynomial.
 Convenient method ot evaluate is is `p(y)`.
 """
-function evaluate(p::UnivariatePolynomial{S}, x::T) where {S,T}
+function evaluate(p::Polynomial, x)
     _evaluate(p, x)
 end
 function evaluate(
@@ -831,6 +833,19 @@ function companion(p::UnivariatePolynomial{S}, q::UnivariatePolynomial{T}) where
     A
 end
 
+# Here the comanion of a polynomial given by its vector
+function companion(::Type{S}, v::AbstractVector) where S
+    n = length(v) - 1
+    A = zeros(S, n, n)
+    u = -inv(v[n+1])
+    for i = 1:n-1
+        A[i+1, i] = oneunit(S)
+        A[i, n] = v[i] * u
+    end
+    A[n, n] = v[n] * u
+    A
+end
+
 ### Display functions
 
 import Base: show
@@ -875,7 +890,7 @@ function Base.eltype(::Type{<:DeepIterPolynomial{P,N}}) where {P<:Polynomial,N}
 end
 deep_eltype(P::Type, ::Int) = P
 function deep_eltype(::Type{P}, n::Int) where P<:Polynomial
-    n == 0 ? P : deep_eltype(basetype(P), n-1)
+    n == 0 ? P : deep_eltype(basetype(P), n - 1)
 end
 
 const ITER_START = -1
@@ -886,7 +901,7 @@ end
 function Base.iterate(x::DeepIterPolynomial{P,N}, st) where {P,N}
     p = x.p
     if N <= 0
-        return length(st) != 0 ?  nothing : ((x.p, Int[]), Int[0])
+        return length(st) != 0 ? nothing : ((x.p, Int[]), Int[0])
     end
     stp, strest... = st
     while true
@@ -911,15 +926,17 @@ function Base.iterate(x::DeepIterPolynomial{P,N}, st) where {P,N}
     nothing
 end
 
-show(io::IO, p::Polynomial) = _show(io, p, Val(true))
-
-function _show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
+function show(io::IO, p::P) where P<:Polynomial
     T = basetype(P)
     c = p.coeff
     N = length(p.coeff) - 1
-    N < 0 && return show(io, zero(T))
+    suppressmod = get(io, :suppressmod, false)
+    zmod = suppressmod ? "" : sprint(show, zero(T))
+    N < 0 && return print(io, zmod)
+    ord = get(io, :order, true) ? (N:-1:0) : (0:N)
+
+    io = IOContext(io, :suppressmod => true, :order => true)
     start = true
-    ord = Z ? (N:-1:0) : (0:N)
     for n in ord
         el = c[n+1]
         iszero(el) && (!start || !Z) && continue
@@ -946,6 +963,10 @@ function _show(io::IO, p::P, ::Val{Z}) where {P<:Polynomial,Z}
         end
         showvar(io, p, n)
         start = false
+    end
+    rmod = findfirst(" mod", zmod)
+    if rmod !== nothing
+        print(io, zmod[first(rmod):end])
     end
 end
 

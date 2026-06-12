@@ -1,9 +1,11 @@
 
 import Base: *, /, inv, +, -, sqrt, ^, literal_pow, iszero, zero, one, ==, isapprox, hash
-import Base: conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi
+import Base:
+    conj, real, imag, abs, copy, isreal, cispi, cospi, sinpi, tanpi, complex, Complex
+import Base.MathConstants: φ
 
 # construction
-basetype(::Type{<:AlgebraicNumber}) = QQ{BigInt}
+basetype(::Type{<:AlgebraicNumber}) = QQ{ZZZ}
 category_trait(::Type{A}) where A<:AlgebraicNumber = category_trait(basetype(A))
 
 function AlgebraicNumber(
@@ -11,27 +13,43 @@ function AlgebraicNumber(
     a::Number = -Inf,
     ::Val = Val(:check),
 )
-    ps = [first(x) / LC(first(x)) for x in sff(p)]
+    iszero(denominator(p[0])) && deg(p) == 1 && return AlgebraicNumber(Inf)
+    isnan(a) && return AlgebraicNumber(NaN)
+    ps = [first(x) / LC(first(x)) for x in sff(p)] # squarefree and monic
     p, a, r, id = findbest(ps, a)
     AlgebraicNumber(p, r, id, a, NOCHECK)
 end
+
 function AlgebraicNumber(
     p::UnivariatePolynomial{<:basetype(AlgebraicNumber)},
     a::Number,
     ::Val{:irreducible},
 )
     r = cr_roots(p)
-    a, id = closeroot(p, big(value(a)), r)
+    a, id = closeroot(p, big(fvalue(a)), r)
     AlgebraicNumber(p, r, id, a, NOCHECK)
 end
-function AlgebraicNumber(a::Union{Integer,Rational{<:Integer},ZZ,QQ})
+function AlgebraicNumber(a::Union{Integer,Rational{<:Integer},ZI,QQ})
     Q = basetype(AlgebraicNumber)
     x = monom(Q[:x])
     qa = Q(a)
     AlgebraicNumber(x - qa, [Float64(qa)], 1, qa, NOCHECK)
 end
-function AlgebraicNumber(a::Complex)
-    if isreal(a)
+
+SMALL_INT = 1000
+function AlgebraicNumber(a::AbstractFloat)
+    isinteger(a) && return AlgebraicNumber(Integer(a))
+    b = rationalize(a)
+    bn = abs(numerator(b))
+    bd = denominator(b)
+    if !(bn < SMALL_INT && bd < SMALL_INT)
+        R = typeof(b)
+        throw(InexactError(R.name.name, R, a))
+    end
+    AlgebraicNumber(b)
+end
+function AlgebraicNumber(a::Complex{<:Integer})
+    if iszero(imag(a))
         return AlgebraicNumber(real(a))
     end
     Q = basetype(AlgebraicNumber)
@@ -45,6 +63,23 @@ function AlgebraicNumber(a::Complex)
         ca = conj(ca)
     end
     AlgebraicNumber(x^2 - 2 * ra * x + ia^2 + ra^2, [ca, conj(ca)], id, a, NOCHECK)
+end
+function AlgebraicNumber(a::Complex{<:AbstractFloat})
+    r, i = reim(a)
+    if iszero(i)
+        AlgebraicNumber(r)
+    else
+        AlgebraicNumber(r) + AlgebraicNumber(i) * AlgebraicNumber(im)
+    end
+end
+function AlgebraicNumber(s::Symbol)
+    n = eval(s)
+    n in (im, Base.MathConstants.φ) || throw(ArgumentError("symbol `$s` not supported"))
+    AlgebraicNumber(n)
+end
+# note: `φ`` is typed `\varphi`
+function AlgebraicNumber(::typeof(Base.MathConstants.φ))
+    AlgebraicNumber(:((sqrt(5) + 1) / 2))
 end
 
 function AlgebraicNumber(p::UnivariatePolynomial, a = -Inf)
@@ -62,9 +97,10 @@ Base.convert(::Type{T}, a::Ring) where T<:AlgebraicNumber = T(a)
 Base.convert(::Type{T}, a::AlgebraicNumber) where T<:AlgebraicNumber = a
 
 promote_rule(::Type{<:A}, ::Type{<:QQ}) where A<:AlgebraicNumber = A
-promote_rule(::Type{<:A}, ::Type{<:ZZ}) where A<:AlgebraicNumber = A
+promote_rule(::Type{<:A}, ::Type{<:ZI}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Integer}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Rational}) where A<:AlgebraicNumber = A
+promote_rule(::Type{<:A}, ::Type{<:AbstractFloat}) where A<:AlgebraicNumber = A
 promote_rule(::Type{<:A}, ::Type{<:Complex}) where A<:AlgebraicNumber = A
 
 copy(a::AlgebraicNumber) = typeof(a)(minimal_polynomial(a), approx(a))
@@ -93,6 +129,10 @@ end
 minimal_polynomial(a::AlgebraicNumber) = a.minpol
 approx(a::AlgebraicNumber) = a.approx
 deg(a::AlgebraicNumber) = deg(minimal_polynomial(a))
+function approx(a::AlgebraicNumber, id::Integer)
+    fap = a.roots[id]
+    closeroot(minimal_polynomial(a), big(fap), a.roots)[1]
+end
 Base.zero(::Type{T}) where T<:AlgebraicNumber =
     T(UnivariatePolynomial{basetype(T),:x}([0, 1]), 0)
 Base.one(::Type{T}) where T<:AlgebraicNumber =
@@ -101,9 +141,9 @@ Base.iszero(a::AlgebraicNumber) = deg(a) == 1 && minimal_polynomial(a).first == 
 isone(a::AlgebraicNumber) = deg(a) == 1 && isone(-minimal_polynomial(a)[0])
 isunit(a::AlgebraicNumber) = !iszero(a)
 
-approx(a::Union{Integer,Rational,ZZ,QQ}) = float(value(a))
+approx(a::Union{Integer,Rational,ZI,QQ}) = float(fvalue(a))
 
-function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
+@inline function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
     p = minimal_polynomial(a)
     x = monom(typeof(p))
     q = compress(p(-x) * p, 2)
@@ -112,10 +152,10 @@ function literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{2})
     end
     AlgebraicNumber(q, approx(a)^2)
 end
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{1}) = a
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{3}) = pow(a, 3)
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-1}) = inv(a)
-literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-2}) = inv(a^2)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{1}) = a
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{3}) = pow(a, 3)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-1}) = inv(a)
+@inline literal_pow(::typeof(^), a::AlgebraicNumber, ::Val{-2}) = inv(a^2)
 
 ^(a::AlgebraicNumber, n::Integer) = pow(a, n)
 function ^(a::AlgebraicNumber, q::Rational{<:Integer})
@@ -162,16 +202,25 @@ end
 
 sqrt(a::AlgebraicNumber) = ^(a, 1 // 2)
 # cbrt(a::AlgebraicNumber) = ^(a, 1 // 3) # intentionally not defined - alike Complex.
+isfinite(a::AlgebraicNumber) = isfinite(a.roots[a.rootid])
 isreal(a::AlgebraicNumber) = isreal(approx(a))
 real(a::AlgebraicNumber) = isreal(a) ? a : (a + conj(a)) / 2
 imag(a::AlgebraicNumber) = isreal(a) ? zero(a) : (conj(a) - a) * AlgebraicNumber(im) / 2
 abs(a::AlgebraicNumber) = !isreal(a) ? sqrt(a * conj(a)) : real(approx(a)) >= 0 ? a : -a
+Complex(a::AlgebraicNumber) = a
+complex(a::AlgebraicNumber) = a
 
 function *(a::T, b::T) where T<:AlgebraicNumber
-    if a == b
+    if iszero(a)
+        isfinite(b) ? a : throw_D()
+    elseif iszero(b)
+        isfinite(a) ? b : throw_D()
+    elseif !isfinite(a)
+        !iszero(b) ? a : throw_D()
+    elseif !isfinite(b)
+        !iszero(a) ? b : throw_D()
+    elseif a == b
         literal_pow(^, a, Val(2))
-    elseif iszero(a) || iszero(b)
-        zero(T)
     else
         pab = multiply(a, b)
         AlgebraicNumber(pab, approx(a) * approx(b))
@@ -179,7 +228,7 @@ function *(a::T, b::T) where T<:AlgebraicNumber
 end
 
 *(a::T, aa::RingNumber) where T<:AlgebraicNumber =
-    AlgebraicNumber(lincomb(minimal_polynomial(a), aa), approx(a) * value(aa))
+    AlgebraicNumber(lincomb(a, aa), approx(a) * fvalue(aa))
 *(aa::RingNumber, a::T) where T<:AlgebraicNumber = a * aa
 *(p::P, a::R) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
 *(a::R, p::P) where {R<:AlgebraicNumber,P<:UnivariatePolynomial{R}} = P(coeffs(p) .* a)
@@ -188,25 +237,31 @@ end
 /(aa::RingNumber, a::T) where T<:AlgebraicNumber = inv(a) * aa
 /(aa::T, a::RingNumber) where T<:AlgebraicNumber = aa * inv(basetype(T)(a))
 
-+(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, 1),
-    approx(a) + approx(b),
-)
--(a::T, b::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(b), 1, -1),
-    approx(a) - approx(b),
-)
--(a::T) where T<:AlgebraicNumber = AlgebraicNumber(
-    lincomb(minimal_polynomial(a), minimal_polynomial(a), -1, 0),
-    -approx(a),
-)
++(a::T, b::T) where T<:AlgebraicNumber =
+    AlgebraicNumber(lincomb(a, b, 1, 1), approx(a) + approx(b))
+-(a::T, b::T) where T<:AlgebraicNumber =
+    AlgebraicNumber(lincomb(a, b, 1, -1), approx(a) - approx(b))
+-(a::T) where T<:AlgebraicNumber = AlgebraicNumber(lincomb(a, -1), -approx(a))
 
 function multiply(a::T, b::T) where T<:AlgebraicNumber
-    ca = companion(minimal_polynomial(a))
-    cb = companion(minimal_polynomial(b))
-    characteristic_polynomial(kron(ca, cb))
+    ma = minimal_polynomial(a)
+    mb = minimal_polynomial(b)
+    multiply(ma, mb)
+end
+function multiply(a::T, b::T) where T<:UnivariatePolynomial
+    characteristic_polynomial(multiply_matrix(a, b))
+end
+function multiply_matrix(a::T, b::T) where T<:UnivariatePolynomial
+    ca = companion(a)
+    cb = companion(b)
+    kron(ca, cb)
 end
 
+function lincomb(a::T, b::T, aa, bb) where T<:AlgebraicNumber
+    ma = minimal_polynomial(a)
+    mb = minimal_polynomial(b)
+    lincomb(ma, mb, aa, bb)
+end
 function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
     if iszero(bb)
         lincomb(a, aa)
@@ -225,6 +280,10 @@ function lincomb(a::T, b::T, aa, bb) where T<:UnivariatePolynomial
     end
 end
 
+function lincomb(a::T, aa) where T<:AlgebraicNumber
+    ma = minimal_polynomial(a)
+    lincomb(ma, aa)
+end
 function lincomb(p::T, aa) where T<:UnivariatePolynomial
     if isone(aa)
         p
@@ -244,50 +303,123 @@ function lincomb(p::T, aa) where T<:UnivariatePolynomial
 end
 
 function inv(a::T) where T<:AlgebraicNumber
+    iszero(a) && return AlgebraicNumber(Inf)
+    isfinite(a) || return AlgebraicNumber(0)
     p = minimal_polynomial(a)
     q = reverse(p)
     q /= LC(q)
     AlgebraicNumber(q, inv(approx(a)))
 end
 
+
+function minimal_polynomial(
+    op::typeof(^),
+    ma::P,
+    n::Integer,
+) where {Q,P<:UnivariatePolynomial{Q}}
+    K1 = typeof(ma) / ma(x)
+    xa = monom(K1)
+    z = op(xa, n)
+    minimal_polynomial(z, QQQ)
+end
+
+function minimal_polynomials(
+    op::Function,
+    ma::P,
+    mb::P,
+) where {Q,P<:UnivariatePolynomial{Q}}
+    K1 = Quotient(typeof(ma), ma, false)
+    xa = monom(K1)
+    y = monom(K1[:y])
+    pb = mb(y)
+    facs = factor(pb)
+    res = P[]
+    for f in facs
+        g = first(f) # each different factor produces different result
+        K = Quotient(typeof(g), g, false)
+        yb = monom(K)
+        z = op(xa, yb)
+        m = minimal_polynomial(z, Q)
+        push!(res, m)
+    end
+    res
+end
+
 # find best of irreducible factors with respect to having a root close to `a`.
 function findbest(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
-    p = bestpoly(ps, a)
-    if isreducible(p)
-        pss = [first(s) for s in factor(p)]
-        p = bestpoly(pss, a)
-    end
-    r = cr_roots(p)
-    b, id = closeroot(p, big(value(a)), r)
-    p, b, r, id
-end
-
-function bestpoly(ps::AbstractVector{<:UnivariatePolynomial}, a::Number)
-    if length(ps) > 1
-        _, i = findmin(ps) do p
-            pa = abs(p(a))
-            dpa = abs(derive(p)(a))
-            dpa <= pa ? pa : pa / dpa
+    rmax = -1.0
+    res = []
+    for pp in ps
+        if isirreducible(pp)
+            r = cr_roots(pp)
+            push!(res, (pp, r))
+            rmax = max(rmax, maximum(abs, r))
+        else
+            for p in [first(s) for s in factor(pp)]
+                r = cr_roots(p)
+                push!(res, (p, r))
+                rmax = max(rmax, maximum(abs, r))
+            end
         end
-    else
-        i = 1
     end
-    ps[i]
+    aa = fnormed(a, rmax)
+
+    bestd = Inf
+    bestp = first(ps)
+    bestr = ComplexF64[]
+    for (p, r) in res
+        _, b = nextroot(aa, r)
+        d = abs(b - aa)
+        if d < bestd
+            bestd = d
+            bestp = p
+            bestr = r
+        end
+    end
+    b, id = closeroot(bestp, big(fvalue(a)), bestr)
+    bestp, b, bestr, id
+end
+"""
+Given the factorization of a polynomial, find the unique factor f, which has the property
+of mod(f(gen), minimal_polynomial(a) = 0, where gen is the generator of the field of a.
+"""
+function findbestirreducible(
+    ps::AbstractVector{<:UnivariatePolynomial},
+    op,
+    operands::AbstractVector{A},
+) where A<:AlgebraicNumber
+    n = length(operands)
+    names = [Symbol("a_", i) for i = 1:n]
+    Q = basetype(A)
+    M = Q[names...]
+    gs = generators(M)
+    opgen = op(gs...)
+    mp = [minimal_polynomial(o)(g) for (o, g) in zip(operands, gs)]
+    for pp in ps
+        p = pp(opgen)
+        for m in mp
+            p = mod(p, m)
+        end
+        iszero(p) && return pp
+    end
+    throw(ArgumentError("no irreducible factor found, this should not happen"))
 end
 
 
-value(a::Number) = float(a)
+fvalue(a::Number) = float(a)
+fvalue(a::Ring) = value(a)
 
-# find root of `p`, which is closest to `a`.
+# find root of `p`, which is closest to `a`, perform root iterations for full accuracy.
 function closeroot(p::UnivariatePolynomial, a::Number, r::AbstractVector{<:Number})
     p = primpart(p) # converts to ZZ[:x] - faster than QQ[:x]
 
     dp = derive(p)
+    a = fnormed(a, maximum(abs, r))
     id, a = nextroot(a, r)
     da = p(a) / dp(a)
     epsb = abs(a) * sqrt(eps(real(typeof(a))))
     i = 100
-    for _ = 1:i
+    while true
         a -= da
         i -= 1
         i = abs(da) < epsb ? min(1, i) : i
@@ -302,25 +434,83 @@ struct NumericalError <: Exception
 end
 
 function cr_roots(p::UnivariatePolynomial)
-    A = companion(Float64, p)
+    F = Float64
+    if deg(p) <= 1
+        return [F(-p[0])]
+    end
+    rts = cr_roots(p.coeff, F)
+    prepend!(rts, zeros(F, ord(p)))
+end
+
+function cr_roots(c::AbstractVector, ::Type{F}) where F<:AbstractFloat
+    sc = scale(F, c)
+    co = rescale(c, sc) # rescale coeff vector to avoid overflow/underflow in F
+    A = companion(F, co)
     roots = LinearAlgebra.eigvals(A; permute = false, scale = false)
     map(roots) do x
         e = sqrt(eps())
-        abs(real(x)) < e * abs(imag(x)) ? Complex(0, imag(x)) : x
+        x *= sc
+        abs(real(x)) < e * abs(imag(x)) ? Complex(zero(real(x)), imag(x)) : x
     end
 end
 
-function nextroot(a, r::AbstractVector)
-    _, i = findmin(r) do v
-        if isfinite(a)
-            abs(a - v)
-        elseif a == Inf
-            -real(v)
-        else
-            real(v)
-        end
+function rescale(c::AbstractVector, sc::AbstractFloat)
+    n = length(c)
+    sci = inv(sc)
+    [ambp(oftype(sc, c[i]), sci, n - i) for i = 1:n]
+end
+
+function ambp(a, b, n::Integer)
+    r = float(a)
+    for i = 1:n
+        r *= b
     end
-    i, Complex{float(real(typeof(a)))}(r[i]), r
+    r
+end
+
+function scale(::Type{F}, p::AbstractVector) where F<:AbstractFloat
+    n = length(p)
+    n <= 1 && return oneunit(F)
+    lpn = log2(abs(F(p[n])))
+    lmax = log2(floatmax(F))
+    lmin = log2(floatmin(F))
+    smin = maximum((log2(abs(F(p[i]))) - lmax - lpn) / (n - i) for i = 1:n-1)
+    smax = minimum((log2(abs(F(p[i]))) - lmin - lpn) / (n - i) for i = 1:n-1 if p[i] != 0)
+    lsc = max(smin + max((smax - smin) / 2, 0), 0)
+    exp2(trunc(lsc))
+end
+
+"""
+    fnormed(a, b)
+
+If `abs(a)`is greater than
+ten times the `maximum(abs.(r))` its size is reduced to that value.
+fnormed(a::Real, b::Real) = abs(a) > b ? sign(a) * b : a
+"""
+function fnormed(a::C, b::Real) where {T,C<:Complex{T}}
+    if isfinite(a)
+        abs(a) > b ? sign(a) * b : a
+    else
+        t = floatmax(T) / sqrt(2)
+        re = clamp(real(a), -t, t)
+        ig = clamp(imag(a), -t, t)
+        sign(C(re, ig)) * b
+    end
+end
+function fnormed(a::T, b::Real) where T<:Real
+    abs(a) > b ? sign(a) * b : a
+end
+
+"""
+    nextroot(a, r::Vector)
+
+Find the number in `r`, which is closest to `a`.
+"""
+function nextroot(a::T, r::AbstractVector) where T<:Number
+    _, i = findmin(r) do v
+        abs(a - v)
+    end
+    i, Complex{float(real(T))}(r[i])
 end
 
 function Base.conj(a::AlgebraicNumber)
@@ -393,7 +583,7 @@ end
 
 Return the algebraic number at `exp(pi * r * im)`.
 """
-Base.cispi(q::Q) where Q<:QQ = _cispi(Q, value(q))
+Base.cispi(q::Q) where Q<:QQ = _cispi(Q, fvalue(q))
 function _cispi(Q::Type{<:QQ}, r::Rational{<:Integer})
     r = mod(r + 1, 2) - 1
     r //= 2
@@ -412,7 +602,7 @@ function Base.sincospi(q::QQ)
     b = inv(e)
     c = (a + b) / 2
     s = ((a - b) / 2)^2
-    fs, fc = sincospi(big(value(q)))
+    fs, fc = sincospi(big(fvalue(q)))
     as = sqrt(AlgebraicNumber(-s, fs^2))
     ac = AlgebraicNumber(c, fc)
     as, ac
@@ -423,7 +613,7 @@ function Base.sinpi(q::QQ)
     a = monom(N)
     b = inv(a)
     s = (a - b) / 2
-    fs = sinpi(big(value(q))) * im
+    fs = sinpi(big(fvalue(q))) * im
     as = AlgebraicNumber(s, fs)
     AlgebraicNumber(_squaremulim(minimal_polynomial(as)), approx(as) / im)
 end
@@ -433,7 +623,7 @@ function Base.cospi(q::QQ)
     a = monom(N)
     b = inv(a)
     c = (a + b) / 2
-    fc = cospi(big(value(q)))
+    fc = cospi(big(fvalue(q)))
     ac = AlgebraicNumber(c, fc)
     ac
 end
@@ -443,7 +633,7 @@ function Base.tanpi(q::QQ)
     a = monom(N)
     b = inv(a)
     c = (a - b) / (a + b)
-    fc = tanpi(big(value(q))) * im
+    fc = tanpi(big(fvalue(q))) * im
     ac = AlgebraicNumber(c, fc)
     AlgebraicNumber(_squaremulim(minimal_polynomial(ac)), approx(ac) / im)
 end
@@ -460,129 +650,6 @@ function _squaremulim(p::UnivariatePolynomial)
     c
 end
 
-
-"""
-    rationalconst(expr)
-
-Return the value of a rational constant or a rational function of rational constants
-if that can be expressed as `Rational`. Otherwise return `nothing`.
-"""
-rationalconst(x::Integer) = big(x)
-rationalconst(::Any) = nothing
-
-function rationalconst(expr::Expr)
-    head = expr.head
-    if head == :call
-        args = expr.args
-        fun = args[1]
-        fun = fun == :(/) ? :(//) : fun
-        if fun == :(^)
-            p = rationalconst(args[2])
-            isnothing(p) && return p
-            q = rationalconst(args[3])
-            isnothing(q) && return q
-            denominator(q) != 1 && return nothing
-            return p^numerator(q)
-        elseif fun == :inv
-            p = rationalconst(args[2])
-            isnothing(p) && return p
-            return inv(p)
-        elseif fun == :sqrt
-            p = rationalconst(args[2])
-            isnothing(p) && return p
-            sn = isqrt(abs(numerator(p)))
-            sd = isqrt(denominator(p))
-            q = sn // sd
-            return q^2 == p ? q : nothing
-        end
-        if fun ∉ (:(+), :(-), :(*), :(//))
-            return false
-        end
-        n = length(args)
-        eargs = similar(args)
-        eargs[1] = fun
-        for j = 2:n
-            earg = rationalconst(args[j])
-            isnothing(earg) && return nothing
-            eargs[j] = earg
-        end
-        eval(Expr(head, eargs...))
-    else
-        nothing
-    end
-end
-
-"""
-    isalgebraic(expr)
-
-Return true iff the expression describes an `AlgebraicNumber`.
-"""
-
-isalgebraic(::AlgebraicNumber) = true
-isalgebraic(::Union{Rational,Integer}) = true
-isalgebraic(::Any) = false
-
-function isalgebraic(expr::Expr)
-    head = expr.head
-    if head == :call
-        args = expr.args
-        fun = args[1]
-        fun = fun == :(/) ? :(//) : fun
-        if fun == :(^)
-            isalgebraic(args[2]) || return false
-            q = rationalconst(args[3])
-            return !isnothing(q)
-        elseif fun ∉ (:(+), :(-), :(*), :(//), :inv, :sqrt)
-            return false
-        end
-        n = length(args)
-        for j = 2:n
-            isalgebraic(args[j]) || return false
-        end
-        return true
-    else
-        return false
-    end
-end
-
-AlgebraicNumber(expr::Expr) = AlgebraicNumber(to_algebraic_or_rational(expr))
-
-function to_algebraic_or_rational(expr::Expr)
-    x = rationalconst(expr)
-    !isnothing(x) && return x
-    isalgebraic(expr) || throw(ArgumentError("expression is not an algebraic number"))
-    head = expr.head
-    if head == :call
-        args = expr.args
-        fun = args[1]
-        if fun == :(^)
-            a = to_algebraic_or_rational(args[2])
-            q = rationalconst(args[3])
-            denominator(q) != 1 && (a = AlgebraicNumber(a))
-            return a^q
-        elseif fun ∈ (:(+), :(-), :(*), :(//), :(/), :inv, :sqrt)
-            n = length(args)
-            eargs = Vector{Any}(undef, n - 1)
-            for j = 2:n
-                eargs[j-1] = to_algebraic_or_rational(args[j])
-            end
-            return evaluate(Val(fun), eargs)
-        end
-        throw(ArgumentError("unknown function $fun"))
-    else
-        throw(ArgumentError("no call, but $head"))
-    end
-end
-to_algebraic_or_rational(a::Integer) = a
-
-evaluate(::Val{:(+)}, args) = +(args...)
-evaluate(::Val{:(-)}, args) = -(args...)
-evaluate(::Val{:(*)}, args) = *(args...)
-evaluate(::Val{:(/)}, args) = /(args...)
-evaluate(::Val{:(//)}, args) = /(args...)
-evaluate(::Val{:(inv)}, args) = inv(args...)
-evaluate(::Val{:(sqrt)}, args) = sqrt(AlgebraicNumber(args[1]))
-
 """
     com2(p, q)
 
@@ -594,7 +661,7 @@ Is an alternative to `det(x - companion(p, q))` which is faster sometimes.
 """
 function com2(p::UnivariatePolynomial{T}, q) where T
     n = deg(p)
-    S = typeof(value(p[0]))
+    S = typeof(fvalue(p[0]))
     M = zeros(S, n, n)
     s = q^0
     for i = 0:n-1
@@ -628,3 +695,118 @@ field_matrix(a::AlgebraicNumber) = companion(minimal_polynomial(a))
 norm(a::AlgebraicNumber) = minimal_polynomial(a)[0] * (-1)^deg(a)
 tr(a::AlgebraicNumber) = -minimal_polynomial(a)[deg(a)-1]
 discriminant(a::AlgebraicNumber) = discriminant(minimal_polynomial(a))
+
+"""
+    Map a vector of indices, all ranging from 0:bounds[i]-1, to a linear index
+    based at 0
+"""
+function lindex(v::Vector{Int}, b::NTuple{N,<:Integer}) where N
+    n = length(v)
+    n <= N || throw(ArgumentError("index vector too long"))
+    li = v[n]
+    for i = n-1:-1:1
+        li = li * b[i] + v[i]
+    end
+    li
+end
+"""
+    Map a linear index to a vector of indices.
+"""
+function mindex(li::Integer, b::NTuple{N,<:Integer}) where N
+    v = Vector{Int}(undef, N)
+    for i = 1:N
+        li, v[i] = fldmod(li, b[i])
+    end
+    v
+end
+
+# generate a Matrix, which represents the A.N. with the canonical base.
+function matrixtower(A::AbstractVector{B}) where B<:AlgebraicNumber
+    n = length(A) - 1
+    if !isone(A[end])
+        A ./= A[end]
+    end
+    bounds = tuple(deg.(A)...)
+    N = prod(bounds)
+    M = zeros(basetype(B), N * n, N * n)
+    for k = 0:n-1
+        buildtower!(M, k, n, bounds, A)
+    end
+    for i = 1:N*(n-1)
+        M[i+N, i] = 1
+    end
+    M
+end
+
+function buildtower!(
+    M::AbstractMatrix,
+    k::Integer,
+    n::Integer,
+    bounds::NTuple,
+    A::AbstractVector,
+)
+    N = prod(bounds)
+    a = minimal_polynomial(A[k+1])
+    for li = 0:N-1
+        di = N * k + 1
+        dj = N * (n - 1) + 1
+        iv = mindex(li, bounds)
+        if iv[k+1] + 1 < bounds[k+1]
+            iv[k+1] += 1
+            lj = lindex(iv, bounds)
+            iv[k+1] -= 1
+            M[lj+di, li+dj] = -1
+        else
+            for j = 0:bounds[k+1]-1
+                iv[k+1] = j
+                lj = lindex(iv, bounds)
+                M[lj+di, li+dj] += a[j]
+            end
+            iv[k+1] = bounds[k+1] - 1
+        end
+    end
+    M
+end
+
+# constructive way of proving algebraic completeness of AlgebraicNumbers
+# Attention: the degree of the minimal polynomial explodes to the
+# product of the degrees of the defining A.N. and the degree of pa itself.
+function AlgebraicNumber(pa::UnivariatePolynomial{<:AlgebraicNumber})
+    AlgebraicNumber(pa[:])
+end
+
+import Polynomials
+
+function AlgebraicNumber(A::AbstractVector{<:AlgebraicNumber})
+    fapprox(a::AlgebraicNumber) = a.roots[a.rootid]
+    rr = cr_roots(fapprox.(A))[1]
+    AlgebraicNumber(characteristic_polynomial(matrixtower(A)), rr)
+end
+
+"""
+    sdist(a, b, scale=1.0)
+
+Shperical distance between two complex numbers.
+"""
+function sdist(a::Number, b::Number, c::Number = 1.0)
+    as, az = smap(a, c)
+    bs, bz = smap(b, c)
+    sqrt(abs2(as - bs) + (az - bz)^2)
+end
+
+function smap(a::Number, c::Number)
+    a = a / c
+    ar = abs(a)
+    as = 2 * inf_sign(a) / (ar + 1 / ar)
+    az = isfinite(ar) ? (ar^2 - 1) / (ar^2 + 1) : one(ar)
+    as, az
+end
+
+inf_sign(a::Real) = sign(a)
+function inf_sign(a::Complex)
+    isfinite(a) && return sign(float(a))
+    ar, ai = reim(a)
+    isfinite(ai) && return Complex(sign(ar))
+    isfinite(ar) && return Complex(sign(ai)) * im
+    return Complex(sign(ar), sign(ai)) / sqrt(2)
+end

@@ -1,7 +1,10 @@
 
+
+
 using Primes
 import Primes.factor
-import Random: rand, SamplerType, AbstractRNG
+import Random: rand
+using Random: SamplerType, AbstractRNG
 export factor
 
 """
@@ -27,12 +30,19 @@ Returns iff `p` is an irreducible (prime) polynomial over field `F`. See also `f
 """
 function isirreducible(
     p::UnivariatePolynomial{F},
-    ::Type{<:EuclidianDomainTrait},
-) where F<:QuotientRing
+    ::Type{T},
+) where {T<:EuclidianDomainTrait,F<:QuotientRing}
+    _isirreducible(p, T, Val(characteristic(F)))
+end
+function _isirreducible(
+    p::UnivariatePolynomial{F},
+    ::Type{T},
+    ::Val, # Val{N} whith N > 0
+) where {T<:EuclidianDomainTrait,F<:QuotientRing}
     (iszero(p) || isunit(p)) && return false
     deg(p) <= 1 && return true
-    iszero(p.coeff[1]) && return false
-    pp = gcd(p, derive(p))
+    iszero(p[0]) && return false
+    pp = gcd(p, derive(p)) # check if p is squarefree
     deg(pp) > 0 && return false
     isddf(p)
 end
@@ -80,7 +90,7 @@ end
     factor(p::F[:x])
 
 Factorize polynomial in `F[X]` where `F` is a field
-(`ZZ/p` or `GF(p,m)` with `p` prime number).
+(`ZZ/p`, `GF(p,m)`, or finite extension of `QQ` with `p` prime number).
 """
 function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     res = Pair{P,Int}[]
@@ -97,15 +107,23 @@ function factor(p::P) where P<:UnivariatePolynomial{<:QuotientRing}
     end
     pp = sff(p)
     for (q, k) in pp
-        qq = ddf(q)
-        for (r, l) in qq
-            rr = edf(r, l)
-            for s in rr
-                push!(res, s => k)
-            end
+        ff = factor2(q, Val(characteristic(basetype(P))))
+        for f in ff
+            push!(res, f => k)
         end
     end
     sort!(res)
+end
+
+# assuming q has finite characteristic
+function factor2(q::P, ::Val) where P<:UnivariatePolynomial{<:QuotientRing}
+    qq = ddf(q)
+    res = P[]
+    for (r, l) in qq
+        rr = edf(r, l)
+        append!(res, rr)
+    end
+    res
 end
 
 """
@@ -229,6 +247,10 @@ function ddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
 end
 
 function isddf(f::P) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
+    _isddf(f, Val(characteristic(Z)))
+end
+
+function _isddf(f::P, ::Val) where {Z<:QuotientRing,P<:UnivariatePolynomial{Z}}
     q = order(Z)
     x = monom(typeof(f), 1)
     i = 1
@@ -308,14 +330,272 @@ function Base.rand(
 end
 
 function Base.isless(p::T, q::T) where T<:Pair{<:Ring,<:Integer}
-    first(p) < first(q) || first(p) == first(q) && second(p) == second(q)
+    first(p) < first(q) || first(p) == first(q) && last(p) == last(q)
 end
 
 import Base: prod
 function Base.prod(ff::Vector{<:Pair{T,<:Integer}}) where T<:Ring
     res = one(T)
     for p in ff
-        res *= first(p)^p.second
+        res *= first(p)^last(p)
     end
     res
 end
+
+function vector2quotient(
+    v::AbstractVector{C},
+    ::Type{Q},
+) where {C,B,Q<:Quotient{<:UnivariatePolynomial{B}}}
+    n = length(v)
+    n == dimension(Q) || throw(DimensionMismatch())
+    Q(v)
+end
+function vector2quotient(
+    v::AbstractVector{C},
+    ::Type{Q},
+) where {X,C,B,Q<:Quotient{<:UnivariatePolynomial{B,X}}}
+    n = length(v)
+    m = dimension(Q)
+    d, r = divrem(n, m)
+    (r != 0 || n != qdimension(Q)) && throw(DimensionMismatch())
+    if n == m
+        return Q(convert(AbstractVector{B}, v))
+    end
+    c = Vector{B}(undef, m)
+    for i = 0:m-1
+        vi = view(v, i*d+1:(i+1)*d)
+        c[i+1] = vector2quotient(vi, B)
+    end
+    Q(c)
+end
+
+function quotient2vector(q::Q, ::Type{Z}) where {Z,Q<:Quotient{<:UnivariatePolynomial}}
+    v = Vector{Z}(undef, qdimension(Q))
+    quotient2vector!(v, q)
+end
+
+function quotient2vector!(
+    v::AbstractVector{C},
+    q::Q,
+) where {C,Q<:Quotient{<:UnivariatePolynomial}}
+    nn = length(v)
+    n = qdimension(Q)
+    nn != n && resize!(v, n)
+    m = dimension(Q)
+    d, r = divrem(n, m)
+    (r != 0) && throw(DimensionMismatch())
+    if n == m
+        copyto!(v, q[:])
+        return v
+    end
+    for i = 0:m-1
+        vi = view(v, i*d+1:(i+1)*d)
+        quotient2vector!(vi, q[i])
+    end
+    v
+end
+
+function factor2(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+    d = deg(q)
+    d <= 1 && return [q]
+    if isbasetype(q)
+        bq = tobasetype(q)
+        f = factor(bq)
+        res = P[]
+        for (qf, k) in f
+            @assert k == 1
+            ff = factor(qf)
+            for (qff, _) in ff
+                append!(res, factor2c(P(qff[:]), V))
+            end
+        end
+        return res
+    else
+        return factor2c(q, V)
+    end
+end
+
+"""
+    isbasetype(q::Polynomial{<:QuotientRing})
+
+All coefficients `c` of polynomial `q` can be represented as `basetype(basetype(c))`
+"""
+function isbasetype(q::P) where P<:UnivariatePolynomial{<:QuotientRing}
+    for c in q.coeff
+        deg(Polynomial(c)) >= 1 && return false
+    end
+    return true
+end
+"""
+    tobasetype(q::Polynomial{<:QuotientRing})
+
+Assuming `isbasetype(q)` return a polynomial, coefficients in `basetype(basetype(c))`
+"""
+function tobasetype(q::P) where {X,Q<:QuotientRing,P<:UnivariatePolynomial{Q,X}}
+    B = basetype(basetype(Q))[X]
+    B([c[0] for c in q[:]])
+end
+
+# assuming q has characteristic 0
+function factor2c(q::P, ::Val{0}) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
+    deg(q) <= 1 && return [q]
+    qq, alpha = find_q_generator(q)
+    Q = typeof(alpha)
+    R = typeof(qq)
+    f = factor(qq)
+    length(f) == 1 && return [q]
+    res = P[]
+    for (qf, k) in f
+        @assert(k == 1)
+        #vi = M * (R / qq)(qf)[:]
+        #qi = Polynomial(Q(vi, eltype(vi)))
+        qi = Polynomial(qf(alpha))
+        mx = gcd(qi / LC(qi), q)
+        push!(res, mx)
+    end
+    unique!(res)
+end
+
+function _isddfc(q::P, ::Val{0}) where {Q<:QuotientRing,P<:UnivariatePolynomial{Q}}
+    qq, = find_q_generator(q)
+    isirreducible(qq)
+end
+
+
+function _isddf(q::P, V::Val{0}) where P<:UnivariatePolynomial{<:QuotientRing}
+    d = deg(q)
+    d <= 1 && return false
+    if isbasetype(q)
+        bq = tobasetype(q)
+        !isirreducible(bq) && return false
+    end
+    return _isddfc(q, V)
+end
+
+function find_q_generator(q::P) where {B<:QuotientRing,P<:UnivariatePolynomial{B}}
+    m, QQQ = dimension_type(B, QQ)
+    n = m * deg(q)
+    qalpha = zeros(QQQ, n)
+    qalpha[m+1] = 1
+    qalpha[m] = 1
+    Q = Quotient(P, q, false) # don't use `P / q` to avoid calling `isirreducible(q)`
+    alpha = Q(qalpha, QQQ)
+    while true
+        ma = minimal_polynomial(alpha, QQQ)
+        deg(ma) >= n && return ma, alpha
+        qalpha = rand(-1:1, n)
+        alpha = Q(qalpha, QQQ)
+    end
+end
+
+const QU{B} = Quotient{<:UnivariatePolynomial{B}}
+const UQU{B} = Union{UnivariatePolynomial{B},QU{B}}
+
+"""
+    minimal_polynomial(x::Quotient{<:Polynomial}, ::Type{QQ})
+
+Return minimal degree polynomial `m ∈ QQ[:x]` such that `m(x) == 0`.
+"""
+function minimal_polynomial(x::T, ::Type{Q}) where {Q,T<:QU}
+    n, Z = dimension_type(T, Q)
+    P = Z[:x]
+    M = zeros(Z, n, n + 1)
+    M[1, 1] = 1
+    xk = x
+    pr = collect(1:n)
+    for k = 1:n
+        b = coeffs(xk, Z)
+        lu_incremental!(M, pr, k + 1, b)
+        if k >= n || iszero(b[k+1])
+            c = UpperTriangular(view(M, 1:k, 1:k)) \ b[1:k]
+            return monom(P, k) - P(c)
+        end
+        for i = 1:n
+            M[i, k+1] = b[i]
+        end
+        xk *= x
+    end
+end
+
+isextensiontype(::Type{T}, ::Type{Q}) where {T,Q} = T <: Q
+function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
+    T <: Q ? true : isextensiontype(B, Q)
+end
+function isextensiontype(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q}
+    isextensiontype(B, Q)
+end
+
+
+qdimension(T::Type) = dimension_type(T, QQ)[1]
+qtype(T::Type) = dimension_type(T, QQ)[2]
+qtype(::Type{<:Polynomial{B}}) where B = dimension_type(B, QQ)[2]
+
+dimension_type(::Type{T}, ::Type{Q}) where {Q,T<:Q} = 1, T
+function dimension_type(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q<:QU}
+    if T <: Q
+        (1, T)
+    else
+        d, t = dimension_type(B, Q)
+        d * dimension(T), t
+    end
+end
+function dimension_type(::Type{T}, ::Type{Q}) where {B,T<:QU{B},Q}
+    d, t = dimension_type(B, Q)
+    d * dimension(T), t
+end
+
+function coeffs(p::UnivariatePolynomial{B}, ::Type{Q}, m::Integer = deg(p) + 1) where {B,Q}
+    isextensiontype(B, Q) ||
+        throw(ArgumentError("B = $B) must be extension type of Q = $Q"))
+    d, T = dimension_type(B, Q)
+    v = zeros(T, m * d)
+    _coeffs!(v, p, T, m)
+    v
+end
+function coeffs(p::QU{B}, ::Type{Q}) where {B,Q}
+    isextensiontype(B, Q) ||
+        throw(ArgumentError("B = $B) must be extension type of Q = $Q"))
+    d, T = dimension_type(B, Q)
+    m = dimension(typeof(p))
+    v = zeros(T, m * d)
+    _coeffs!(v, p, T, m)
+    v
+end
+coeffs(p::QU{B}, ::Type{<:QU{B}}) where B = [p]
+
+function _coeffs!(v::AbstractVector, p::UQU{Q}, ::Type{Q}, m::Integer) where Q
+    n = min(m, length(v))
+    for i = 1:n
+        v[i] = p[i-1]
+    end
+    nothing
+end
+function _coeffs!(v::AbstractVector, p::UQU{B}, ::Type{Q}, m::Integer) where {B,Q}
+    d, _ = dimension_type(B, Q)
+    n = dimension(B)
+    for i = 0:m-1
+        _coeffs!(view(v, i*d+1:(i+1)*d), p[i], Q, n)
+    end
+end
+
+function(::Type{T})(v::AbstractVector{Q}, ::Type{V}) where {Q,V<:Ring,T<:QU}
+    V(zero(Q)) isa Q ? T(v, Q) : T(V.(v), V)
+end
+function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Q,T<:QU{B}}
+    T(Polynomial(T)(v))
+end
+function (::Type{T})(v::AbstractVector{Q}, ::Type{Q}) where {Q<:Ring,B<:Quotient,T<:QU{B}}
+    nn = length(v)
+    m = dimension(T)
+    d, _ = dimension_type(B, Q)
+    m, r = fldmod(nn, d)
+    w = Vector{B}(undef, m + (r > 0))
+    for i = 0:m-1
+        w[i+1] = B(view(v, d*i+1:d*(i+1)))
+    end
+    if r > 0
+        w[m+1] = vcat(view(v, d*m+1:nn), zeros(Q, d - r))
+    end
+    T(w)
+end
+#(::Type{T})(v::AbstractVector{T}, ::Type{T}) where {B,T<:QU{B}} = v[1]

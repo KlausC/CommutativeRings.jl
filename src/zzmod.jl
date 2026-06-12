@@ -30,7 +30,7 @@ end
 ZZmod(a::T, m::S) where {T<:Integer,S<:Integer} = ZZmod(m, S)(S(a))
 ZZmod{m,T}(a::ZZmod{m,T}) where {m,T} = a
 ZZmod{m,T}(a::ZZmod{m,S}) where {m,T,S} = ZZmod{m,T}(a.val)
-ZZmod{m,T}(a::ZZ) where {m,T} = ZZmod{m,T}(a.val)
+ZZmod{m,T}(a::ZI) where {m,T} = ZZmod{m,T}(value(a))
 
 copy(p::ZZmod) = typeof(p)(p.val)
 
@@ -64,8 +64,8 @@ function (::Type{ZT})(a::ZS) where {n,m,T,S,ZT<:ZZmod{n,T},ZS<:ZZmod{m,S}}
     end
 end
 
-convert(::Type{Z}, a::ZZ) where Z<:ZZmod = Z(a)
-(::Type{Z})(a::ZZ) where Z<:ZZmod = Z(a.val % modulus(Z))
+convert(::Type{Z}, a::ZI) where Z<:ZZmod = Z(a)
+(::Type{Z})(a::ZI) where Z<:ZZmod = Z(value(a) % modulus(Z))
 (::Type{T})(a::ZZmod) where T<:Integer = T(value(a))
 
 """

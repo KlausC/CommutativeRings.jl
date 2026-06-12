@@ -41,6 +41,12 @@ function generator(::Type{Q}) where {P<:Polynomial,Q<:Quotient{P}}
     end
     g
 end
+function Base.getindex(q::Q, i::Int) where {P<:Polynomial,Q<:Quotient{P}}
+    q.val[i]
+end
+function Base.getindex(q::Q, ::Colon) where {P<:Polynomial,Q<:Quotient{P}}
+    [q[i] for i = 0:deg(modulus(Q))-1]
+end
 
 # convert argument to given R
 Quotient{R,I,X,Id}(v::Quotient{R,I,X,Id}) where {I,X,R<:Ring,Id} = Quotient{R,I,X,Id}(v.val)
@@ -88,13 +94,10 @@ dimension(::Type{Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[2]
 isprimemod(::Type{<:Quotient{R,I,X,Id}}) where {R,I,X,Id} = Id[3]
 subfield(::Type{<:Quotient{R}}) where {Z,R<:UnivariatePolynomial{Z}} = Z
 
-@generated function order(a::Type{<:Quotient})
-    function _order(::Type{<:Type{Q}}) where {Q<:Quotient}
-        r = dimension(Q)
-        b = order(subfield(Q))
-        iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
-    end
-    _order(a)
+function order(::Type{Q}) where {Q<:Quotient}
+    r = dimension(Q)
+    b = order(subfield(Q))
+    iszero(r * b) ? 0 : uptype(intpower(b, r), Int)
 end
 
 # induced homomorphism - invalid if Q = R/I and I not in kernel(F)
@@ -117,17 +120,29 @@ end
 ==(a::Quotient{S,I,X}, b::Quotient{T,I,X}) where {I,X,S,T} = a.val == b.val
 hash(a::Quotient, h::UInt) = hash(a.val, hash(modulus(a), h))
 
-function Base.show(io::IO, a::Quotient)
-    v = a.val
+function Base.show(io::IO, a::Q) where Q<:Quotient
+    v = value(a)
     m = modulus(a)
-    if m isa UnivariatePolynomial && deg(m) == 2 && iszero(m.coeff[2]) && isone(m.coeff[3])
+    if m isa UnivariatePolynomial &&
+       deg(m) == 2 &&
+       iszero(m[1]) &&
+       isone(m[2]) &&
+       m[0] isa Union{QQ,ZI}
 
         x = string(varnames(m)[1])
-        y = string('\u23b7', -m.coeff[1])
+        imag = m[0] > 0 ? "𝓲" : "" # \bscri bold script i for imaginary unit
+        absm = m[0] > 0 ? m[0] : -m[0]
+        y = isone(m[0]) ? imag : string('\u23b7', absm, imag) # sqrt glyph ⎷
         vs = replace(sprint(show, v), x => y)
         print(io, vs)
     else
-        print(io, v, " mod(", m, ")")
+        show(io, v)
+        if !get(io, :suppressmod, false)
+            io = IOContext(io, :suppressmod => true)
+            print(io, " mod(")
+            show(io, m)
+            print(io, ")")
+        end
     end
 end
 
@@ -142,5 +157,6 @@ pgcdx(a::G, b::G) where G<:QuotientRing = gcdx(a, b)
 function show(io::IO, ::Type{Q}) where {Z,R<:UnivariatePolynomial{Z},Q<:Quotient{R}}
     print(io, "Quotient{")
     show(io, R)
+    io = IOContext(io, :suppressmod => true)
     print(io, ", ", modulus(Q), "}")
 end

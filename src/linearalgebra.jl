@@ -27,8 +27,8 @@ function pivot(A::Union{AbstractMatrix,AbstractVector}, i::Integer, j::Integer =
     amax, imax
 end
 
-pivabs(a::QQ) = pivabs(ZZ(numerator(a)))
-pivabs(z::ZZ) = iszero(z) ? 0.0 : isunit(z) ? Inf : 1.0 / abs(z.val)
+pivabs(a::T) where T<:QQ = pivabs(basetype(T)(numerator(a)))
+pivabs(z::ZI) = iszero(z) ? 0.0 : isunit(z) ? Inf : 1.0 / abs(value(z))
 pivabs(a::Ring) = isunit(a) ? 1 : 0
 
 """
@@ -412,7 +412,7 @@ function adjugate(A::AbstractMatrix{P}) where P<:Ring
         _adjugate_fallback(A)
     end
 end
-function _adjugate(A::AbstractMatrix{P}, da) where P<:Union{Polynomial,ZZ}
+function _adjugate(A::AbstractMatrix{P}, da) where P<:Union{Polynomial,ZI}
     Q = Frac(P)
     B = Q.(A)
     C = inv(B) .* Q(da)

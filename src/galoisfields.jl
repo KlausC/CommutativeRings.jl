@@ -27,7 +27,7 @@ If `nr != 0` is given, in the case of modulus calculation, the first `nr` soluti
 `maxord` defines the maximal order, for which logarithm tables are stored to implement the class.
 Otherwise a representation by quotient space of the polynomial over `ZZ/p` is used.
 """
-function GF(n::Integer, k::Integer = 1; mod = :conway, nr = 0, maxord = 2^20)
+function GF(n::Integer, k::Integer=1; mod=:conway, nr=0, maxord=2^20)
     f = Primes.factor(n)
     length(f) == 1 || terror("$n is not p^r with p prime and r >= 1")
     p, r = f.pe[1]
@@ -54,7 +54,11 @@ function _GF(p::Integer, r::Integer, mod, nr::Integer, maxord::Int)
 
     gen = monom(Q)
     while order(gen) != ord - 1
-        gen, = next(gen)
+        nx = next(gen)
+        if nx === nothing
+            terror("no generator with maximal order found")
+        end
+        gen, = nx
     end
     g = tonumber(gen, pq)
 
@@ -153,12 +157,10 @@ basetype(::Type{GaloisField{C,D,Id,T,Q}}) where {C,D,Id,T,Q} = Q
 characteristic(G::Type{<:GaloisField}) = characteristic(basetype(G))
 characteristic(a::Type{Union{}}) = merror(characteristic, (a,))
 dimension(G::Type{<:GaloisField}) = dimension(basetype(G)) * dimension(subfield(G))
-@generated function order(a::Type{<:GaloisField})
-    function order(::Type{<:Type{<:GaloisField{C,D}}}) where {C,D}
-        ord = intpower(C, D)
-        convert(promote_type(typeof(ord), Int), ord)
-    end
-    order(a)
+order(::Type{<:GaloisField{C,D}}) where {C,D} = order(C, D)
+function order(c::Integer, d::Integer)
+    ord = intpower(c, d)
+    convert(promote_type(typeof(ord), Int), ord)
 end
 lognegone(G::Type{<:GaloisField}) = characteristic(G) == 2 ? 0 : (order(G) - 1) ÷ 2
 modulus(G::Type{<:GaloisField}) = modulus(basetype(G))
@@ -448,14 +450,14 @@ are not negative and `p` is not less than the maximum of those coeffs.
 If `a` is `GaloisField` element, p defaults to the order of the subfield, which is used
 to represent the field.
 """
-function tonumber(u::UnivariatePolynomial, p::Integer = order(basetype(typeof(u))))
+function tonumber(u::UnivariatePolynomial, p::Integer=order(basetype(typeof(u))))
     s = zero(intpower(p, deg(u) + 1))
     for c in reverse(u.coeff)
         s = s * p + tonumber(c)
     end
     s * intpower(p, ord(u))
 end
-function tonumber(a::Q, p::Integer = order(subfield(Q))) where Q<:Quotient
+function tonumber(a::Q, p::Integer=order(subfield(Q))) where Q<:Quotient
     tonumber(value(a), p)
 end
 function tonumber(g::G) where G<:GaloisField
@@ -504,10 +506,10 @@ Elements of the field can be created like
 """
 function GFImpl(
     p::Integer,
-    m::Integer = 1,
-    factors = nothing;
-    nr::Integer = 0,
-    mod = :conway,
+    m::Integer=1,
+    factors=nothing;
+    nr::Integer=0,
+    mod=:conway,
 )
     isprime(p) || terror("base $p must be prime")
     m > 0 || terror("exponent m=$m must be positive")
@@ -567,7 +569,7 @@ function gf(a::String, b::Integer)
     r = max(r, r1)
     G = GF(p, r)
     tp(x) = isempty(x) ? 0 : tryparse(Int, x)
-    v = mapfoldl(tp, (a, b) -> a * p + b, digs; init = 0)
+    v = mapfoldl(tp, (a, b) -> a * p + b, digs; init=0)
     ofindex(v, G)
 end
 
@@ -607,7 +609,7 @@ base of `Q` as a vector space over `ZZ/p` (a normal base).
 """
 function normalmatrix(
     a::Q,
-    m::Integer = 0,
+    m::Integer=0,
 ) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     p = characteristic(Q)
     r = dimension(Q)
@@ -630,7 +632,7 @@ Return `normalmatrix(a, m)` for the first `a` in `Q` for which this has maximal 
 """
 function normalmatrix(
     ::Type{Q},
-    m::Integer = 0,
+    m::Integer=0,
 ) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q<:Quotient{P}}
     normalmatrix(normalbase(Q), m)
 end
@@ -680,7 +682,7 @@ function *(
     mulsized(M, a.val)
 end
 
-function monom(::Type{Q}, k::Integer, lc = 1) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
+function monom(::Type{Q}, k::Integer, lc=1) where {P<:UnivariatePolynomial,Q<:Quotient{P}}
     k < dimension(Q) ? Q(monom(P, k, lc)) : lc == 1 ? Q(monom(P))^k : Q(monom(P))^k * lc
 end
 
@@ -703,7 +705,7 @@ end
 function homomorphism(
     ::Type{R},
     ::Type{S},
-    nr::Integer = 0,
+    nr::Integer=0,
 ) where {T<:Union{Quotient{<:UnivariatePolynomial{<:ZZmod}},GaloisField},R<:T,S<:T}
 
     r = dimension(R)
@@ -772,7 +774,7 @@ function _homomorphism(
     1, 1
 end
 
-function homomorphism(iso::Function, nr::Integer = 0)
+function homomorphism(iso::Function, nr::Integer=0)
     N = iso.A.N
     M1 = iso.A.M1
     Q = iso.A.Q
@@ -780,7 +782,7 @@ function homomorphism(iso::Function, nr::Integer = 0)
     _homomorphism(Q, R, N, M1, nr)
 end
 
-function homomorphism(::Type{Z}, ::Type{H}, nr::Integer = 0) where {Z<:ZZmod,H<:GaloisField}
+function homomorphism(::Type{Z}, ::Type{H}, nr::Integer=0) where {Z<:ZZmod,H<:GaloisField}
     characteristic(Z) == characteristic(H) || terror("different characteristics")
     Hom{Z,H}(x -> H(x))
 end
@@ -788,7 +790,7 @@ end
 function homomorphism2(
     ::Type{G},
     ::Type{H},
-    nr::Integer = 0,
+    nr::Integer=0,
 ) where {G<:GaloisField,H<:GaloisField}
     N, M1 = _homomorphism(basetype(G), basetype(H))
     Hom{G,H}(_homomorphism(G, H, N, M1, nr))
@@ -797,7 +799,7 @@ end
 function homomorphism2(
     ::Type{Q},
     ::Type{R},
-    nr::Integer = 0,
+    nr::Integer=0,
 ) where {Z<:ZZmod,P<:UnivariatePolynomial{Z},Q,R<:Quotient{P}}
     N, M1 = _homomorphism(Q, R)
     _homomorphism(Q, R, N, M1, nr)
@@ -810,7 +812,7 @@ function _homomorphism(::Type{Q}, ::Type{R}, N, M1, nr::Integer) where {Q,R}
     if nr != 0
         N = hcat(N[:, nr+1:r], N[:, 1:nr])
     end
-    A = (T = N * M1, N = N, M1 = M1, Q = Q, R = R)
+    A = (T=N * M1, N=N, M1=M1, Q=Q, R=R)
     quot(x) = x
     quot(x::GaloisField) = Quotient(x)
     iso(a::Q) = R(A.T * quot(a))

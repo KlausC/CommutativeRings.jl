@@ -131,7 +131,7 @@ necklace(q::Union{BigInt,RingInt}, n::Integer) = n == 0 ? one(q) : _necklace(q, 
     _div(s, n)
 end
 _div(s, n) = div(s, n)
-_div(s::UnivariatePolynomial{Z,X}, n) where {X,Z<:ZZ} = QQ[X](s) / n
+_div(s::UnivariatePolynomial{Z,X}, n) where {X,Z<:ZI} = QQ[X](s) / n
 
 """
     carmichael(n::Integer)

@@ -99,7 +99,9 @@ function det_QR!(b::AbstractMatrix{D}) where {Z,D<:QuotientRing{Z}}
                 isone(w) && return dv
                 ZW = Quotient(w, Z)
                 dw = det!(ZW.(a))
-                return _crt(D(value(dv)), D(value(dw)), v, w) * s
+                dvd = value(dv)
+                dwd = value(dw)
+                return crt(dvd, dwd, v, w)[1] * s
             end
         end
         bkk = one(D)
@@ -167,22 +169,54 @@ function rowdivgcd!(b::AbstractMatrix{D}, i, k, ij, s) where {Z,D<:QuotientRing{
 end
 
 """
-    crt(x, y, p, q)
+    crt(x, y, p, q) ->crt-value, lcm(p, q), gcd(p, q)
 
 Chinese remainder theorem.
-Given `x, y, p, q` with `gcd(p, q) == 1`,
+The type of the arguments must allow operations div, rem, mod, gcdx
+Given `x, y, p, q` with `gcd(p, q) == g`,
 return `0 <= z < lcm(p, q)` with 'mod(z - x, p) == 0` and `mod(z - y, q) == 0`.
-The result type is widened to avoid overflows.
+For Integers, the result type is widened to avoid overflows.
 """
-function crt(x, y, p, q)
-    g, c = _crt2(widen(x), widen(y), p, q)
-    mod(c, div(widen(p) * widen(q), g))
+crt(x, y, p, q) = crt(promote(x, y, p, q)...)
+function crt(x::T, y::T, p::T, q::T) where T<:Union{Integer,Ring}
+    g, u = gcdx(p, q)
+    # mod(y * u * p + x * v * q, lcm(p, q)), ...
+    x = mod(x, p)
+    y = mod(y, q)
+    yx, r = divrem(y - x, g)
+    iszero(r) || throw(ArgumentError("y - x must be multiple of gcd(p, q)"))
+    qg = div(q, g)
+    mod(_widemul(yx, u), qg) * p + x, _widemul(qg, p), g
 end
-_crt(x, y, p, q) = _crt2(x, y, p, q)[2]
-function _crt2(x, y, p, q)
-    g, u, v = gcdx(p, q)
-    g, y * u * p + x * v * q
+
+_widemul(x::T, y::T) where T<:Integer = widemul(x, y)
+_widemul(x::T, y::T) where T<:Ring = x * y
+
+"""
+    crt(xx::Vector, pp::Vector) -> crt-value of vector data, lcm(pp)
+
+Note:
+    If p[i] are pairwise disjoint polynomials and p = prod(p[i]), then there is a
+    Algebra Isomorphism between Q[x] / p and the direct sum of the Q[x]/p[i] via
+
+    y -> [mod(y, p[i]), i = ...] in the trivial direction and
+
+    crt([y[i], i = ..], [p[i], i = ...]) -> mod(y, p) in the reverse direction.
+
+    There should be test cases that prove the inversity of the mappings and the
+    compatibility with the ring-operations +, -, *, /.
+"""
+function crt(xx::AbstractVector{T}, pp::AbstractVector{T}) where T
+    n = length(xx)
+    (n > 0 && n == length(pp)) || throw(ArgumentError("input vectors have different sizes"))
+    p = pp[1]
+    x = n == 1 ? mod(xx[1], p) : xx[1]
+    for i = 2:n
+        x, p = crt(x, xx[i], p, pp[i])
+    end
+    x, p
 end
+
 """
     v = splitmod(a, m)
 

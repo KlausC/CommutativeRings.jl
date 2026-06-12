@@ -28,8 +28,8 @@ for op in (
 end
 for op in (:+, :-, :*, :/, :\, :isapprox)
     @eval begin
-        ($op)(a::Union{QQ,ZZ}, b::OtherNumber) = ($op)(promote(a, b)...)
-        ($op)(a::OtherNumber, b::Union{QQ,ZZ}) = ($op)(promote(a, b)...)
+        ($op)(a::Union{QQ,ZI,AlgebraicNumber}, b::OtherNumber) = ($op)(promote(a, b)...)
+        ($op)(a::OtherNumber, b::Union{QQ,ZI,AlgebraicNumber}) = ($op)(promote(a, b)...)
     end
 end
 
@@ -43,7 +43,7 @@ Base.iterate(::Ring, ::Any) = nothing
 Base.isempty(::Ring) = false
 Base.in(a::Ring, b::Ring) = a == b
 Base.map(f, a::Ring, bs::Ring...) = f(a, bs...)
-Base.big(a::T) where T<:Union{QQ,ZZ} = big(T)(a)
+Base.big(a::T) where T<:Union{QQ,ZI} = big(T)(a)
 
 basetype(::T) where T<:Ring = basetype(T)
 basetype(::Type{T}) where T = Union{}
@@ -74,14 +74,22 @@ generatorset(::Type{P}) where P<:Quotient{<:Polynomial} = generatorset(basetype(
 
 adjoint(a::Ring) = a
 
-@generated function basetypes(a::DataType)
-    _basetypes(::Type{Union{}}) = DataType[]
-    _basetypes(::Type{a}) where a = begin
-        b = basetype(a)
-        [a; _basetypes(b)]
+function _basetypes(a::Type)
+    res = DataType[]
+    b = a
+    while b !== Union{}
+        push!(res, b)
+        b = basetype(b)
     end
-    bt = tuple(_basetypes(a.parameters[1])...)
-    :($bt)
+    tuple(res...)
+end
+
+const BASE_TYPES = IdDict{UInt,Tuple}()
+basetypes(::Type) = ()
+function basetypes(a::DataType)
+    get!(BASE_TYPES, objectid(a)) do
+        _basetypes(a)
+    end
 end
 
 function /(a::T, b::T) where T<:Ring
@@ -582,7 +590,7 @@ end
 
 category_trait(a::Type{Union{}}) = throw(MethodError(category_trait, (a,)))
 
-@noinline terror(s...) =  throw(ArgumentError(string(s...)))
+@noinline terror(s...) = throw(ArgumentError(string(s...)))
 @noinline merror(f, s...) = throw(MethodError(f, tuple(s...)))
 @noinline merror(f, s::Tuple) = throw(MethodError(f, s))
 

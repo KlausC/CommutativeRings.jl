@@ -39,6 +39,7 @@ export generator, generators
 export homomorphism
 export num_primitives, isprimitive, ismonomprimitive
 export elementary_symmetric, newton_symmetric
+export crt
 
 export VectorSpace, complement, sum, intersect, isequal, issubset
 export groebnerbase, SPOL, lextend
@@ -95,6 +96,7 @@ include("lll.jl")
 include("ll.jl")
 include("fourier.jl")
 include("fastmultiply.jl")
+include("asthandling.jl")
 include("algebraic.jl")
 include("numberfield.jl")
 include("luebeck.jl")
