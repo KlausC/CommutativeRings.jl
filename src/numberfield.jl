@@ -46,7 +46,7 @@ promote_rule(::Type{N}, ::Type{<:Integer}) where N<:NumberField = N
 promote_rule(::Type{N}, ::Type{<:Rational}) where N<:NumberField = N
 
 # return the base algebraic number of this number field
-@inline base(::Type{<:NumberField{T}}) where T = T
+@inline base(::Type{<:NumberField{T,Id,Q}}) where {T,Id,Q} = modulus(Q)
 @inline base(b::NumberField) = modulus(b.repr)
 
 approx(nf::N) where N<:NumberField = value(nf.repr)(approx(base(N)))
@@ -95,7 +95,7 @@ generator(::Type{N}) where N<:NumberField = monom(N)
 
 minimal_polynomial(b::NumberField) = minimal_polynomial(AlgebraicNumber(b))
 
-minimal_polynomial(::Type{N}) where N<:NumberField = minimal_polynomial(base(N))
+minimal_polynomial(::Type{N}) where N<:NumberField = base(N)
 
 """
     field_matrix(b::NumberField)
